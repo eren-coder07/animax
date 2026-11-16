@@ -1,0 +1,376 @@
+import 'package:flutter/material.dart';
+
+import '../core/app_theme.dart';
+import '../core/library_store.dart';
+import '../widgets/common.dart';
+
+/// Personal library — My List (status buckets), watch history and stats.
+class LibraryScreen extends StatefulWidget {
+  const LibraryScreen({super.key});
+
+  @override
+  State<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends State<LibraryScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs = TabController(length: 3, vsync: this);
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        title: const Text('My Library'),
+        backgroundColor: AppColors.bg,
+        bottom: TabBar(
+          controller: _tabs,
+          indicatorColor: AppColors.accent,
+          labelColor: AppColors.text,
+          unselectedLabelColor: AppColors.muted,
+          labelStyle:
+              const TextStyle(fontFamily: 'Poppins', fontSize: 12.5, fontWeight: FontWeight.w600),
+          tabs: const <Tab>[
+            Tab(text: 'My List'),
+            Tab(text: 'History'),
+            Tab(text: 'Stats'),
+          ],
+        ),
+      ),
+      body: ListenableBuilder(
+        listenable: LibraryStore.I,
+        builder: (BuildContext context, _) => TabBarView(
+          controller: _tabs,
+          children: <Widget>[
+            _buildMyList(),
+            _buildHistory(),
+            _buildStats(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------ list
+
+  Widget _buildMyList() {
+    final List<LibEntry> entries = LibraryStore.I.allEntries
+        .where((LibEntry e) => e.inList)
+        .toList();
+    if (entries.isEmpty) {
+      return Center(
+        child: EmptyState(
+          icon: Icons.bookmark_border_rounded,
+          title: 'Your list is empty',
+          message:
+              'Tap the bookmark icon on any anime, movie or comic to track '
+              'your watching here.',
+        ),
+      );
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.58,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 14),
+      itemCount: entries.length,
+      itemBuilder: (BuildContext c, int i) {
+        final LibEntry e = entries[i];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: e.poster.startsWith('http')
+                        ? Image.network(e.poster,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => ColoredBox(
+                                color: AppColors.surfaceHi))
+                        : ColoredBox(color: AppColors.surfaceHi),
+                  ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: InkWell(
+                      onTap: () {
+                        LibraryStore.I.removeListEntry(e.key);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close_rounded,
+                            size: 12, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  if (e.status != null)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 3, horizontal: 6),
+                        color: Colors.black.withValues(alpha: 0.65),
+                        child: Text(
+                          e.status!.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.accent),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(e.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.text)),
+            if (e.rating > 0)
+              Row(
+                children: <Widget>[
+                  const Icon(Icons.star_rounded,
+                      size: 11, color: AppColors.amber),
+                  const SizedBox(width: 2),
+                  Text('${e.rating}/10',
+                      style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 10,
+                          color: AppColors.muted)),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  // --------------------------------------------------------------- history
+
+  Widget _buildHistory() {
+    final List<HistoryRow> rows = LibraryStore.I.history;
+    if (rows.isEmpty) {
+      return Center(
+        child: EmptyState(
+          icon: Icons.history_rounded,
+          title: 'No history yet',
+          message: 'Everything you play or read shows up here so you can '
+              'jump back in instantly.',
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(20),
+      itemCount: rows.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (BuildContext c, int i) {
+        final HistoryRow r = rows[i];
+        return Material(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {},
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: <Widget>[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 42,
+                      height: 58,
+                      child: r.poster.startsWith('http')
+                          ? Image.network(r.poster,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  ColoredBox(color: AppColors.surfaceHi))
+                          : ColoredBox(color: AppColors.surfaceHi),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(r.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.text)),
+                        const SizedBox(height: 3),
+                        Text('${r.label} · ${_ago(r.at)}',
+                            style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 10.5,
+                                color: AppColors.muted)),
+                      ],
+                    ),
+                  ),
+                  Text(_kindLabel(r.kind),
+                      style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.accent)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ----------------------------------------------------------------- stats
+
+  Widget _buildStats() {
+    final ({int episodesWatched, int chaptersRead, int titlesTracked,
+            double hoursWatched, int activeDays}) s =
+        LibraryStore.I.stats();
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: <Widget>[
+        const SizedBox(height: 6),
+        Row(
+          children: <Widget>[
+            _statCard('Episodes\nwatched', s.episodesWatched.toString(),
+                Icons.play_circle_outline_rounded),
+            const SizedBox(width: 12),
+            _statCard('Chapters\nread', s.chaptersRead.toString(),
+                Icons.menu_book_rounded),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: <Widget>[
+            _statCard('Titles\ntracked', s.titlesTracked.toString(),
+                Icons.bookmark_rounded),
+            const SizedBox(width: 12),
+            _statCard('Hours\nstreamed', s.hoursWatched.toStringAsFixed(1),
+                Icons.schedule_rounded),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: <Widget>[
+            _statCard('Active\ndays', s.activeDays.toString(),
+                Icons.local_fire_department_rounded),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.stroke),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(Icons.insights_rounded,
+                        size: 22, color: AppColors.accent),
+                    const SizedBox(height: 8),
+                    Text('Keep watching!',
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text)),
+                    const SizedBox(height: 4),
+                    Text(
+                        s.hoursWatched > 24
+                            ? 'That is more than a full day of anime.'
+                            : 'Your stats grow with every episode.',
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 10.5,
+                            color: AppColors.muted)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _statCard(String label, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.stroke),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(icon, size: 22, color: AppColors.accent),
+            const SizedBox(height: 10),
+            Text(value,
+                style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.text)),
+            const SizedBox(height: 4),
+            Text(label,
+                style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 10.5,
+                    height: 1.3,
+                    color: AppColors.muted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _kindLabel(String kind) => switch (kind) {
+        'manga' => 'COMIC',
+        'cinema' => 'CINEMA',
+        'cartoon' => 'CARTOON',
+        _ => 'ANIME',
+      };
+
+  static String _ago(DateTime at) {
+    final Duration d = DateTime.now().difference(at);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    if (d.inDays < 30) return '${d.inDays}d ago';
+    return '${at.year}-${at.month.toString().padLeft(2, '0')}'
+        '-${at.day.toString().padLeft(2, '0')}';
+  }
+}

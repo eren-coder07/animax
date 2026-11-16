@@ -42,7 +42,7 @@ class NotificationsScreen extends StatelessWidget {
                     const SnackBar(content: Text('All notifications marked as read'))),
                 child: Text('Mark all as read',
                     style: AppText.bodyBold
-                        .copyWith(color: AppColors.green, fontSize: 12)),
+                        .copyWith(color: AppColors.accent, fontSize: 12)),
               ),
             ),
             Expanded(
@@ -102,15 +102,15 @@ class NotificationsScreen extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppColors.green.withValues(alpha: 0.15),
+                              color: AppColors.accent.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(9),
                             ),
-                            child: const Text('Updates',
+                            child: Text('Updates',
                                 style: TextStyle(
                                     fontFamily: 'Poppins',
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.green)),
+                                    color: AppColors.accent)),
                           ),
                         ],
                       ),

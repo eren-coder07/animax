@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/library_store.dart';
 import '../widgets/buttons.dart';
 import '../widgets/cards.dart';
 import '../widgets/common.dart';
@@ -135,6 +137,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         );
                       },
                     ),
+                    const SizedBox(height: 12),
+                    // ---------- Quick actions: list / rate / share ----------
+                    _QuickActions(anime: _anime),
                     const SizedBox(height: 18),
                     FutureBuilder<Anime>(
                       future: _detailsFuture,
@@ -142,8 +147,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         final Anime a = snap.data ?? _anime;
                         return Row(
                           children: [
-                            const Icon(Icons.star_rounded,
-                                color: AppColors.green, size: 20),
+                            Icon(Icons.star_rounded,
+                                color: AppColors.accent, size: 20),
                             const SizedBox(width: 4),
                             Text(a.score.toStringAsFixed(1),
                                 style: AppText.bodyBold.copyWith(fontSize: 15)),
@@ -192,7 +197,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     setState(() => _expanded = !_expanded),
                                 child: Text(_expanded ? 'Show less' : 'Read more',
                                     style: AppText.bodyBold.copyWith(
-                                        color: AppColors.green, fontSize: 12)),
+                                        color: AppColors.accent, fontSize: 12)),
                               ),
                             if (a.genres.isNotEmpty) ...<Widget>[
                               const SizedBox(height: 20),
@@ -238,14 +243,14 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       builder: (BuildContext context,
                           AsyncSnapshot<List<Episode>> snap) {
                         if (snap.connectionState != ConnectionState.done) {
-                          return const SizedBox(
+                          return SizedBox(
                             height: 98,
                             child: Center(
                               child: SizedBox(
                                 width: 26,
                                 height: 26,
                                 child: CircularProgressIndicator(
-                                    color: AppColors.green, strokeWidth: 2.5),
+                                    color: AppColors.accent, strokeWidth: 2.5),
                               ),
                             ),
                           );
@@ -393,7 +398,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   },
                   child: Text(s,
                       style: AppText.bodyBold.copyWith(
-                          color: _season == s ? AppColors.green : AppColors.text)),
+                          color: _season == s ? AppColors.accent : AppColors.text)),
                 ))
             .toList(),
       ),
@@ -401,3 +406,247 @@ class _DetailsScreenState extends State<DetailsScreen> {
   }
 }
 
+
+/// Quick action strip under the Play button: My List status, 10-point
+/// rating and share.
+class _QuickActions extends StatelessWidget {
+  const _QuickActions({required this.anime});
+
+  final Anime anime;
+
+  String get _key => 'anime:${anime.id}';
+
+  Future<void> _pickStatus(BuildContext context) async {
+    final LibraryStore lib = LibraryStore.I;
+    final LibStatus? current = lib.entryOf(_key)?.status;
+    final LibStatus? picked = await showModalBottomSheet<LibStatus>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (BuildContext ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Padding(
+                padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
+                child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Save to…',
+                        style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text)))),
+            for (final LibStatus s in LibStatus.values)
+              ListTile(
+                leading: Icon(
+                    switch (s) {
+                      LibStatus.watching => Icons.visibility_rounded,
+                      LibStatus.plan => Icons.bookmark_rounded,
+                      LibStatus.done => Icons.check_circle_rounded,
+                      LibStatus.hold => Icons.pause_circle_rounded,
+                      LibStatus.drop => Icons.remove_circle_outline_rounded,
+                    },
+                    color:
+                        s == current ? AppColors.accent : AppColors.muted),
+                title: Text(s.label,
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13.5,
+                        color: s == current
+                            ? AppColors.accent
+                            : AppColors.text)),
+                onTap: () => Navigator.of(ctx).pop(s),
+              ),
+            if (current != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded,
+                    color: AppColors.danger, size: 20),
+                title: const Text('Remove from My List',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13.5,
+                        color: AppColors.danger)),
+                onTap: () {
+                  lib.removeListEntry(_key);
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            const SizedBox(height: 6),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) {
+      lib.setListStatus(
+        key: _key,
+        title: anime.title,
+        poster: anime.poster,
+        kind: 'anime',
+        status: picked,
+        meta: '${anime.year.isEmpty ? 'Anime' : anime.year}'
+            '${anime.type.isEmpty ? '' : ' · ${anime.type}'}',
+      );
+    }
+  }
+
+  Future<void> _pickRating(BuildContext context) async {
+    final LibraryStore lib = LibraryStore.I;
+    int current = lib.ratingOf(_key);
+    final int? picked = await showDialog<int>(
+      context: context,
+      builder: (BuildContext ctx) => StatefulBuilder(
+        builder: (BuildContext bctx, void Function(void Function()) setM) =>
+            AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('Rate this title',
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.text)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                current == 0 ? 'Not rated yet' : '$current / 10',
+                style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 13,
+                    color: AppColors.sub),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 280,
+                child: Slider(
+                  value: current.toDouble(),
+                  min: 0,
+                  max: 10,
+                  divisions: 10,
+                  label: '$current',
+                  activeColor: AppColors.accent,
+                  onChanged: (double v) => setM(() => current = v.round()),
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.5,
+                      color: AppColors.sub)),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.accent),
+              onPressed: () => Navigator.of(ctx).pop(current),
+              child: Text('Save',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink)),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) lib.rate(_key, picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: LibraryStore.I,
+      builder: (BuildContext context, _) {
+        final bool listed = LibraryStore.I.isListed(_key);
+        final int rating = LibraryStore.I.ratingOf(_key);
+        return Row(
+          children: <Widget>[
+            Expanded(
+              child: _QuickAction(
+                icon: listed
+                    ? Icons.bookmark_added_rounded
+                    : Icons.bookmark_add_outlined,
+                label: listed ? 'In My List' : 'My List',
+                onTap: () => _pickStatus(context),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickAction(
+                icon: rating > 0
+                    ? Icons.star_rounded
+                    : Icons.star_outline_rounded,
+                label: rating > 0 ? '$rating/10' : 'Rate',
+                onTap: () => _pickRating(context),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickAction(
+                icon: Icons.ios_share_rounded,
+                label: 'Share',
+                onTap: () async {
+                  final String text = 'Watching ${anime.title} on Animax — '
+                      'a free anime app: https://github.com/eren-coder07/animax';
+                  await Clipboard.setData(ClipboardData(text: text));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(
+                            'Share text copied — paste it anywhere')));
+                  }
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          child: Column(
+            children: <Widget>[
+              Icon(icon, size: 19, color: AppColors.accent),
+              const SizedBox(height: 5),
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.sub)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -75,9 +75,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
             const SizedBox(height: 14),
             TabBar(
               controller: _tabs,
-              indicatorColor: AppColors.green,
+              indicatorColor: AppColors.accent,
               indicatorSize: TabBarIndicatorSize.label,
-              labelColor: AppColors.green,
+              labelColor: AppColors.accent,
               unselectedLabelColor: AppColors.muted,
               labelStyle:
                   const TextStyle(fontFamily: 'Poppins', fontSize: 12.5, fontWeight: FontWeight.w700),
@@ -123,7 +123,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
-              border: open ? Border.all(color: AppColors.green, width: 1.2) : null,
+              border: open ? Border.all(color: AppColors.accent, width: 1.2) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,8 +137,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
                     AnimatedRotation(
                       turns: open ? 0.5 : 0,
                       duration: const Duration(milliseconds: 200),
-                      child: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: AppColors.green),
+                      child: Icon(Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.accent),
                     ),
                   ],
                 ),
@@ -178,10 +178,10 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
                     width: 46,
                     height: 46,
                     decoration: BoxDecoration(
-                      color: AppColors.green.withValues(alpha: 0.14),
+                      color: AppColors.accent.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(c.icon, color: AppColors.green, size: 22),
+                    child: Icon(c.icon, color: AppColors.accent, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -201,12 +201,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
                         Container(
                             width: 7,
                             height: 7,
-                            decoration: const BoxDecoration(
-                                color: AppColors.green, shape: BoxShape.circle)),
+                            decoration: BoxDecoration(
+                                color: AppColors.accent, shape: BoxShape.circle)),
                         const SizedBox(width: 5),
                         Text(c.tag!,
                             style: AppText.label
-                                .copyWith(color: AppColors.green, fontSize: 10.5)),
+                                .copyWith(color: AppColors.accent, fontSize: 10.5)),
                       ],
                     )
                   else
@@ -218,13 +218,13 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppColors.green.withValues(alpha: 0.1),
+            color: AppColors.accent.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.green.withValues(alpha: 0.4)),
+            border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.schedule_rounded, color: AppColors.green, size: 22),
+              Icon(Icons.schedule_rounded, color: AppColors.accent, size: 22),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -268,7 +268,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
                           width: 9,
                           height: 9,
                           decoration: BoxDecoration(
-                            color: s.ok ? AppColors.green : AppColors.amber,
+                            color: s.ok ? AppColors.accent : AppColors.amber,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -276,7 +276,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
                         Text(
                           s.ok ? 'Operational' : 'Maintenance',
                           style: AppText.label.copyWith(
-                              color: s.ok ? AppColors.green : AppColors.amber,
+                              color: s.ok ? AppColors.accent : AppColors.amber,
                               fontWeight: FontWeight.w600,
                               fontSize: 11),
                         ),
@@ -341,10 +341,10 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
                     width: 46,
                     height: 46,
                     decoration: BoxDecoration(
-                      color: AppColors.green.withValues(alpha: 0.14),
+                      color: AppColors.accent.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(s.icon, color: AppColors.green, size: 22),
+                    child: Icon(s.icon, color: AppColors.accent, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(

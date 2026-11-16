@@ -12,6 +12,9 @@ import '../core/hls_quality.dart';
 import '../core/stream_resolver.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import '../widgets/player_gestures.dart';
+import '../core/app_prefs.dart';
+import '../core/library_store.dart';
 
 /// In-app episode player — **native playback**.
 ///
@@ -48,6 +51,13 @@ class _PlayerScreenState extends State<PlayerScreen>
   bool _controlsVisible = true;
   Timer? _hideTimer;
   double _speed = 1.0;
+
+  // --- Gesture / QoL features ---------------------------------------------
+  bool _locked = false; // control lock (see PlayerGestureOverlay)
+  bool _loop = false; // loop current episode
+  Timer? _sleepTimer; // sleep timer → pauses playback
+  int _sleepMinutes = 0; // 0 = off
+  bool _introSkipped = false; // auto-skip applied for current stream
 
   /// Mid-stream recovery state (see [_onStreamDied]).
   bool _recovering = false;
@@ -296,6 +306,18 @@ class _PlayerScreenState extends State<PlayerScreen>
     _setKeepScreenOn(true);
     _bumpControls();
     setState(() {}); // attach the (now ready) controller
+    _introSkipped = false;
+    // Library bookkeeping: history row + stored resume position.
+    if (_anime.id.isNotEmpty) {
+      LibraryStore.I.pushHistory(
+        key: 'anime:${_anime.id}',
+        title: _anime.title,
+        poster: _anime.poster,
+        kind: 'anime',
+        sub: '${_episode?.number ?? 1}',
+        label: 'Episode ${_episode?.number ?? 1}',
+      );
+    }
     return true;
   }
 
@@ -311,7 +333,22 @@ class _PlayerScreenState extends State<PlayerScreen>
       _onStreamDied(v.errorDescription ?? 'unknown error');
       return;
     }
+    // Auto-skip intro (Settings → Player → Auto-skip intro).
+    if (!_introSkipped &&
+        AppPrefs.I.autoSkipIntro &&
+        _stream != null &&
+        _stream!.hasIntro &&
+        v.position.inSeconds >= _stream!.introStart &&
+        v.position.inSeconds < _stream!.introEnd) {
+      _introSkipped = true;
+      c.seekTo(Duration(seconds: _stream!.introEnd));
+    }
     if (v.isCompleted && !_resolving) {
+      if (_loop) {
+        c.seekTo(Duration.zero);
+        c.play();
+        return;
+      }
       _autoNextEpisode();
     }
   }
@@ -325,6 +362,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _autoNextEpisode() {
+    if (!AppPrefs.I.autoPlayNext) return;
     if (!_hasNextEpisode) return;
     final int i =
         _episodes.indexWhere((Episode e) => e.number == _episode!.number);
@@ -524,6 +562,115 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   bool _muted = false;
 
+  // ---- Gesture / QoL handlers ---------------------------------------------
+
+  void _toggleLock() {
+    setState(() => _locked = !_locked);
+    if (_locked) {
+      _hideTimer?.cancel();
+    } else {
+      _bumpControls();
+    }
+  }
+
+  void _toggleLoop() {
+    setState(() => _loop = !_loop);
+    _bumpControls();
+  }
+
+  void _onSpeedBoost(bool active) {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized) return;
+    c.setPlaybackSpeed(active ? 2.0 : _speed);
+    if (!active) _bumpControls();
+  }
+
+  void _onVolume(double value) {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized) return;
+    c.setVolume(value);
+    if (value > 0 && _muted) {
+      setState(() => _muted = false);
+    }
+  }
+
+  void _onSeek(int seconds) => _seekRel(seconds);
+
+  Future<void> _enterPip() async {
+    final bool ok = await enterPipMode();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Picture-in-Picture is not available on this device or Android version.')));
+    }
+  }
+
+  void _pickSleepTimer() {
+    const List<int> options = <int>[0, 15, 30, 45, 60, 90];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (BuildContext ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('Sleep timer',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.text)),
+            ),
+            for (final int m in options)
+              ListTile(
+                leading: Icon(
+                    m == 0
+                        ? Icons.timer_off_rounded
+                        : Icons.nightlight_round,
+                    color: _sleepMinutes == m
+                        ? AppColors.accent
+                        : AppColors.muted,
+                    size: 20),
+                title: Text(m == 0 ? 'Off' : '$m minutes',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13.5,
+                        color: _sleepMinutes == m
+                            ? AppColors.accent
+                            : AppColors.text)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _setSleepTimer(m);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _setSleepTimer(int minutes) {
+    _sleepTimer?.cancel();
+    setState(() => _sleepMinutes = minutes);
+    if (minutes == 0) return;
+    _sleepTimer = Timer(Duration(minutes: minutes), () {
+      if (mounted && _player?.value.isPlaying == true) {
+        _player!.pause();
+        if (mounted) {
+          setState(() => _controlsVisible = true);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(
+                  'Sleep timer — paused after $minutes minutes')));
+        }
+      }
+      if (mounted) setState(() => _sleepMinutes = 0);
+    });
+  }
+
   void _setSpeed(double v) {
     setState(() => _speed = v);
     _player?.setPlaybackSpeed(v);
@@ -549,6 +696,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
+    _sleepTimer?.cancel();
+    SystemBrightness.reset();
+    _saveProgressSnapshot();
     _setKeepScreenOn(false);
     SystemChrome.setPreferredOrientations(<DeviceOrientation>[
       DeviceOrientation.portraitUp,
@@ -558,6 +708,19 @@ class _PlayerScreenState extends State<PlayerScreen>
     _player = null;
     c?.dispose();
     super.dispose();
+  }
+
+  /// Persists the exact resume position for this episode and records a
+  /// history row — used by Continue Watching / History / stats.
+  void _saveProgressSnapshot() {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized || _anime.id.isEmpty) return;
+    LibraryStore.I.saveProgress(
+      key: 'anime:${_anime.id}',
+      sub: '${_episode?.number ?? 1}',
+      positionSec: c.value.position.inSeconds,
+      durationSec: c.value.duration.inSeconds,
+    );
   }
 
   @override
@@ -642,7 +805,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 children: [
                   Text('Now playing',
                       style: AppText.label.copyWith(
-                          color: AppColors.green,
+                          color: AppColors.accent,
                           fontSize: 11,
                           fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
@@ -778,9 +941,8 @@ class _VideoStage extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            // --- Video surface ---
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            // --- Video surface with gesture layer ---
+            PlayerGestureOverlay(
               onTap: () {
                 if (state._controlsVisible && v.isPlaying) {
                   state.hideControls();
@@ -788,6 +950,12 @@ class _VideoStage extends StatelessWidget {
                   state._bumpControls();
                 }
               },
+              onSeek: state._onSeek,
+              onSpeedBoost: state._onSpeedBoost,
+              onVolume: state._onVolume,
+              onBrightness: (double _) {},
+              locked: state._locked,
+              onLockTap: state._toggleLock,
               child: Center(
                 child: AspectRatio(
                   aspectRatio: v.aspectRatio <= 0 ? 16 / 9 : v.aspectRatio,
@@ -798,12 +966,12 @@ class _VideoStage extends StatelessWidget {
 
             // --- Buffering spinner ---
             if (v.isBuffering)
-              const Center(
+              Center(
                 child: SizedBox(
                   width: 34,
                   height: 34,
                   child: CircularProgressIndicator(
-                      color: AppColors.green, strokeWidth: 2.6),
+                      color: AppColors.accent, strokeWidth: 2.6),
                 ),
               ),
 
@@ -909,6 +1077,41 @@ class _TopGradientBar extends StatelessWidget {
             ),
             onPressed: state._toggleMute,
           ),
+          IconButton(
+            icon: Icon(
+              state._loop ? Icons.repeat_one_rounded : Icons.repeat_rounded,
+              color: state._loop ? AppColors.accent : Colors.white,
+              size: 21,
+            ),
+            tooltip: 'Loop episode',
+            onPressed: state._toggleLoop,
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.nightlight_round,
+              color: state._sleepMinutes > 0 ? AppColors.accent : Colors.white,
+              size: 21,
+            ),
+            tooltip: 'Sleep timer',
+            onPressed: state._pickSleepTimer,
+          ),
+          IconButton(
+            icon: const Icon(Icons.picture_in_picture_rounded,
+                color: Colors.white, size: 20),
+            tooltip: 'Picture-in-Picture',
+            onPressed: state._enterPip,
+          ),
+          IconButton(
+            icon: Icon(
+              state._locked
+                  ? Icons.lock_rounded
+                  : Icons.lock_open_rounded,
+              color: state._locked ? AppColors.accent : Colors.white,
+              size: 20,
+            ),
+            tooltip: state._locked ? 'Unlock controls' : 'Lock controls',
+            onPressed: state._toggleLock,
+          ),
         ],
       ),
     );
@@ -968,8 +1171,8 @@ class _BottomControls extends StatelessWidget {
                 child: Container(
                   width: 52,
                   height: 52,
-                  decoration: const BoxDecoration(
-                    color: AppColors.green,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1006,10 +1209,10 @@ class _BottomControls extends StatelessWidget {
                         const RoundSliderThumbShape(enabledThumbRadius: 7),
                     overlayShape:
                         const RoundSliderOverlayShape(overlayRadius: 13),
-                    activeTrackColor: AppColors.green,
+                    activeTrackColor: AppColors.accent,
                     inactiveTrackColor: Colors.white24,
-                    thumbColor: AppColors.green,
-                    overlayColor: AppColors.green.withValues(alpha: 0.25),
+                    thumbColor: AppColors.accent,
+                    overlayColor: AppColors.accent.withValues(alpha: 0.25),
                   ),
                   child: Slider(
                     // Scrub-safe: dragging only moves the thumb, the real
@@ -1195,11 +1398,11 @@ class _StageMessage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (busy)
-              const SizedBox(
+              SizedBox(
                 width: 30,
                 height: 30,
                 child: CircularProgressIndicator(
-                    color: AppColors.green, strokeWidth: 2.5),
+                    color: AppColors.accent, strokeWidth: 2.5),
               )
             else
               Icon(icon, color: AppColors.muted, size: 40),
@@ -1271,7 +1474,7 @@ class _ServersPanel extends StatelessWidget {
           width: double.infinity,
           margin: const EdgeInsets.fromLTRB(16, 14, 16, 12),
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
@@ -1284,7 +1487,7 @@ class _ServersPanel extends StatelessWidget {
                   children: [
                     const SizedBox(width: 2),
                     Icon(Icons.info_outline_rounded,
-                        size: 13, color: AppColors.green),
+                        size: 13, color: AppColors.accent),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(status,
@@ -1302,11 +1505,11 @@ class _ServersPanel extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Row(
                     children: [
-                      const SizedBox(
+                      SizedBox(
                         width: 14,
                         height: 14,
                         child: CircularProgressIndicator(
-                            color: AppColors.green, strokeWidth: 2),
+                            color: AppColors.accent, strokeWidth: 2),
                       ),
                       const SizedBox(width: 10),
                       Text('Loading servers…',
@@ -1349,12 +1552,12 @@ class _ServersPanel extends StatelessWidget {
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: active
-                              ? AppColors.green.withValues(alpha: 0.16)
+                              ? AppColors.accent.withValues(alpha: 0.16)
                               : AppColors.bg,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                               color: active
-                                  ? AppColors.green
+                                  ? AppColors.accent
                                   : AppColors.stroke),
                         ),
                         child: Row(
@@ -1365,13 +1568,13 @@ class _ServersPanel extends StatelessWidget {
                                     ? Icons.play_arrow_rounded
                                     : Icons.dns_rounded,
                                 size: 14,
-                                color: AppColors.green),
+                                color: AppColors.accent),
                             const SizedBox(width: 6),
                             Text(s.name,
                                 style: AppText.bodyBold.copyWith(
                                     fontSize: 11.5,
                                     color: active
-                                        ? AppColors.green
+                                        ? AppColors.accent
                                         : AppColors.text)),
                           ],
                         ),
@@ -1452,7 +1655,7 @@ class _NavButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: AppColors.green),
+              Icon(icon, size: 16, color: AppColors.accent),
               const SizedBox(width: 6),
               Text(label,
                   style: AppText.bodyBold.copyWith(fontSize: 12)),

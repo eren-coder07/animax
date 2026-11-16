@@ -1,35 +1,59 @@
 import 'package:flutter/material.dart';
 
-/// Animax design tokens sampled from the UI kit reference.
+import 'app_prefs.dart';
+
+/// Animax design tokens.
+///
+/// [accent]/[bg]/[surface] are **getters**, not consts: they read the live
+/// preference state so the accent-color picker and AMOLED mode apply instantly
+/// across every screen without rebuilding the theme object. All screens
+/// reference these tokens directly, which is why the getters return defaults
+/// until [AppPrefs.I.load] completes.
 class AppColors {
   AppColors._();
 
-  static const Color bg = Color(0xFF0B0F0D);
-  static const Color surface = Color(0xFF141917);
-  static const Color surfaceHi = Color(0xFF1D2420);
+  // Default (Neo Green) tokens.
+  static const Color _bgD = Color(0xFF0B0F0D);
+  static const Color _surfaceD = Color(0xFF141917);
+  static const Color _surfaceHiD = Color(0xFF1D2420);
+
+  static bool get _amoled => AppPrefs.I.amoled;
+
+  // ---- Dynamic backgrounds (AMOLED-aware) ---------------------------------
+  static Color get bg => _amoled ? const Color(0xFF000000) : _bgD;
+  static Color get surface => _amoled ? const Color(0xFF0A0A0A) : _surfaceD;
+  static Color get surfaceHi =>
+      _amoled ? const Color(0xFF151515) : _surfaceHiD;
+
   static const Color stroke = Color(0xFF242C27);
 
-  static const Color green = Color(0xFF04C14A);
-  static const Color greenDeep = Color(0xFF026E2C);
-  static const Color ink = Color(0xFF06130A); // dark text on green
+  // ---- Dynamic accent ------------------------------------------------------
+  static AccentTheme get _a => AppPrefs.I.accent;
+  static Color get accent => _a.color;
+  static Color get accentDeep => _a.deep;
+  static Color get accentInk => _a.ink;
 
+  /// Dark text-on-accent (kept name-compatible with the old token).
+  static Color get ink => _a.ink;
+  static LinearGradient get accentGrad => LinearGradient(
+        colors: <Color>[_a.color, _a.deep],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  // ---- Fixed text / signal colors ------------------------------------------
   static const Color text = Color(0xFFFFFFFF);
   static const Color sub = Color(0xFFA9B1AB);
   static const Color muted = Color(0xFF6B736D);
   static const Color danger = Color(0xFFFF5A5A);
   static const Color amber = Color(0xFFFFB020);
 
-  static const LinearGradient greenGrad = LinearGradient(
-    colors: [Color(0xFF05CE51), Color(0xFF02752E)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
+  /// Hero fade — safe as const because it only uses fixed colors.
   static const LinearGradient heroFade = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     stops: [0.0, 0.55, 1.0],
-    colors: [Colors.transparent, Color(0x660B0F0D), AppColors.bg],
+    colors: [Colors.transparent, Color(0x660B0F0D), Color(0xFF0B0F0D)],
   );
 }
 
@@ -56,17 +80,21 @@ class AppText {
 class AppTheme {
   AppTheme._();
 
+  /// Builds the dark theme from the current accent preference. Called again
+  /// whenever the accent (or AMOLED) changes — see [AnimaxApp].
   static ThemeData dark() {
+    final Color a = AppColors.accent;
+    final Color aInk = AppColors.accentInk;
     final ThemeData base = ThemeData(
       brightness: Brightness.dark,
       useMaterial3: true,
       fontFamily: 'Poppins',
       scaffoldBackgroundColor: AppColors.bg,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.green,
-        secondary: AppColors.green,
+      colorScheme: ColorScheme.dark(
+        primary: a,
+        secondary: a,
         surface: AppColors.surface,
-        onPrimary: AppColors.ink,
+        onPrimary: aInk,
         onSurface: AppColors.text,
       ),
     );
@@ -88,12 +116,12 @@ class AppTheme {
       dividerTheme: const DividerThemeData(color: AppColors.stroke, thickness: 1, space: 1),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.selected) ? AppColors.ink : AppColors.muted),
+            (states) => states.contains(WidgetState.selected) ? aInk : AppColors.muted),
         trackColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.selected) ? AppColors.green : AppColors.surfaceHi),
+            (states) => states.contains(WidgetState.selected) ? a : AppColors.surfaceHi),
         trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
-      dialogTheme: const DialogThemeData(
+      dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(20))),

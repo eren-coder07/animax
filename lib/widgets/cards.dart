@@ -139,17 +139,17 @@ class _Fallback extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.surfaceHi, AppColors.greenDeep],
+          colors: [AppColors.surfaceHi, AppColors.accentDeep],
         ),
       ),
       child: Text(
         letter,
-        style: const TextStyle(
-            fontFamily: 'Poppins', fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.green),
+        style: TextStyle(
+            fontFamily: 'Poppins', fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.accent),
       ),
     );
   }
@@ -172,7 +172,7 @@ class SectionHeader extends StatelessWidget {
           GestureDetector(
             onTap: onSeeAll,
             child: Text('See all',
-                style: AppText.bodyBold.copyWith(color: AppColors.green, fontSize: 12.5)),
+                style: AppText.bodyBold.copyWith(color: AppColors.accent, fontSize: 12.5)),
           ),
         ],
       ),

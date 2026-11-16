@@ -1,9 +1,13 @@
 package com.animax.animax
 
+import android.app.PictureInPictureParams
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
+import android.util.Rational
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -39,6 +43,42 @@ class MainActivity : FlutterActivity() {
                             result.success(true)
                         }
                     }
+                    "setBrightness" -> {
+                        // value: 0.01..1.0 (dimmed player), null = system default
+                        val value = call.argument<Double>("value")
+                        runOnUiThread {
+                            val lp = window.attributes
+                            lp.screenBrightness = if (value == null || value <= 0.0) {
+                                WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                            } else {
+                                value.toFloat().coerceIn(0.01f, 1.0f)
+                            }
+                            window.attributes = lp
+                            result.success(true)
+                        }
+                    }
+                    "getBrightness" -> {
+                        val b = window.attributes.screenBrightness
+                        result.success(if (b < 0f) null else b.toDouble())
+                    }
+                    "enterPip" -> {
+                        // Picture-in-Picture (Android 8+) for the video players.
+                        try {
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                                result.success(false)
+                                return@setMethodCallHandler
+                            }
+                            val params = PictureInPictureParams.Builder()
+                                .setAspectRatio(Rational(16, 9))
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                params.setSeamlessResizeEnabled(true)
+                            }
+                            enterPictureInPictureMode(params.build())
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("pip_error", e.message, null)
+                        }
+                    }
                     "networkType" -> {
                         // Wi-Fi / cellular / none — used by the bandwidth-based
                         // auto quality picker (hls_quality.dart).
@@ -56,22 +96,12 @@ class MainActivity : FlutterActivity() {
                             result.error("net_error", e.message, null)
                         }
                     }
-                    "getCookies" -> {
-                        // Full cookie jar for [url] — includes HttpOnly cookies
-                        // (cf_clearance) that document.cookie hides. Used by the
-                        // EgyDead Cloudflare gate to hand cookies to EgyApi.
-                        val url = call.argument<String>("url") ?: ""
-                        try {
-                            val cm = android.webkit.CookieManager.getInstance()
-                            cm.setAcceptCookie(true)
-                            cm.flush()
-                            result.success(cm.getCookie(url) ?: "")
-                        } catch (e: Exception) {
-                            result.error("cookie_error", e.message, null)
-                        }
-                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onPictureInPictureModeChanged(active: Boolean, config: Configuration) {
+        super.onPictureInPictureModeChanged(active, config)
     }
 }

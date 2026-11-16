@@ -36,7 +36,7 @@ class _LogoPainter extends CustomPainter {
     final double w = size.width;
     final double h = size.height;
 
-    final Paint paint = Paint()..color = AppColors.green;
+    final Paint paint = Paint()..color = AppColors.accent;
     final Path path = Path()
       ..moveTo(w * 0.475, h * 0.06)
       ..quadraticBezierTo(w * 0.5, h * -0.02, w * 0.525, h * 0.06) // rounded apex

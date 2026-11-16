@@ -41,7 +41,7 @@ class IconBubble extends StatelessWidget {
             child: Container(
               width: 7,
               height: 7,
-              decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
+              decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
             ),
           ),
       ],
@@ -92,7 +92,7 @@ class FieldBox extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.green, width: 1.4),
+          borderSide: BorderSide(color: AppColors.accent, width: 1.4),
         ),
       ),
     );
@@ -124,7 +124,7 @@ class MenuRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, size: 21, color: AppColors.green),
+            Icon(icon, size: 21, color: AppColors.accent),
             const SizedBox(width: 16),
             Expanded(child: Text(label, style: AppText.bodyBold.copyWith(fontSize: 14))),
             if (trailing != null)
@@ -155,7 +155,7 @@ class EmptyState extends StatelessWidget {
           Container(
             width: 72,
             height: 72,
-            decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
             child: Icon(icon, size: 32, color: AppColors.muted),
           ),
           const SizedBox(height: 18),

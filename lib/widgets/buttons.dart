@@ -22,7 +22,7 @@ class PrimaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Widget button = Material(
-      color: AppColors.green,
+      color: AppColors.accent,
       borderRadius: BorderRadius.circular(height / 2),
       child: InkWell(
         borderRadius: BorderRadius.circular(height / 2),
@@ -38,8 +38,8 @@ class PrimaryButton extends StatelessWidget {
                 Container(
                   width: 26,
                   height: 26,
-                  decoration: const BoxDecoration(color: AppColors.ink, shape: BoxShape.circle),
-                  child: const Icon(Icons.play_arrow_rounded, color: AppColors.green, size: 20),
+                  decoration: BoxDecoration(color: AppColors.accentInk, shape: BoxShape.circle),
+                  child: Icon(Icons.play_arrow_rounded, color: AppColors.accent, size: 20),
                 ),
                 const SizedBox(width: 10),
               ],
@@ -71,10 +71,10 @@ class GhostChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: active ? AppColors.green : Colors.transparent,
+      color: active ? AppColors.accent : Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(30),
-        side: BorderSide(color: active ? AppColors.green : AppColors.stroke, width: 1.4),
+        side: BorderSide(color: active ? AppColors.accent : AppColors.stroke, width: 1.4),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(30),
@@ -85,7 +85,7 @@ class GhostChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (active) ...[
-                const Icon(Icons.check_rounded, size: 16, color: AppColors.ink),
+                Icon(Icons.check_rounded, size: 16, color: AppColors.accentInk),
                 const SizedBox(width: 6),
               ],
               Text(
@@ -121,7 +121,7 @@ class SelectChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? AppColors.green : AppColors.surface,
+      color: selected ? AppColors.accent : AppColors.surface,
       borderRadius: BorderRadius.circular(30),
       child: InkWell(
         borderRadius: BorderRadius.circular(30),
@@ -155,7 +155,7 @@ class ScoreBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: small ? 5 : 7, vertical: small ? 2.5 : 4),
       decoration: BoxDecoration(
-        color: AppColors.green,
+        color: AppColors.accent,
         borderRadius: BorderRadius.circular(small ? 6 : 8),
       ),
       child: Row(

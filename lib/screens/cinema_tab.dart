@@ -275,10 +275,10 @@ class _Card extends StatelessWidget {
                         item.poster,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) =>
-                            const ColoredBox(color: AppColors.surfaceHi),
+                            ColoredBox(color: AppColors.surfaceHi),
                       )
                     else
-                      const ColoredBox(color: AppColors.surfaceHi),
+                      ColoredBox(color: AppColors.surfaceHi),
                     if (item.imdbRating > 0)
                       Positioned(
                         left: 6,
@@ -323,7 +323,7 @@ class _Card extends StatelessWidget {
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.8,
                                 color: item.isSeries
-                                    ? AppColors.green
+                                    ? AppColors.accent
                                     : CinemaColors.gold)),
                       ),
                     ),

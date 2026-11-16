@@ -114,7 +114,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 onChanged: _onChanged,
                 style: AppText.body
                     .copyWith(fontSize: 14, color: AppColors.text),
-                cursorColor: AppColors.green,
+                cursorColor: AppColors.accent,
                 decoration: InputDecoration(
                   hintText: 'Search anime…',
                   hintStyle: AppText.label.copyWith(fontSize: 13),
@@ -143,12 +143,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
+      return Center(
         child: SizedBox(
           width: 30,
           height: 30,
           child: CircularProgressIndicator(
-              color: AppColors.green, strokeWidth: 2.5),
+              color: AppColors.accent, strokeWidth: 2.5),
         ),
       );
     }
@@ -179,13 +179,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 18, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.green.withValues(alpha: 0.14),
+                    color: AppColors.accent.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: AppColors.green),
+                    border: Border.all(color: AppColors.accent),
                   ),
                   child: Text('Try again',
                       style: AppText.bodyBold.copyWith(
-                          fontSize: 12.5, color: AppColors.green)),
+                          fontSize: 12.5, color: AppColors.accent)),
                 ),
               ),
             ],

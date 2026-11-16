@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_service.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/library_store.dart';
 import '../widgets/common.dart';
 import '../widgets/animax_logo.dart';
 
@@ -19,7 +20,7 @@ class ProfileTab extends StatelessWidget {
     final String host = ApiService.I.config.cleanBase;
     return SafeArea(
       child: ListenableBuilder(
-        listenable: state,
+        listenable: Listenable.merge(<Listenable>[state, LibraryStore.I]),
         builder: (BuildContext context, _) {
           return ListView(
             physics: const BouncingScrollPhysics(),
@@ -34,7 +35,7 @@ class ProfileTab extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.surface,
-                    border: Border.all(color: AppColors.green, width: 2),
+                    border: Border.all(color: AppColors.accent, width: 2),
                   ),
                   child: const Center(child: AnimaxLogo(size: 46)),
                 ),
@@ -53,6 +54,8 @@ class ProfileTab extends StatelessWidget {
               const SizedBox(height: 22),
               _StatusCard(state: state),
               const SizedBox(height: 22),
+              _StatsStrip(),
+              const SizedBox(height: 22),
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
@@ -60,6 +63,12 @@ class ProfileTab extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
+                    MenuRow(
+                      icon: Icons.video_library_rounded,
+                      label: 'My Library (List · History · Stats)',
+                      onTap: () => Navigator.pushNamed(context, '/library'),
+                    ),
+                    const Divider(indent: 54),
                     MenuRow(
                       icon: Icons.notifications_none_rounded,
                       label: 'Notifications',
@@ -69,7 +78,7 @@ class ProfileTab extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 9, vertical: 4),
                               decoration: BoxDecoration(
-                                color: AppColors.green.withValues(alpha: 0.15),
+                                color: AppColors.accent.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text('${state.notices.length}',
@@ -77,7 +86,7 @@ class ProfileTab extends StatelessWidget {
                                       fontFamily: 'Poppins',
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColors.green)),
+                                      color: AppColors.accent)),
                             ),
                       onTap: () => Navigator.pushNamed(context, '/notifications'),
                     ),
@@ -90,7 +99,7 @@ class ProfileTab extends StatelessWidget {
                             horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(
                           color: state.isConnected
-                              ? AppColors.green.withValues(alpha: 0.15)
+                              ? AppColors.accent.withValues(alpha: 0.15)
                               : AppColors.surfaceHi,
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -101,10 +110,16 @@ class ProfileTab extends StatelessWidget {
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.4,
                                 color: state.isConnected
-                                    ? AppColors.green
+                                    ? AppColors.accent
                                     : AppColors.sub)),
                       ),
                       onTap: () => Navigator.pushNamed(context, '/backend'),
+                    ),
+                    const Divider(indent: 54),
+                    MenuRow(
+                      icon: Icons.settings_rounded,
+                      label: 'Settings (theme · player · data)',
+                      onTap: () => Navigator.pushNamed(context, '/settings'),
                     ),
                     const Divider(indent: 54),
                     MenuRow(
@@ -119,8 +134,8 @@ class ProfileTab extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Text(
-                  'This build uses only the features the backend API provides — '
-                  'browsing, episode playback and the release schedule.',
+                  'Anime, movies, series, cartoons and comics in one app — '
+                  'everything streams from free, open backends.',
                   style: AppText.label.copyWith(fontSize: 10.5),
                 ),
               ),
@@ -128,6 +143,50 @@ class ProfileTab extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Compact stats strip (episodes watched / chapters read / hours streamed).
+class _StatsStrip extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final stats = LibraryStore.I.stats();
+    Widget card(String value, String label) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.stroke),
+            ),
+            child: Column(
+              children: <Widget>[
+                Text(value,
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.accent)),
+                const SizedBox(height: 2),
+                Text(label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 9.5,
+                        color: AppColors.muted)),
+              ],
+            ),
+          ),
+        );
+    return Row(
+      children: <Widget>[
+        card(stats.episodesWatched.toString(), 'Episodes\nwatched'),
+        const SizedBox(width: 10),
+        card(stats.chaptersRead.toString(), 'Chapters\nread'),
+        const SizedBox(width: 10),
+        card(stats.hoursWatched.toStringAsFixed(0), 'Hours\nstreamed'),
+      ],
     );
   }
 }
@@ -148,7 +207,7 @@ class _StatusCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
             color: live
-                ? AppColors.green.withValues(alpha: 0.5)
+                ? AppColors.accent.withValues(alpha: 0.5)
                 : bad
                     ? Colors.red.withValues(alpha: 0.4)
                     : AppColors.stroke),
@@ -156,11 +215,11 @@ class _StatusCard extends StatelessWidget {
       child: Row(
         children: [
           if (syncing)
-            const SizedBox(
+            SizedBox(
               width: 26,
               height: 26,
               child: CircularProgressIndicator(
-                  color: AppColors.green, strokeWidth: 2.4),
+                  color: AppColors.accent, strokeWidth: 2.4),
             )
           else
             Icon(
@@ -170,7 +229,7 @@ class _StatusCard extends StatelessWidget {
                       ? Icons.cloud_off_rounded
                       : Icons.explore_rounded,
               color: live
-                  ? AppColors.green
+                  ? AppColors.accent
                   : bad
                       ? Colors.redAccent
                       : AppColors.muted,

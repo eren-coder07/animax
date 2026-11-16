@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/app_prefs.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/library_store.dart';
 import '../widgets/animax_logo.dart';
 import '../widgets/buttons.dart';
 
@@ -41,6 +43,9 @@ class _SplashScreenState extends State<SplashScreen>
       _failed = false;
       _scheduleStep = false;
     });
+    // Preferences + personal library must be ready before any screen builds.
+    await AppPrefs.I.load();
+    await LibraryStore.I.load();
     // Listen so the status line tracks the repository's own messages.
     final AppState state = AppState.I;
     void listener() {
@@ -107,7 +112,7 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 26,
                   height: 26,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2.6, color: AppColors.green),
+                      strokeWidth: 2.6, color: AppColors.accent),
                 ),
                 const SizedBox(height: 16),
                 Padding(

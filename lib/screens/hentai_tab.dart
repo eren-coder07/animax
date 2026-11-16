@@ -123,7 +123,7 @@ class _HentaiTabState extends State<HentaiTab>
   Widget build(BuildContext context) {
     super.build(context);
     if (!_ageChecked) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.green));
+      return Center(child: CircularProgressIndicator(color: AppColors.accent));
     }
     if (!_ageOk) return _AgeGate(onEnter: _confirmAge, onLeave: _leave);
     return _Home(
@@ -489,7 +489,7 @@ class _Hero extends StatelessWidget {
                         ColoredBox(color: AppColors.surfaceHi))
               else
                 ColoredBox(color: AppColors.surfaceHi),
-              const DecoratedBox(
+              DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -751,11 +751,11 @@ class _Letter extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.surfaceHi, AppColors.greenDeep],
+          colors: [AppColors.surfaceHi, AppColors.accentDeep],
         ),
       ),
       child: Text(

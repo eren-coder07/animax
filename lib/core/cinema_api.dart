@@ -82,6 +82,11 @@ class CinemaApi {
   Future<List<CinemaItem>> byGenre(String type, String genre, {int skip = 0}) =>
       _catalog(type, 'top', extra: 'genre=$genre', skip: skip);
 
+  /// IMDb-rank catalog filtered by genre (Cartoons section "Best rated").
+  Future<List<CinemaItem>> ratingByGenre(String type, String genre,
+          {int skip = 0}) =>
+      _catalog(type, 'imdbRating', extra: 'genre=$genre', skip: skip);
+
   /// Keyword search across movies and series (returns merged results).
   Future<List<CinemaItem>> search(String query) async {
     final String q = query.trim();
@@ -215,6 +220,10 @@ class CinemaMeta extends CinemaItem {
 
   String runtime = '';
   String status = '';
+
+  /// TMDB id (`moviedb_id` from Cinemeta) — required by some providers for
+  /// series playback.
+  String tmdbId = '';
   List<String> cast = <String>[];
   List<CinemaTrailer> trailers = <CinemaTrailer>[];
   List<CinemaEpisode> episodes = <CinemaEpisode>[];
@@ -239,6 +248,7 @@ class CinemaMeta extends CinemaItem {
     m.runtime = (j['runtime'] ?? '').toString();
     m.status = (j['status'] ?? '').toString();
     m.imdbRating = _doubleOf(j['imdbRating']) ?? 0;
+    m.tmdbId = (j['moviedb_id'] ?? j['tmdb_id'] ?? '').toString();
     final dynamic genres = j['genre'] ?? j['genres'];
     if (genres is List) {
       for (final dynamic x in genres) {

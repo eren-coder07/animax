@@ -8,6 +8,7 @@ import '../core/app_theme.dart';
 import '../core/hh_api.dart';
 import '../core/hls_quality.dart';
 import '../core/stream_resolver.dart' show ResolvedStream;
+import '../widgets/player_gestures.dart';
 import 'hentai_tab.dart';
 
 /// Native (ExoPlayer) player for the +18 section.
@@ -333,6 +334,36 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     _bumpControls();
   }
 
+  /// Gesture-layer hooks (PlayerGestureOverlay).
+  void _seekRel(int seconds) => _seekBy(seconds);
+
+  bool _locked = false;
+
+  void _toggleLock() {
+    setState(() => _locked = !_locked);
+    if (_locked) {
+      _hideTimer?.cancel();
+    } else {
+      _bumpControls();
+    }
+  }
+
+  void _onSpeedBoost(bool active) {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized) return;
+    c.setPlaybackSpeed(active ? 2.0 : _speed);
+    if (!active) _bumpControls();
+  }
+
+  void _onVolume(double value) {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized) return;
+    c.setVolume(value);
+    if (value > 0 && _muted) {
+      setState(() => _muted = false);
+    }
+  }
+
   void _toggleMute() {
     final VideoPlayerController? c = _player;
     if (c == null) return;
@@ -380,9 +411,14 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
         '${_episodes.isNotEmpty ? ' of ${_episodes.length}' : ''}';
     return Scaffold(
       backgroundColor: Colors.black,
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      body: PlayerGestureOverlay(
         onTap: _bumpControls,
+        onSeek: _seekRel,
+        onSpeedBoost: _onSpeedBoost,
+        onVolume: _onVolume,
+        onBrightness: (double _) {},
+        locked: _locked,
+        onLockTap: _toggleLock,
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
@@ -617,6 +653,23 @@ class _TopBar extends StatelessWidget {
               size: 22,
             ),
             onPressed: state._toggleMute,
+          ),
+          IconButton(
+            icon: Icon(
+              state._locked ? Icons.lock_rounded : Icons.lock_open_rounded,
+              color: state._locked ? HhColors.red : Colors.white,
+              size: 20,
+            ),
+            tooltip: state._locked ? 'Unlock controls' : 'Lock controls',
+            onPressed: state._toggleLock,
+          ),
+          IconButton(
+            icon: const Icon(Icons.picture_in_picture_rounded,
+                color: Colors.white, size: 20),
+            tooltip: 'Picture-in-Picture',
+            onPressed: () async {
+              await enterPipMode();
+            },
           ),
           PopupMenuButton<double>(
             color: AppColors.surface,

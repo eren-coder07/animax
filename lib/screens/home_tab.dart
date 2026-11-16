@@ -1,22 +1,75 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/library_store.dart';
 import '../widgets/buttons.dart';
 import '../widgets/cards.dart';
 import '../widgets/common.dart';
 import '../widgets/animax_logo.dart';
 
-class HomeTab extends StatelessWidget {
+/// Home — hero carousel, Continue Watching, My List, Top Hits, New Episodes,
+/// Popular This Season + a "Surprise me" shortcut.
+class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
+
+  @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  final PageController _heroCtl = PageController();
+  Timer? _heroTimer;
+  int _heroPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _heroTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (!mounted) return;
+      final AppState state = AppState.I;
+      final int count = state.catalog.take(5).length;
+      if (count < 2 || !_heroCtl.hasClients) return;
+      _heroPage = (_heroPage + 1) % count;
+      _heroCtl.animateToPage(
+        _heroPage,
+        duration: const Duration(milliseconds: 550),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _heroTimer?.cancel();
+    _heroCtl.dispose();
+    super.dispose();
+  }
+
+  void _openAnime(Anime anime) {
+    if (anime.id.isEmpty) return;
+    Navigator.pushNamed(context, '/details', arguments: anime);
+  }
+
+  void _surpriseMe() {
+    final AppState state = AppState.I;
+    if (state.catalog.isEmpty) return;
+    final Anime pick =
+        state.catalog[DateTime.now().microsecondsSinceEpoch % state.catalog.length];
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Surprise: ${pick.title}')));
+    _openAnime(pick);
+  }
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppState.I;
     return SafeArea(
       child: ListenableBuilder(
-        listenable: state,
+        listenable: Listenable.merge(<Listenable>[state, LibraryStore.I]),
         builder: (BuildContext context, _) {
           return ListView(
             physics: const BouncingScrollPhysics(),
@@ -31,6 +84,9 @@ class HomeTab extends StatelessWidget {
                     const SizedBox(width: 10),
                     _BackendChip(mode: state.backendChip),
                     const Spacer(),
+                    IconBubble(Icons.shuffle_rounded,
+                        onTap: _surpriseMe),
+                    const SizedBox(width: 10),
                     IconBubble(Icons.search_rounded,
                         onTap: () => Navigator.pushNamed(context, '/search')),
                     const SizedBox(width: 10),
@@ -40,136 +96,459 @@ class HomeTab extends StatelessWidget {
                   ],
                 ),
               ),
-          const SizedBox(height: 26),
-          if (state.catalog.isEmpty)
-            _SyncBanner(state: state)
-          else ...<Widget>[
-          SectionHeader(
-            title: 'Top Hits Anime',
-            onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                arguments: ('Top Hits Anime', state.topHits)),
-          ),
-          SizedBox(
-            height: 306,
-            child: ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: state.topHits.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 16),
-              itemBuilder: (BuildContext context, int i) {
-                final Anime anime = state.topHits[i];
-                return GestureDetector(
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/details', arguments: anime),
-                  child: SizedBox(
-                    width: 236,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Hero(
-                            tag: 'poster-${anime.id}',
-                            child: PosterImage(
-                              anime: anime,
-                              radius: 18,
-                              child: Stack(
-                                children: [
-                                  Positioned(
-                                    top: 10,
-                                    left: 10,
-                                    child: ScoreBadge(score: anime.score),
-                                  ),
-                                  Positioned(
-                                    bottom: -14,
-                                    left: 14,
-                                    child: Text(
-                                      '${i + 1}',
-                                      style: TextStyle(
-                                        fontFamily: 'Poppins',
-                                        fontSize: 84,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white,
-                                        height: 1.0,
-                                        shadows: [
-                                          Shadow(
-                                            color: Colors.black.withValues(alpha: 0.55),
-                                            blurRadius: 18,
-                                            offset: const Offset(0, 4),
+              const SizedBox(height: 20),
+              if (state.catalog.isEmpty)
+                _SyncBanner(state: state)
+              else ...<Widget>[
+                _HeroCarousel(state: state, controller: _heroCtl),
+                const SizedBox(height: 24),
+                _buildContinueWatching(),
+                _buildMyList(),
+                SectionHeader(
+                  title: 'Top Hits Anime',
+                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
+                      arguments: ('Top Hits Anime', state.topHits)),
+                ),
+                SizedBox(
+                  height: 306,
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: state.topHits.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 16),
+                    itemBuilder: (BuildContext context, int i) {
+                      final Anime anime = state.topHits[i];
+                      return GestureDetector(
+                        onTap: () => _openAnime(anime),
+                        child: SizedBox(
+                          width: 236,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Hero(
+                                  tag: 'poster-${anime.id}',
+                                  child: PosterImage(
+                                    anime: anime,
+                                    radius: 18,
+                                    child: Stack(
+                                      children: [
+                                        Positioned(
+                                          top: 10,
+                                          left: 10,
+                                          child: ScoreBadge(score: anime.score),
+                                        ),
+                                        Positioned(
+                                          bottom: -14,
+                                          left: 14,
+                                          child: Text(
+                                            '${i + 1}',
+                                            style: TextStyle(
+                                              fontFamily: 'Poppins',
+                                              fontSize: 84,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                              height: 1.0,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Colors.black.withValues(alpha: 0.55),
+                                                  blurRadius: 18,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
+                              const SizedBox(height: 10),
+                              Text(
+                                anime.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.bodyBold.copyWith(fontSize: 13.5),
+                              ),
+                              Text(anime.genres.take(3).join('. '),
+                                  style: AppText.label, maxLines: 1),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 26),
+                SectionHeader(
+                  title: 'New Episode Releases',
+                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
+                      arguments: ('New Episode Releases', state.newEpisodes)),
+                ),
+                SizedBox(
+                  height: 250,
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: state.newEpisodes.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (BuildContext context, int i) {
+                      final Anime anime = state.newEpisodes[i];
+                      return PosterCard(
+                        anime: anime,
+                        width: 136,
+                        subtitle:
+                            anime.isMovie ? 'Movie • ${anime.duration}' : 'Episode ${anime.episodeCount}',
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 26),
+                SectionHeader(
+                  title: 'Popular This Season',
+                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
+                      arguments: ('Popular This Season', state.catalog)),
+                ),
+                SizedBox(
+                  height: 250,
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: state.catalog.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 14),
+                    itemBuilder: (BuildContext context, int i) {
+                      final Anime anime =
+                          state.catalog[(i * 5 + 3) % state.catalog.length];
+                      return PosterCard(anime: anime, width: 136, showPlay: true);
+                    },
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // -------------------------------------------------- Continue Watching row
+
+  Widget _buildContinueWatching() {
+    final List<HistoryRow> rows = LibraryStore.I.history.take(10).toList();
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Row(
+            children: <Widget>[
+              Text('Continue Watching', style: AppText.h2),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/library'),
+                child: Text('Library',
+                    style: AppText.bodyBold.copyWith(
+                        color: AppColors.accent, fontSize: 12.5)),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 210,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            physics: const BouncingScrollPhysics(),
+            itemCount: rows.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (BuildContext c, int i) {
+              final HistoryRow r = rows[i];
+              final ProgressEntry p =
+                  LibraryStore.I.progressForItem(r.key);
+              final double frac = p.key == r.key ? p.fraction : 0;
+              return GestureDetector(
+                onTap: () {
+                  if (r.kind == 'anime') {
+                    Navigator.pushNamed(
+                        context, '/details',
+                        arguments: AppState.I.byId(
+                            r.key.substring('anime:'.length)));
+                  }
+                },
+                child: SizedBox(
+                  width: 150,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: <Widget>[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: r.poster.startsWith('http')
+                                  ? Image.network(r.poster,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) =>
+                                          ColoredBox(
+                                              color: AppColors.surfaceHi))
+                                  : ColoredBox(
+                                      color: AppColors.surfaceHi),
+                            ),
+                            const Center(
+                              child: Icon(Icons.play_arrow_rounded,
+                                  color: Colors.white70, size: 40),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: ClipRRect(
+                                borderRadius:
+                                    const BorderRadius.vertical(
+                                        bottom: Radius.circular(14)),
+                                child: LinearProgressIndicator(
+                                  value: frac > 0 ? frac : null,
+                                  minHeight: 3,
+                                  color: AppColors.accent,
+                                  backgroundColor:
+                                      Colors.white24,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(r.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.bodyBold.copyWith(
+                              fontSize: 12, color: AppColors.text)),
+                      Text(r.label,
+                          style: AppText.label.copyWith(fontSize: 10.5)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 26),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------- My List quick row
+
+  Widget _buildMyList() {
+    final List<LibEntry> entries = LibraryStore.I.allEntries
+        .where((LibEntry e) => e.inList)
+        .take(12)
+        .toList();
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Row(
+            children: <Widget>[
+              Text('My List', style: AppText.h2),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/library'),
+                child: Text('See all',
+                    style: AppText.bodyBold.copyWith(
+                        color: AppColors.accent, fontSize: 12.5)),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 205,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            physics: const BouncingScrollPhysics(),
+            itemCount: entries.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (BuildContext c, int i) {
+              final LibEntry e = entries[i];
+              return SizedBox(
+                width: 122,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: <Widget>[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: e.poster.startsWith('http')
+                                ? Image.network(e.poster,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) =>
+                                        ColoredBox(
+                                            color: AppColors.surfaceHi))
+                                : ColoredBox(
+                                    color: AppColors.surfaceHi),
+                          ),
+                          Positioned(
+                            top: 6,
+                            left: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(e.status?.label ?? '',
+                                  style: TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.accent)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(e.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.bodyBold.copyWith(
+                            fontSize: 11.5, color: AppColors.text)),
+                    Text(e.kind,
+                        style: AppText.label.copyWith(fontSize: 9.5)),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 26),
+      ],
+    );
+  }
+}
+
+/// Auto-rotating hero banner — the top 5 catalog titles with backdrop art.
+class _HeroCarousel extends StatelessWidget {
+  const _HeroCarousel({required this.state, required this.controller});
+
+  final AppState state;
+  final PageController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Anime> picks = state.catalog.take(5).toList();
+    if (picks.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: 220,
+      child: PageView.builder(
+        controller: controller,
+        itemCount: picks.length,
+        onPageChanged: (_) {},
+        itemBuilder: (BuildContext c, int i) {
+          final Anime a = picks[i];
+          return GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/details',
+                arguments: a),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: <Widget>[
+                        a.isNetworkPoster
+                            ? Image.network(a.poster,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => ColoredBox(
+                                    color: AppColors.surfaceHi))
+                            : ColoredBox(
+                                color: AppColors.surfaceHi),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              stops: const <double>[0.35, 1.0],
+                              colors: <Color>[
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.85),
+                              ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          anime.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.bodyBold.copyWith(fontSize: 13.5),
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 14,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Row(
+                                children: <Widget>[
+                                  if (a.score > 0) ...<Widget>[
+                                    const Icon(Icons.star_rounded,
+                                        size: 14, color: Color(0xFFFFC94D)),
+                                    const SizedBox(width: 3),
+                                    Text(a.score.toStringAsFixed(1),
+                                        style: const TextStyle(
+                                            fontFamily: 'Poppins',
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white)),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  Text(a.year,
+                                      style: const TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontSize: 11,
+                                          color: Colors.white70)),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(a.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white)),
+                              const SizedBox(height: 2),
+                              Text(
+                                a.genres.take(3).join(' · '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontSize: 11,
+                                    color: Colors.white60),
+                              ),
+                            ],
+                          ),
                         ),
-                        Text(anime.genres.take(3).join('. '),
-                            style: AppText.label, maxLines: 1),
                       ],
                     ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 26),
-          SectionHeader(
-            title: 'New Episode Releases',
-            onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                arguments: ('New Episode Releases', state.newEpisodes)),
-          ),
-          SizedBox(
-            height: 250,
-            child: ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: state.newEpisodes.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-              itemBuilder: (BuildContext context, int i) {
-                final Anime anime = state.newEpisodes[i];
-                return PosterCard(
-                  anime: anime,
-                  width: 136,
-                  subtitle:
-                      anime.isMovie ? 'Movie • ${anime.duration}' : 'Episode ${anime.episodeCount}',
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 26),
-          SectionHeader(
-            title: 'Popular This Season',
-            onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                arguments: ('Popular This Season', state.catalog)),
-          ),
-          SizedBox(
-            height: 250,
-            child: ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: state.catalog.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-              itemBuilder: (BuildContext context, int i) {
-                final Anime anime =
-                    state.catalog[(i * 5 + 3) % state.catalog.length];
-                return PosterCard(anime: anime, width: 136, showPlay: true);
-              },
-            ),
-          ),
-          ],
-            ],
           );
         },
       ),
@@ -201,7 +580,7 @@ class _SyncBanner extends StatelessWidget {
         children: [
           Icon(
             offline ? Icons.wifi_off_rounded : Icons.sync_rounded,
-            color: offline ? Colors.redAccent : AppColors.green,
+            color: offline ? Colors.redAccent : AppColors.accent,
             size: 32,
           ),
           const SizedBox(height: 10),
@@ -250,14 +629,14 @@ class _BackendChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(
           color: live
-              ? AppColors.green.withValues(alpha: 0.15)
+              ? AppColors.accent.withValues(alpha: 0.15)
               : bad
                   ? Colors.red.withValues(alpha: 0.14)
                   : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
               color: live
-                  ? AppColors.green.withValues(alpha: 0.5)
+                  ? AppColors.accent.withValues(alpha: 0.5)
                   : bad
                       ? Colors.red.withValues(alpha: 0.4)
                       : AppColors.stroke),
@@ -266,11 +645,11 @@ class _BackendChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (syncing)
-              const SizedBox(
+              SizedBox(
                 width: 8,
                 height: 8,
                 child: CircularProgressIndicator(
-                    strokeWidth: 1.6, color: AppColors.green),
+                    strokeWidth: 1.6, color: AppColors.accent),
               )
             else
               Container(
@@ -279,7 +658,7 @@ class _BackendChip extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: live
-                      ? AppColors.green
+                      ? AppColors.accent
                       : bad
                           ? Colors.redAccent
                           : AppColors.muted,

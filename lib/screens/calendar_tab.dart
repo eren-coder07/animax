@@ -74,7 +74,7 @@ class CalendarTab extends StatelessWidget {
                             Text(_weekdays[day.weekday % 7],
                                 style: AppText.label.copyWith(
                                     color: selected
-                                        ? AppColors.green
+                                        ? AppColors.accent
                                         : AppColors.muted,
                                     fontWeight: FontWeight.w600)),
                             const SizedBox(height: 8),
@@ -84,7 +84,7 @@ class CalendarTab extends StatelessWidget {
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? AppColors.green
+                                    ? AppColors.accent
                                     : AppColors.surface,
                                 borderRadius: BorderRadius.circular(14),
                               ),
@@ -142,10 +142,10 @@ class CalendarTab extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Container(
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 border: Border(
                                     left: BorderSide(
-                                        color: AppColors.green, width: 2)),
+                                        color: AppColors.accent, width: 2)),
                               ),
                               padding: const EdgeInsets.only(left: 16),
                               margin: const EdgeInsets.only(left: 2),
@@ -159,7 +159,7 @@ class CalendarTab extends StatelessWidget {
                                       width: 12,
                                       height: 12,
                                       decoration: BoxDecoration(
-                                        color: AppColors.green,
+                                        color: AppColors.accent,
                                         shape: BoxShape.circle,
                                         border: Border.all(
                                             color: AppColors.bg, width: 2.5),

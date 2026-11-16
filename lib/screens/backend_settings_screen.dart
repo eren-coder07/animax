@@ -304,7 +304,7 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool live = mode == 'LIVE';
     final bool bad = mode == 'OFFLINE';
-    final Color accent = live ? AppColors.green : (bad ? Colors.redAccent : AppColors.muted);
+    final Color accent = live ? AppColors.accent : (bad ? Colors.redAccent : AppColors.muted);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -387,7 +387,7 @@ class _PathField extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.green, width: 1.4),
+                borderSide: BorderSide(color: AppColors.accent, width: 1.4),
               ),
             ),
           ),
@@ -415,7 +415,7 @@ class _ProbeTile extends StatelessWidget {
           Icon(
             result.ok ? Icons.check_circle_rounded : Icons.error_outline_rounded,
             size: 18,
-            color: result.ok ? AppColors.green : Colors.redAccent,
+            color: result.ok ? AppColors.accent : Colors.redAccent,
           ),
           const SizedBox(width: 10),
           SizedBox(

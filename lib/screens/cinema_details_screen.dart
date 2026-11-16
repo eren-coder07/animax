@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 import '../core/cinema_api.dart';
+import '../core/library_store.dart';
 import 'cinema_player_screen.dart';
 import 'cinema_tab.dart' show CinemaColors;
 
@@ -116,6 +117,9 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
               ),
+              actions: <Widget>[
+                _BookmarkButton(item: widget.item),
+              ],
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(
                   fit: StackFit.expand,
@@ -124,15 +128,15 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                       Image.network(background,
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) =>
-                              const ColoredBox(color: AppColors.surfaceHi))
+                              ColoredBox(color: AppColors.surfaceHi))
                     else if (poster.isNotEmpty)
                       Image.network(poster,
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) =>
-                              const ColoredBox(color: AppColors.surfaceHi))
+                              ColoredBox(color: AppColors.surfaceHi))
                     else
-                      const ColoredBox(color: AppColors.surfaceHi),
-                    const DecoratedBox(
+                      ColoredBox(color: AppColors.surfaceHi),
+                    DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
@@ -336,11 +340,11 @@ class _EpisodeList extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: active ? AppColors.ink : AppColors.text),
-                  selectedColor: AppColors.green,
+                  selectedColor: AppColors.accent,
                   backgroundColor: AppColors.surface,
                   side: BorderSide(
                       color:
-                          active ? AppColors.green : AppColors.stroke, width: 1),
+                          active ? AppColors.accent : AppColors.stroke, width: 1),
                   showCheckmark: false,
                 );
               },
@@ -385,9 +389,9 @@ class _EpisodeTile extends StatelessWidget {
                       Image.network(ep.thumbnail,
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) =>
-                              const ColoredBox(color: AppColors.surfaceHi))
+                              ColoredBox(color: AppColors.surfaceHi))
                     else
-                      const ColoredBox(color: AppColors.surfaceHi),
+                      ColoredBox(color: AppColors.surfaceHi),
                     Center(
                       child: Container(
                         width: 30,
@@ -480,7 +484,7 @@ class _PrimaryButton extends StatelessWidget {
       child: FilledButton.icon(
         onPressed: onTap,
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.green,
+          backgroundColor: AppColors.accent,
           foregroundColor: AppColors.ink,
           disabledBackgroundColor: AppColors.surfaceHi,
           disabledForegroundColor: AppColors.muted,
@@ -491,6 +495,53 @@ class _PrimaryButton extends StatelessWidget {
         icon: Icon(icon, size: 22),
         label: Text(label, style: AppText.button.copyWith(fontSize: 14)),
       ),
+    );
+  }
+}
+
+/// Bookmark toggle in the cinema details app bar — saves the title to My
+/// List (kind: cinema / cartoon) with the poster and year as meta.
+class _BookmarkButton extends StatelessWidget {
+  const _BookmarkButton({required this.item});
+
+  final CinemaItem item;
+
+  String get _key => 'cinema:${item.id}';
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: LibraryStore.I,
+      builder: (BuildContext context, _) {
+        final bool listed = LibraryStore.I.isListed(_key);
+        return IconButton(
+          icon: Icon(
+            listed ? Icons.bookmark_added_rounded : Icons.bookmark_add_outlined,
+            color: listed ? AppColors.accent : Colors.white,
+          ),
+          tooltip: listed ? 'Remove from My List' : 'Save to My List',
+          onPressed: () {
+            final LibraryStore lib = LibraryStore.I;
+            if (listed) {
+              lib.removeListEntry(_key);
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${item.name} removed from My List')));
+            } else {
+              lib.setListStatus(
+                key: _key,
+                title: item.name,
+                poster: item.poster,
+                kind: 'cinema',
+                status: LibStatus.watching,
+                meta: '${item.releaseInfo.isEmpty ? 'Cinema' : item.releaseInfo}'
+                    '${item.imdbRating > 0 ? ' · ★ ${item.imdbRating.toStringAsFixed(1)}' : ''}',
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${item.name} saved to My List')));
+            }
+          },
+        );
+      },
     );
   }
 }
