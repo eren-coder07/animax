@@ -4,8 +4,6 @@ import 'core/app_theme.dart';
 import 'screens/backend_settings_screen.dart';
 import 'screens/catalog_screen.dart';
 import 'screens/details_screen.dart';
-import 'screens/egy_gate_screen.dart';
-import 'screens/egy_search_screen.dart';
 import 'screens/help_center_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/hh_catalog_screen.dart';
@@ -47,8 +45,6 @@ class AnimaxApp extends StatelessWidget {
         '/hh-details': (_) => const HhDetailsScreen(),
         '/hh-player': (_) => const HhPlayerScreen(),
         '/hh-search': (_) => const HhSearchScreen(),
-        '/egy-gate': (_) => const EgyGateScreen(),
-        '/egy-search': (_) => const EgySearchScreen(),
       },
     );
   }

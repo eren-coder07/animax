@@ -1,6 +1,8 @@
 package com.animax.animax
 
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
@@ -35,6 +37,23 @@ class MainActivity : FlutterActivity() {
                                 window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                             }
                             result.success(true)
+                        }
+                    }
+                    "networkType" -> {
+                        // Wi-Fi / cellular / none — used by the bandwidth-based
+                        // auto quality picker (hls_quality.dart).
+                        try {
+                            val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+                            val caps = cm.getNetworkCapabilities(cm.activeNetwork)
+                            val type = when {
+                                caps == null -> "none"
+                                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+                                caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cellular"
+                                else -> "other"
+                            }
+                            result.success(type)
+                        } catch (e: Exception) {
+                            result.error("net_error", e.message, null)
                         }
                     }
                     "getCookies" -> {

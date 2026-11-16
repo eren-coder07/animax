@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import 'calendar_tab.dart';
-import 'egy_tab.dart';
+import 'cinema_tab.dart';
 import 'hentai_tab.dart';
 import 'home_tab.dart';
 import 'profile_tab.dart';
@@ -14,7 +14,7 @@ class HomeShell extends StatelessWidget {
   static const List<({IconData icon, String label})> _tabs = [
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.calendar_month_rounded, label: 'Calendar'),
-    (icon: Icons.live_tv_rounded, label: 'EgyDead'),
+    (icon: Icons.theaters_rounded, label: 'Cinema'),
     (icon: Icons.eighteen_up_rating_rounded, label: '18+'),
     (icon: Icons.person_rounded, label: 'Profile'),
   ];
@@ -31,7 +31,7 @@ class HomeShell extends StatelessWidget {
             children: const [
               HomeTab(),
               CalendarTab(),
-              EgyTab(),
+              CinemaTab(),
               HentaiTab(),
               ProfileTab(),
             ],

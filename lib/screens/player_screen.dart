@@ -8,6 +8,7 @@ import '../core/api_service.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/hls_quality.dart';
 import '../core/stream_resolver.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
@@ -245,15 +246,26 @@ class _PlayerScreenState extends State<PlayerScreen>
       'User-Agent': _browserUa,
       if (rs.referer.isNotEmpty) 'Referer': rs.referer,
     };
+    // Bandwidth-based auto quality: for HLS master playlists pick the variant
+    // that fits the measured throughput (Wi-Fi/cellular aware) and expose all
+    // variants in the quality menu. Non-HLS or already-discrete streams pass
+    // through untouched.
+    ResolvedStream effective = rs;
+    try {
+      effective = await HlsQuality.autoSelect(rs, headers: headers);
+    } catch (_) {}
+    if (_stream != null && effective.url != rs.url) {
+      setState(() => _stream = effective);
+    }
     // The backend's HLS playlists are served from URLs like
     // `/cdn/{hash}?t.m3u8&v.m3u8` — the .m3u8 marker lives only in the QUERY
     // string, so ExoPlayer cannot infer HLS from the path and would try to
     // parse the playlist as progressive media (fails with an error). The
     // explicit format hint fixes exactly that case.
     final VideoPlayerController controller = VideoPlayerController.networkUrl(
-      Uri.parse(rs.url),
+      Uri.parse(effective.url),
       httpHeaders: headers,
-      formatHint: rs.isHls ? VideoFormat.hls : VideoFormat.other,
+      formatHint: effective.isHls ? VideoFormat.hls : VideoFormat.other,
     );
     _player = controller;
     controller.addListener(() => _playerListener(controller));

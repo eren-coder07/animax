@@ -6,6 +6,8 @@ import 'package:video_player/video_player.dart';
 
 import '../core/app_theme.dart';
 import '../core/hh_api.dart';
+import '../core/hls_quality.dart';
+import '../core/stream_resolver.dart' show ResolvedStream;
 import 'hentai_tab.dart';
 
 /// Native (ExoPlayer) player for the +18 section.
@@ -151,8 +153,19 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       _stream = stream;
       _status = 'Connecting…';
     });
+    // Bandwidth-based auto quality: on HLS master playlists pick the variant
+    // that fits the measured throughput (Wi-Fi/cellular aware).
+    String playUrl = stream.url;
+    try {
+      final ResolvedStream auto = await HlsQuality.autoSelect(ResolvedStream(
+        url: stream.url,
+        qualities: <String, String>{'Auto': stream.url},
+        referer: '${HentaiApi.frontBase}/',
+      ));
+      playUrl = auto.url;
+    } catch (_) {}
     final VideoPlayerController controller = VideoPlayerController.networkUrl(
-      Uri.parse(stream.url),
+      Uri.parse(playUrl),
       httpHeaders: <String, String>{
         'User-Agent':
             'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 '
