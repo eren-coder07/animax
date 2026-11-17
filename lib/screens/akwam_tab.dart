@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
 import '../widgets/common.dart' show IconBubble;
-import 'akwam_details_screen.dart';
 
 /// Akwam section accent (site brand teal).
 class AkwamColors {
