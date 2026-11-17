@@ -13,12 +13,12 @@ const String kDefaultApiBase = 'https://aniwaves.ru';
 ///   --dart-define=ANIMAX_API_TOKEN=eyJhbGciOi...
 const String kDefaultApiToken = String.fromEnvironment('ANIMAX_API_TOKEN');
 
-/// User-editable backend connection settings.
+/// User-editable backend connection settings (no UI — defaults are baked
+/// in at build time).
 ///
 /// Defaults target the captured Aniwaves AJAX contract:
 /// `/ajax/v2/trending`, `/ajax/episode/list/{id}`, `/ajax/server/list`,
 /// `/ajax/user/panel`, `/ajax/v2/recommendations`, `/ajax/anime/views/{id}`.
-/// Every path can be overridden in Profile → API Backend for other backends.
 class ApiConfig {
   ApiConfig({
     String? baseUrl,

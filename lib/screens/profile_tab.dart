@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/api_service.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/library_store.dart';
@@ -17,7 +16,6 @@ class ProfileTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppState.I;
-    final String host = ApiService.I.config.cleanBase;
     return SafeArea(
       child: ListenableBuilder(
         listenable: Listenable.merge(<Listenable>[state, LibraryStore.I]),
@@ -45,12 +43,9 @@ class ProfileTab extends StatelessWidget {
                   child: Text('Animax Viewer',
                       style: AppText.h3.copyWith(fontSize: 18))),
               const SizedBox(height: 4),
-              Center(
-                child: Text(host.isEmpty
-                    ? 'No backend configured'
-                    : 'Watching via $host',
-                    style: AppText.label),
-              ),
+              const Center(
+                  child: Text('Anime · Cinema · Cartoons · Comics',
+                      style: AppText.label)),
               const SizedBox(height: 22),
               _StatusCard(state: state),
               const SizedBox(height: 22),
@@ -89,31 +84,6 @@ class ProfileTab extends StatelessWidget {
                                       color: AppColors.accent)),
                             ),
                       onTap: () => Navigator.pushNamed(context, '/notifications'),
-                    ),
-                    const Divider(indent: 54),
-                    MenuRow(
-                      icon: Icons.dns_rounded,
-                      label: 'API Backend',
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: state.isConnected
-                              ? AppColors.accent.withValues(alpha: 0.15)
-                              : AppColors.surfaceHi,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(state.backendChip,
-                            style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.4,
-                                color: state.isConnected
-                                    ? AppColors.accent
-                                    : AppColors.sub)),
-                      ),
-                      onTap: () => Navigator.pushNamed(context, '/backend'),
                     ),
                     const Divider(indent: 54),
                     MenuRow(
@@ -242,10 +212,10 @@ class _StatusCard extends StatelessWidget {
               children: [
                 Text(
                   live
-                      ? 'Connected to the backend'
+                      ? 'Content library up to date'
                       : syncing
-                          ? 'Syncing…'
-                          : 'Not connected',
+                          ? 'Refreshing…'
+                          : 'Offline — using cached content',
                   style: AppText.h3.copyWith(fontSize: 14.5),
                 ),
                 const SizedBox(height: 3),

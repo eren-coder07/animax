@@ -95,7 +95,7 @@ class _HentaiTabState extends State<HentaiTab>
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'Cannot reach hentaihaven.xxx right now.');
+        setState(() => _error = 'Cannot reach the source right now.');
       }
     }
     // Secondary sections — parallel, failures stay silent (rows hidden).
@@ -174,8 +174,8 @@ class _AgeGate extends StatelessWidget {
                   textAlign: TextAlign.center, style: AppText.h1),
               const SizedBox(height: 12),
               Text(
-                'This section streams explicit hentai (18+) from '
-                'hentaihaven.xxx. By entering you confirm that you are of '
+                'This section streams explicit adult content (18+) from an '
+                'external source. By entering you confirm that you are of '
                 'legal age in your jurisdiction and that you want to view '
                 'adult content.',
                 textAlign: TextAlign.center,

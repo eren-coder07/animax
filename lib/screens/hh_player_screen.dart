@@ -131,7 +131,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       _stream = null;
       _error = null;
       _resolving = true;
-      _status = 'Resolving stream…';
+      _status = 'Loading…';
     });
     HhStream? stream;
     String? error;
@@ -140,7 +140,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     } on ApiException catch (e) {
       error = e.message;
     } catch (_) {
-      error = 'Cannot reach hentaihaven.xxx — check your connection.';
+      error = 'Cannot reach the source — check your connection.';
     }
     if (!mounted) return;
     if (stream == null) {
@@ -152,7 +152,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     }
     setState(() {
       _stream = stream;
-      _status = 'Connecting…';
+      _status = '';
     });
     // Bandwidth-based auto quality: on HLS master playlists pick the variant
     // that fits the measured throughput (Wi-Fi/cellular aware).
@@ -254,7 +254,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
         if (!mounted) return;
         setState(() {
           _resolving = true;
-          _status = 'Stream interrupted — reconnecting…';
+          _status = '';
         });
         await Future<void>.delayed(const Duration(milliseconds: 900));
         if (!mounted) return;

@@ -4,6 +4,7 @@ import '../core/app_prefs.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/library_store.dart';
+import 'akwam_tab.dart';
 import 'calendar_tab.dart';
 import 'cartoon_tab.dart';
 import 'cinema_tab.dart';
@@ -12,9 +13,9 @@ import 'hentai_tab.dart';
 import 'home_tab.dart';
 import 'profile_tab.dart';
 
-/// Root navigation shell — 7 sections: Home, Calendar, Cinema, Cartoons,
-/// Comics, 18+ and Profile. Also hosts the once-per-version What's-new
-/// dialog shown shortly after entering.
+/// Root navigation shell — 8 sections: Home, Calendar, Cinema, Akwam,
+/// Cartoons, Comics, 18+ and Profile. Also hosts the once-per-version
+/// What's-new dialog shown shortly after entering.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -25,6 +26,7 @@ class HomeShell extends StatefulWidget {
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.calendar_month_rounded, label: 'Calendar'),
     (icon: Icons.theaters_rounded, label: 'Cinema'),
+    (icon: Icons.local_movies_rounded, label: 'Akwam'),
     (icon: Icons.animation_rounded, label: 'Cartoons'),
     (icon: Icons.menu_book_rounded, label: 'Comics'),
     (icon: Icons.eighteen_up_rating_rounded, label: '18+'),
@@ -45,7 +47,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '1.9.0';
+    const String version = '1.9.1';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -68,6 +70,7 @@ class _HomeShellState extends State<HomeShell> {
               HomeTab(),
               CalendarTab(),
               CinemaTab(),
+              AkwamTab(),
               CartoonTab(),
               ComicTab(),
               HentaiTab(),
@@ -104,8 +107,12 @@ class _BottomNav extends StatelessWidget {
             children: List<Widget>.generate(tabs.length, (int i) {
               final bool active = state.navIndex == i;
               final bool isCinemaTab = i == 2;
-              final Color activeColor =
-                  isCinemaTab ? const Color(0xFFE50914) : accent;
+              final bool isAkwamTab = i == 3;
+              final Color activeColor = isCinemaTab
+                  ? const Color(0xFFE50914)
+                  : isAkwamTab
+                      ? const Color(0xFF18A2B8)
+                      : accent;
               return Expanded(
                 child: InkWell(
                   onTap: () => state.setTab(i),
@@ -162,16 +169,15 @@ class _BottomNav extends StatelessWidget {
   }
 }
 
-/// "What's new in v1.9.0" — shown once per version after entering.
+/// "What's new in v1.9.1" — shown once per version after entering.
 class WhatsNewDialog extends StatelessWidget {
   const WhatsNewDialog({super.key, required this.version});
 
   final String version;
 
   static const List<String> highlights = <String>[
-    'Comics section — thousands of manga from MangaDex with a real reader',
-    'Cartoons section — animated movies & series with multi-server playback',
-    'Cinema fix — 7 servers with automatic fallback (no more "verification failed")',
+    'Akwam section — Arabic movies, series & shows from akwam.ss with native MP4 playback',
+    'Cleaner app — all connection diagnostics and debug screens removed from the UI',
     'Player gestures — double-tap seek, swipe brightness/volume, 2× boost',
     'My Library — watchlist, history, ratings and stats',
     'Accent colors, AMOLED mode and a fresh home with hero carousel',

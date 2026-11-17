@@ -78,7 +78,9 @@ class _ComicTabState extends State<ComicTab>
       } catch (e) {
         if (!mounted) return;
         setState(() {
-          _searchError = e.toString();
+          _searchError = e is MangaApiException
+              ? e.message
+              : 'Cannot reach MangaDex — check your connection.';
           _searching = false;
         });
       }

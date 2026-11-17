@@ -25,15 +25,6 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-/// Result of probing one endpoint from the Backend Settings screen.
-class ProbeResult {
-  const ProbeResult(this.label, this.path, this.ok, this.detail);
-  final String label;
-  final String path;
-  final bool ok;
-  final String detail;
-}
-
 /// HTTP client for the Aniwaves AJAX backend (contract captured in the
 /// user's HAR): JSON envelopes whose payloads are HTML fragments.
 ///
@@ -49,7 +40,7 @@ class ApiService {
 
   final http.Client _client = createHttpClient();
 
-  /// Set after a successful catalog load — used by probe()/search.
+  /// Set after a successful catalog load — used by search.
   String? _knownId;
 
   Future<void> loadConfig() async {
@@ -103,24 +94,24 @@ class ApiService {
           .get(uri, headers: _headers(ajax: ajax))
           .timeout(timeout);
       if (res.statusCode >= 500) {
-        throw ApiException('Server error ${res.statusCode} at $uri',
+        throw ApiException('The source is having trouble (HTTP ${res.statusCode}).',
             statusCode: res.statusCode);
       }
       if (res.statusCode == 401 || res.statusCode == 403) {
-        throw ApiException('Blocked (HTTP ${res.statusCode}) at $uri',
+        throw ApiException('Source blocked this request — try again later.',
             statusCode: res.statusCode);
       }
       if (res.statusCode >= 400) {
-        throw ApiException('HTTP ${res.statusCode} at $uri',
+        throw ApiException('The source returned HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       return utf8.decode(res.bodyBytes, allowMalformed: true);
     } on TimeoutException {
-      throw ApiException('Timed out connecting to $uri');
+      throw ApiException('Request timed out — check your connection.');
     } on ApiException {
       rethrow;
-    } catch (e) {
-      throw ApiException('Cannot reach $uri (${_shortError(e)})');
+    } catch (_) {
+      throw ApiException('Cannot reach the source — check your connection.');
     }
   }
 
@@ -133,7 +124,7 @@ class ApiService {
       return jsonDecode(body);
     } catch (_) {
       // Cloudflare interstitials / HTML error pages land here.
-      throw ApiException('Non-JSON reply from $uri (protected page?)');
+      throw ApiException('The source is temporarily unavailable — try again later.');
     }
   }
 
@@ -148,16 +139,16 @@ class ApiService {
               body: jsonEncode(body))
           .timeout(timeout);
       if (res.statusCode >= 400) {
-        throw ApiException('HTTP ${res.statusCode} at $uri',
+        throw ApiException('The source returned HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       return jsonDecode(utf8.decode(res.bodyBytes));
     } on TimeoutException {
-      throw ApiException('Timed out connecting to $uri');
+      throw ApiException('Request timed out — check your connection.');
     } on ApiException {
       rethrow;
-    } catch (e) {
-      throw ApiException('Cannot reach $uri (${_shortError(e)})');
+    } catch (_) {
+      throw ApiException('Cannot reach the source — check your connection.');
     }
   }
 
@@ -169,12 +160,6 @@ class ApiService {
     return '';
   }
 
-  static String _shortError(Object e) {
-    String s = e.toString();
-    s = s.replaceAll('SocketException: ', '');
-    return s.length > 60 ? '${s.substring(0, 60)}…' : s;
-  }
-
   // ----- Catalog -----
 
   /// Trending fragment (`/ajax/v2/trending`). `movId` is optional — the
@@ -182,10 +167,10 @@ class ApiService {
   Future<List<Anime>> fetchTrending({String? movId}) async {
     final dynamic body = await getAjax(_config.trendingUri(movId: movId));
     if (body is Map && body['status'] != 200 && body['status'] != true) {
-      throw ApiException('Trending unavailable (status ${body['status']})');
+      throw ApiException('Trending is unavailable right now.');
     }
     final List<Anime> list = parseItemCards(fragmentOf(body));
-    if (list.isEmpty) throw ApiException('Trending returned no titles');
+    if (list.isEmpty) throw ApiException('Trending is empty right now.');
     _noteId(list.first.watchId);
     return list;
   }
@@ -258,7 +243,7 @@ class ApiService {
     }
 
     if (out.isEmpty) {
-      throw ApiException('Catalog is empty — endpoints unreachable');
+      throw ApiException('The catalog is unavailable right now.');
     }
     return out;
   }
@@ -276,11 +261,11 @@ class ApiService {
   Future<List<Episode>> fetchEpisodes(String id) async {
     final dynamic body = await getAjax(_config.episodesUri(id));
     if (body is Map && body['status'] != 200 && body['status'] != true) {
-      throw ApiException('Episode list unavailable (status ${body['status']})');
+      throw ApiException('Episode list is unavailable right now.');
     }
     final String frag = fragmentOf(body, key: 'result');
     final List<Episode> list = parseEpisodeList(frag);
-    if (list.isEmpty) throw ApiException('No episodes found for id $id');
+    if (list.isEmpty) throw ApiException('No episodes found for this title.');
     _noteId(id);
     return list;
   }
@@ -291,11 +276,11 @@ class ApiService {
   Future<List<EpisodeServer>> fetchServers(String id, String ep) async {
     final dynamic body = await getAjax(_config.serversUri(id, ep));
     if (body is Map && body['status'] != 200 && body['status'] != true) {
-      throw ApiException('Server list unavailable (status ${body['status']})');
+      throw ApiException('Server list is unavailable right now.');
     }
     final List<EpisodeServer> list =
         parseServerList(fragmentOf(body, key: 'result'));
-    if (list.isEmpty) throw ApiException('No servers found for episode $ep');
+    if (list.isEmpty) throw ApiException('No servers found for this episode.');
     return list;
   }
 
@@ -396,97 +381,6 @@ class ApiService {
       }
     }
     throw last ?? ApiException('Login endpoint not found');
-  }
-
-  // ----- Probe (Backend Settings "Save & Test") -----
-
-  /// Probes the backend: reachability, trending, episodes, servers, user panel.
-  /// Never throws — every outcome is reported in the result list.
-  Future<List<ProbeResult>> probe() async {
-    final List<ProbeResult> results = <ProbeResult>[];
-
-    // 1. Reachability.
-    try {
-      await getRaw(_config.uri('/'), timeout: const Duration(seconds: 8));
-      results.add(const ProbeResult('Server', '/', true, 'Reachable'));
-    } on ApiException catch (e) {
-      if (e.statusCode >= 400) {
-        results.add(ProbeResult(
-            'Server', '/', true, 'Reachable (HTTP ${e.statusCode})'));
-      } else {
-        results.add(ProbeResult('Server', '/', false, e.message));
-        return results;
-      }
-    }
-
-    // 2. Catalog: genre scrape (always available) + trending with an id.
-    String firstId = _knownId ?? '';
-    int catalogCount = 0;
-    try {
-      for (final String g in ApiConfig.genreCandidates.take(2)) {
-        try {
-          final List<Anime> list = await scrapeGenre(g);
-          catalogCount += list.length;
-          firstId = firstId.isEmpty
-              ? (list.isNotEmpty ? (list.first.watchId ?? '') : firstId)
-              : firstId;
-          if (catalogCount >= 8) break;
-        } on ApiException {
-          // Keep probing the remaining genre candidates.
-        }
-      }
-      if (catalogCount > 0) {
-        results.add(ProbeResult('Catalog pages', '/genre/…', true,
-            '$catalogCount titles scraped'));
-      } else {
-        results.add(const ProbeResult('Catalog pages', '/genre/…', false,
-            'no item cards found'));
-      }
-    } on ApiException catch (e) {
-      results.add(ProbeResult('Catalog pages', '/genre/…', false, e.message));
-    }
-
-    // 3. Trending.
-    if (firstId.isNotEmpty) {
-      try {
-        final List<Anime> list = await fetchTrending(movId: firstId);
-        results.add(ProbeResult('Trending', '${_config.trendingPath}?mov_id=$firstId',
-            true, '${list.length} titles'));
-      } on ApiException catch (e) {
-        results.add(ProbeResult('Trending', _config.trendingPath, false, e.message));
-      }
-    }
-
-    // 4. Episode list.
-    if (firstId.isNotEmpty) {
-      try {
-        final List<Episode> eps = await fetchEpisodes(firstId);
-        results.add(ProbeResult('Episodes', '${_config.episodesPath}/$firstId',
-            true, '${eps.length} episodes'));
-      } on ApiException catch (e) {
-        results.add(ProbeResult('Episodes', _config.episodesPath, false, e.message));
-      }
-      try {
-        final List<EpisodeServer> srv = await fetchServers(firstId, '1');
-        results.add(ProbeResult('Servers', '${_config.serversPath}?servers=$firstId',
-            true, '${srv.length} servers for ep 1'));
-      } on ApiException catch (e) {
-        results.add(ProbeResult('Servers', _config.serversPath, false, e.message));
-      }
-    }
-
-    // 5. User panel.
-    try {
-      final Map<String, dynamic> panel = await fetchUserPanel();
-      final dynamic user = panel['user'];
-      results.add(ProbeResult('User panel', _config.userPanelPath, true,
-          user is Map && user['id'] != null ? 'user id ${user['id']}' : 'ok'));
-    } on ApiException catch (e) {
-      results.add(
-          ProbeResult('User panel', _config.userPanelPath, false, e.message));
-    }
-
-    return results;
   }
 }
 

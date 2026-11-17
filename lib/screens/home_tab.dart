@@ -585,14 +585,13 @@ class _SyncBanner extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            offline ? 'Couldn\'t sync with the API' : 'Syncing…',
+            offline ? 'Content unavailable' : 'Refreshing…',
             style: AppText.bodyBold.copyWith(fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
             offline
-                ? (state.syncError ??
-                    'The backend could not be reached. Check your connection and retry.')
+                ? 'The content library could not be reached. Check your connection and retry.'
                 : state.backendMessage,
             textAlign: TextAlign.center,
             style: AppText.label.copyWith(fontSize: 11),
@@ -613,7 +612,7 @@ class _SyncBanner extends StatelessWidget {
   }
 }
 
-/// Small status chip next to the logo — tap to open Backend settings.
+/// Small status chip next to the logo (LIVE / SYNC… / OFFLINE).
 class _BackendChip extends StatelessWidget {
   const _BackendChip({required this.mode});
   final String mode;
@@ -623,57 +622,54 @@ class _BackendChip extends StatelessWidget {
     final bool live = mode == 'LIVE';
     final bool syncing = mode == 'SYNC…';
     final bool bad = mode == 'OFFLINE';
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/backend'),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-        decoration: BoxDecoration(
-          color: live
-              ? AppColors.accent.withValues(alpha: 0.15)
-              : bad
-                  ? Colors.red.withValues(alpha: 0.14)
-                  : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: live
-                  ? AppColors.accent.withValues(alpha: 0.5)
-                  : bad
-                      ? Colors.red.withValues(alpha: 0.4)
-                      : AppColors.stroke),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (syncing)
-              SizedBox(
-                width: 8,
-                height: 8,
-                child: CircularProgressIndicator(
-                    strokeWidth: 1.6, color: AppColors.accent),
-              )
-            else
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: live
-                      ? AppColors.accent
-                      : bad
-                          ? Colors.redAccent
-                          : AppColors.muted,
-                ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: live
+            ? AppColors.accent.withValues(alpha: 0.15)
+            : bad
+                ? Colors.red.withValues(alpha: 0.14)
+                : AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: live
+                ? AppColors.accent.withValues(alpha: 0.5)
+                : bad
+                    ? Colors.red.withValues(alpha: 0.4)
+                    : AppColors.stroke),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (syncing)
+            SizedBox(
+              width: 8,
+              height: 8,
+              child: CircularProgressIndicator(
+                  strokeWidth: 1.6, color: AppColors.accent),
+            )
+          else
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: live
+                    ? AppColors.accent
+                    : bad
+                        ? Colors.redAccent
+                        : AppColors.muted,
               ),
-            const SizedBox(width: 5),
-            Text(mode,
-                style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                    color: bad ? Colors.redAccent : AppColors.sub)),
-          ],
-        ),
+            ),
+          const SizedBox(width: 5),
+          Text(mode,
+              style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                  color: bad ? Colors.redAccent : AppColors.sub)),
+        ],
       ),
     );
   }

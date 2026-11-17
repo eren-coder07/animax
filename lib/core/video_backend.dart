@@ -320,13 +320,11 @@ class _MpvPlayerController extends AnimaxPlayerController {
     if (_disposed) return;
 
     if (!ready) {
-      final String reason =
-          failed.isCompleted ? await failed.future : 'timed out opening';
       if (!_disposed) {
         _value = const AnimaxPlayerValue();
         notifyListeners();
       }
-      throw Exception('media_kit: $reason — ${Uri.parse(url).host}');
+      throw Exception('The player could not open this stream.');
     }
 
     _value = _value.copyWith(isInitialized: true);

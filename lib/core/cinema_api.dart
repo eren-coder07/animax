@@ -49,7 +49,7 @@ class CinemaApi {
         .get(uri, headers: _headers)
         .timeout(timeout);
     if (res.statusCode != 200) {
-      throw CinemaApiException('HTTP ${res.statusCode} for $path');
+      throw CinemaApiException('The source returned HTTP ${res.statusCode}.');
     }
     return jsonDecode(utf8.decode(res.bodyBytes, allowMalformed: true));
   }

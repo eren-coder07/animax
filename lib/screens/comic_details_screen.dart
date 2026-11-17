@@ -61,7 +61,9 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
       if (!mounted) return;
       setState(() {
         _loadingChapters = false;
-        _chapterError = e.toString();
+        _chapterError = e is MangaApiException
+            ? e.message
+            : 'Cannot reach MangaDex — check your connection.';
       });
     }
   }

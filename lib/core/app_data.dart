@@ -116,15 +116,11 @@ class AnimaxData {
     },
     {
       'q': 'Where do the release times come from?',
-      'a': 'The Release Calendar is loaded from the backend schedule and shows the exact airing times for each episode, so new simulcast episodes appear the moment they drop.',
+      'a': 'The Release Calendar is loaded from the schedule and shows the exact airing times for each episode, so new simulcast episodes appear the moment they drop.',
     },
     {
-      'q': 'Why is there no sign-in?',
-      'a': 'This build only uses features the backend API actually provides — browsing, search, episode playback and the schedule. Account-gated features are left out.',
-    },
-    {
-      'q': 'How do I point the app at a different backend?',
-      'a': 'Open Profile → API Backend, set the base URL (and optional auth headers) and tap Save & Test. The connection status chip on Home shows whether you are LIVE or OFFLINE.',
+      'q': 'What is the Akwam section?',
+      'a': 'The Akwam tab lists Arabic movies, series and shows from akwam.ss. Playback is a direct MP4 stream inside the app — pick a quality, tap play, and switch servers or qualities from the player.',
     },
   ];
 }

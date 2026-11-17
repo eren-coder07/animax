@@ -131,16 +131,15 @@ class HentaiApi {
       // Cloudflare bot challenge — explain instead of a bare status code.
       if (e.statusCode == 403) {
         return ApiException(
-            'hentaihaven.xxx blocked the request (403 — bot protection). '
+            'The source is protected right now (bot check). '
             'Try again in a minute.');
       }
       return e;
     }
-    final String host = uri?.host ?? 'hentaihaven.xxx';
     if (e is http.ClientException || e is TimeoutException || e is SocketException) {
-      return ApiException('Cannot reach $host — check your connection.');
+      return ApiException('Cannot reach the source — check your connection.');
     }
-    return ApiException('Request to $host failed.');
+    return ApiException('The source is unavailable right now.');
   }
 
   // =========================================================================
@@ -175,7 +174,7 @@ class HentaiApi {
         }
       }
       if (res.statusCode != 200) {
-        throw ApiException('hentaihaven.xxx responded ${res.statusCode}',
+        throw ApiException('The source returned HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       final dynamic decoded = jsonDecode(utf8.decode(res.bodyBytes));
@@ -205,7 +204,7 @@ class HentaiApi {
         return const HhSearchResult(<HhSeries>[], 0);
       }
       if (res.statusCode != 200) {
-        throw ApiException('Search failed (${res.statusCode})',
+        throw ApiException('Search is unavailable right now.',
             statusCode: res.statusCode);
       }
       final Map<int, String> genreNames = await _genreMap();
@@ -274,7 +273,7 @@ class HentaiApi {
     try {
       final http.Response res = await _get(uri, json: false, document: true);
       if (res.statusCode != 200) {
-        throw ApiException('hentaihaven.xxx responded ${res.statusCode}',
+        throw ApiException('The source returned HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       final String body = utf8.decode(res.bodyBytes);
@@ -392,7 +391,7 @@ class HentaiApi {
     try {
       final http.Response res = await _get(uri);
       if (res.statusCode != 200) {
-        throw ApiException('hentaihaven.xxx responded ${res.statusCode}',
+        throw ApiException('The source returned HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       final dynamic decoded = jsonDecode(utf8.decode(res.bodyBytes));
@@ -415,7 +414,7 @@ class HentaiApi {
     try {
       final http.Response res = await _get(uri, json: false, document: true);
       if (res.statusCode != 200) {
-        throw ApiException('hentaihaven.xxx responded ${res.statusCode}',
+        throw ApiException('The source returned HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       final List<HhEpisode> eps = parseEpisodeCards(utf8.decode(res.bodyBytes), slug);
@@ -467,7 +466,7 @@ class HentaiApi {
     try {
       final http.Response res = await _get(uri, json: false, document: true);
       if (res.statusCode != 200) {
-        throw ApiException('Episode page responded ${res.statusCode}',
+        throw ApiException('This episode is unavailable right now.',
             statusCode: res.statusCode);
       }
       final HhStream? s =

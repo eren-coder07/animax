@@ -146,7 +146,7 @@ class MangaRow extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     snap.hasError
-                        ? 'Could not load — ${_short(snap.error)}'
+                        ? 'Could not load — check your connection.'
                         : 'Nothing here right now.',
                     style: AppText.label,
                   ),
@@ -167,8 +167,4 @@ class MangaRow extends StatelessWidget {
     );
   }
 
-  static String _short(Object? e) {
-    final String s = e.toString();
-    return s.length > 46 ? '${s.substring(0, 46)}…' : s;
-  }
 }

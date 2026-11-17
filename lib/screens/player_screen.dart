@@ -190,8 +190,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!mounted) return;
     setState(() {
       _resolving = false;
-      _error = 'No server could be opened right now'
-          '${_lastPlayerError.isEmpty ? '' : ' — $_lastPlayerError'}.\n'
+      _error = 'No server is responding right now.\n'
           'Try another server or audio track below.';
     });
   }
@@ -206,9 +205,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       _server = server;
       _resolving = true;
       _error = null;
-      _status = rest.isEmpty
-          ? 'Resolving ${server.name}…'
-          : 'Resolving ${server.name}… (${rest.length} fallback${rest.length == 1 ? '' : 's'} left)';
+      _status = 'Loading ${server.name}…';
     });
     final ResolvedStream? rs =
         await StreamResolver.I.resolve(server).timeout(
@@ -230,12 +227,12 @@ class _PlayerScreenState extends State<PlayerScreen>
       setState(() {
         _stream = null;
         _resolving = false;
-        _status = '${server.name} stream failed — trying the next server…';
+        _status = '${server.name} did not respond — trying the next server…';
       });
       return false;
     }
     setState(() {
-      _status = 'Playing via ${server.name}';
+      _status = '';
       _resolving = false;
     });
     return true;
@@ -282,12 +279,11 @@ class _PlayerScreenState extends State<PlayerScreen>
     setState(() {}); // attach early so buffering state is visible
     try {
       await controller.initialize();
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return false;
       await _disposePlayer();
       setState(() {
         _resolving = false;
-        _lastPlayerError = e.toString();
       });
       return false;
     }
@@ -320,9 +316,6 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
     return true;
   }
-
-  /// Detail of the last player failure — surfaced in the error card.
-  String _lastPlayerError = '';
 
   /// Runtime listener for the active controller: catches mid-playback errors
   /// (expired stream URL, network drop) and auto-advances on completion.
@@ -383,7 +376,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         if (!mounted) return;
         setState(() {
           _resolving = true;
-          _status = 'Stream interrupted — reconnecting…';
+          _status = '';
         });
         await Future<void>.delayed(const Duration(milliseconds: 900));
         if (!mounted) return;
@@ -395,7 +388,6 @@ class _PlayerScreenState extends State<PlayerScreen>
         if (ok && mounted) {
           setState(() {
             _resolving = false;
-            _status = 'Reconnected.';
           });
         }
         return;
@@ -415,7 +407,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         _recovering = false;
         setState(() {
           _resolving = true;
-          _status = 'Switching server after a stream failure…';
+          _status = 'Switching server…';
         });
         await _resolveAndPlay(rest.first, rest: rest.sublist(1));
         return;
@@ -901,9 +893,9 @@ class _VideoStage extends StatelessWidget {
     if (state._resolving && player == null) {
       return _StageMessage(
         icon: Icons.hourglass_top_rounded,
-        title: 'Resolving stream…',
+        title: 'Loading…',
         message: state._status.isEmpty
-            ? 'Fetching a playable video URL.'
+            ? 'Getting your video ready.'
             : state._status,
         busy: true,
       );

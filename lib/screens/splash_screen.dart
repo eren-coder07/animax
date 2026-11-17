@@ -120,7 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Text(
                     _retrying
                         ? (_scheduleStep
-                            ? 'Syncing release schedule…'
+                            ? 'Preparing content…'
                             : state.backendMessage)
                         : 'Starting…',
                     textAlign: TextAlign.center,
@@ -130,7 +130,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Syncing with the API',
+                  'Preparing content',
                   style: AppText.label.copyWith(
                       fontSize: 10,
                       color: AppColors.muted,
@@ -152,7 +152,6 @@ class _SyncError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppState state = AppState.I;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 34),
       child: Container(
@@ -168,12 +167,11 @@ class _SyncError extends StatelessWidget {
             const Icon(Icons.wifi_off_rounded,
                 color: Colors.redAccent, size: 34),
             const SizedBox(height: 10),
-            Text("Couldn't sync with the API",
+            Text('Content unavailable',
                 style: AppText.bodyBold.copyWith(fontSize: 14)),
             const SizedBox(height: 6),
             Text(
-              state.syncError ??
-                  'The backend could not be reached. Check your internet connection.',
+              'The content library could not be reached. Check your internet connection.',
               textAlign: TextAlign.center,
               style: AppText.label.copyWith(fontSize: 11),
             ),

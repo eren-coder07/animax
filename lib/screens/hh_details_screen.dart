@@ -412,7 +412,7 @@ class _EpisodeTile extends StatelessWidget {
                       Text('Episode ${episode.number}',
                           style: AppText.bodyBold.copyWith(fontSize: 13.5)),
                       const SizedBox(height: 3),
-                      Text('hentaihaven.xxx · HLS · 18+',
+                      Text('HLS stream · 18+',
                           style: AppText.label.copyWith(fontSize: 10.5)),
                     ],
                   ),

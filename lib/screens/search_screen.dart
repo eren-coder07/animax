@@ -82,7 +82,9 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() {
         _searched = true;
         _loading = false;
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = e is ApiException
+            ? e.message
+            : 'Something went wrong — try again.';
       });
     }
   }

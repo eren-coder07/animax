@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'core/app_prefs.dart';
 import 'core/app_theme.dart';
 import 'core/manga_api.dart';
-import 'screens/backend_settings_screen.dart';
+import 'screens/akwam_details_screen.dart';
+import 'screens/akwam_player_screen.dart';
+import 'screens/akwam_search_screen.dart';
 import 'screens/calendar_tab.dart';
 import 'screens/catalog_screen.dart';
 import 'screens/comic_catalog_screen.dart';
@@ -52,7 +54,6 @@ class AnimaxApp extends StatelessWidget {
           '/catalog': (_) => const CatalogScreen(),
           '/notifications': (_) => const NotificationsScreen(),
           '/help': (_) => const HelpCenterScreen(),
-          '/backend': (_) => const BackendSettingsScreen(),
           '/settings': (_) => const SettingsScreen(),
           '/library': (_) => const LibraryScreen(),
           '/calendar': (_) => const CalendarTab(),
@@ -63,6 +64,9 @@ class AnimaxApp extends StatelessWidget {
           '/hh-details': (_) => const HhDetailsScreen(),
           '/hh-player': (_) => const HhPlayerScreen(),
           '/hh-search': (_) => const HhSearchScreen(),
+          '/akwam-search': (_) => const AkwamSearchScreen(),
+          '/akwam-details': (_) => const AkwamDetailsScreen(),
+          '/akwam-player': (_) => const AkwamPlayerScreen(),
         },
         // Comic screens take constructor arguments → onGenerateRoute.
         onGenerateRoute: (RouteSettings settings) {

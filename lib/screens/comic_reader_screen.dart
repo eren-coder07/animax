@@ -107,7 +107,9 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
       if (!mounted) return;
       setState(() {
         _loadingPages = false;
-        _pageError = e.toString();
+        _pageError = e is MangaApiException
+            ? e.message
+            : 'Cannot reach MangaDex — check your connection.';
       });
     }
   }

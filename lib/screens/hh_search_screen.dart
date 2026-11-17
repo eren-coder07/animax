@@ -82,7 +82,7 @@ class _HhSearchScreenState extends State<HhSearchScreen> {
       setState(() {
         _loading = false;
         _done = true;
-        if (_results.isEmpty) _error = 'Cannot reach hentaihaven.xxx.';
+        if (_results.isEmpty) _error = 'Cannot reach the source — check your connection.';
       });
     }
   }

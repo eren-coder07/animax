@@ -658,24 +658,14 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                           _attempts == 0
                               ? (_loadPct > 0 && _loadPct < 100
                                   ? 'Loading player $_loadPct%'
-                                  : 'Connecting to ${_provider.home}…')
-                              : 'Server failed — switching to ${_provider.home}…',
+                                  : 'Loading…')
+                              : 'Switching server…',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               fontFamily: 'Poppins',
                               fontSize: 11.5,
                               color: Colors.white),
                         ),
-                        if (_attempts > 0) ...<Widget>[
-                          const SizedBox(height: 4),
-                          Text(
-                            '${cinemaProviders.length - _attempts} servers left in queue',
-                            style: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 10,
-                                color: Colors.white60),
-                          ),
-                        ],
                       ],
                     ),
                   ),

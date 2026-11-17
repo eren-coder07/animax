@@ -25,7 +25,7 @@ class MangaApi {
 
   static const String base = 'https://api.mangadex.org';
   static const String uploadsBase = 'https://uploads.mangadex.org';
-  static const String ua = 'Animax/1.9.0 (Android; Flutter)';
+  static const String ua = 'Animax/1.9.1 (Android; Flutter)';
 
   final http.Client _client = createHttpClient();
 
@@ -76,7 +76,7 @@ class MangaApi {
         continue;
       }
       if (res.statusCode != 200) {
-        throw MangaApiException('HTTP ${res.statusCode} for $path');
+        throw MangaApiException('The source returned HTTP ${res.statusCode}.');
       }
       break;
     }

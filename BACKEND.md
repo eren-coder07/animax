@@ -1,4 +1,4 @@
-# Animax ↔ Aniwaves Backend — Integration Guide (v1.3.0)
+# Animax ↔ Aniwaves Backend — Integration Guide (v1.9.1)
 
 The app is wired to the **real API captured in your HAR file**
 (`upload/myapi`, traffic from `https://aniwaves.ru`) **plus the player and
@@ -21,7 +21,7 @@ needed — the base URL is built in, and every endpoint below was
 | Player — view counter | `GET /ajax/anime/views/{id}` (fire-and-forget, like the site) | ✅ wired |
 | Calendar tab | `GET /ajax/schedule/date?date=YYYY-MM-DD` — the site's own airing schedule, 3 days back → 7 ahead (falls back to episode `data-aired`) | ✅ live-verified |
 | Notifications | episodes released in the last 3 days (from the schedule) | ✅ |
-| Profile — session state | `GET /ajax/user/panel` (shown in backend settings probe) | ✅ live-verified |
+| Profile — session state | `GET /ajax/user/panel` (polled silently) | ✅ live-verified |
 
 ## 2. In-app playback — how it works
 
@@ -108,42 +108,42 @@ Requests mirror the site's own frontend so AJAX endpoints answer normally:
 A live smoke test from the build machine confirmed **all endpoints answer
 200 with full payloads** (no Cloudflare block for plain HTTP clients).
 
-## 6. Configuration (still available)
+## 6. Configuration
 
-Defaults point at your backend and persist in-app:
+There is **no in-app connection UI** — defaults are baked in so end users
+never see connection diagnostics or debug screens:
 
 ```
-Profile → API Backend
-  Base URL        https://aniwaves.ru   (editable)
-  Bearer token / API-key pair        (optional, for other deployments)
-  Endpoint path overrides: Trending / Episode list / Server list / User panel
-  Save & Test     → per-endpoint probe results
+Anime backend base URL      https://aniwaves.ru   (built in)
+Akwam section base URL      https://akwam.ss      (built in)
 ```
 
-Bake a different base at build time:
+Bake a different anime base at build time:
 
 ```bash
 flutter build apk --release --dart-define=ANIMAX_API_BASE=https://your-mirror.tld
 ```
 
-If the backend is unreachable (offline, blocked, DNS failure), the app
-falls back to the built-in sample catalog and shows `OFFLINE` on the chip —
-it never renders an empty shell.
+If the backend is unreachable (offline, blocked, DNS failure), the anime
+sections show a neutral "Content unavailable" card with a retry button —
+never a raw error dump. The Akwam section reports its own friendly errors.
 
 ## 7. Project map (integration parts)
 
 ```
-lib/core/api_config.dart        base URL + endpoint paths (persisted)
+lib/core/api_config.dart        base URL + endpoint paths (persisted, no UI)
 lib/core/api_service.dart       HTTP layer: AJAX endpoints + watch/genre/search scraping
 lib/core/api_html.dart          HTML-fragment → model parsers (cards, episodes,
                                 servers, schedule rows, /ajax/sources envelope)
 lib/core/api_mapper.dart        tolerant JSON→model mappers (kept for JSON backends)
 lib/core/app_state.dart         repository: bootstrap, catalog, live schedule
                                 calendar, notices, episode/recommendation caches
+lib/core/akwam_api.dart         Akwam section scraper: catalogs, search, details,
+                                episodes, quality tabs, direct-MP4 resolver
 lib/screens/player_screen.dart  in-app WebView playback (server chips + prev/next)
-lib/screens/backend_settings_screen.dart   connection UI + live probe
-android/.../MainActivity.kt     openUrl channel (browser fallback)
-test/                           parser tests against your captured traffic
+lib/screens/akwam_*.dart        Akwam tab, details, search and native player
+android/.../MainActivity.kt     openUrl / setKeepScreenOn / PiP channels
+test/                           parser tests against captured traffic
 ```
 
 ## 8. Known limitations
@@ -155,3 +155,36 @@ test/                           parser tests against your captured traffic
   the app auto-parses the HTML the day it is enabled.
 - **Search** — scrapes `/search?keyword=`; if that route changes, only this
   one method needs updating.
+
+## 9. Akwam section (`https://akwam.ss`)
+
+The **Akwam** tab (v1.9.1) streams Arabic movies, series and shows from
+akwam.ss. All requests are plain GETs through Cronet; the contract below
+was **verified live on 2026-11-17**.
+
+```
+Catalogs   GET /recent?page=N  /movies?page=N  /series?page=N  /shows?page=N
+           → poster cards (div.entry-box): a.entry-title (title + href),
+             img[data-src] (poster), span.label.rating, span.label.quality,
+             span.badge (year + Arabic genres). Pagination via ?page=N.
+
+Search     GET /search?q={query}&page=N → same card markup.
+
+Item page  GET /movie/{id}/{slug} | /series/{id}/{slug}
+           → og:title / og:image / og:description + the "قصة …" story widget
+             (longer synopsis) + for series the #series-episodes grid with
+             /episode/{id}/{slug}/الحلقة-N links and p.entry-date air dates.
+
+Movie /    quality tabs: ul.header-tabs li a → #tab-N labels
+episode      div.tab-content.quality#tab-N → /watch/{fileId}/{itemId}/{slug}
+page         watch links (+ sibling download links carrying file sizes).
+
+Watch page GET /watch/{fileId}/…
+           → HTML contains the direct https://…/*.mp4 stream URL
+             (range requests supported — HTTP 206), played natively through
+             video_player with Referer: https://akwam.ss/. No WebView.
+```
+
+Playback flow: catalog → details → (series: episode page → quality tabs)
+→ `/watch/{fileId}` page → direct MP4 → ExoPlayer. Quality switching,
+prev/next episode and auto-advance live in `akwam_player_screen.dart`.

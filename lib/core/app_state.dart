@@ -34,7 +34,10 @@ class AppState extends ChangeNotifier {
   // =========================================================================
 
   BackendMode backendMode = BackendMode.loading;
-  String backendMessage = 'Connecting…';
+
+  /// Neutral, user-facing status line (no URLs, no raw errors — diagnostics
+  /// stay out of the UI on purpose).
+  String backendMessage = 'Loading…';
 
   /// Human-readable reason of the last failed sync (splash / home banner).
   String? syncError;
@@ -156,13 +159,13 @@ class AppState extends ChangeNotifier {
   Future<bool> refreshFromApi({bool withSchedule = false}) async {
     if (!ApiService.I.config.isConfigured) {
       backendMode = BackendMode.offline;
-      backendMessage = 'No backend configured';
-      syncError = 'No backend configured';
+      backendMessage = 'Content unavailable';
+      syncError = null;
       notifyListeners();
       return false;
     }
     backendMode = BackendMode.loading;
-    backendMessage = 'Connecting to ${ApiService.I.config.cleanBase}…';
+    backendMessage = 'Loading content…';
     syncError = null;
     notifyListeners();
 
@@ -171,16 +174,15 @@ class AppState extends ChangeNotifier {
       final List<Anime> remote = await ApiService.I.fetchCatalog();
       _catalog = remote;
       backendMode = BackendMode.connected;
-      backendMessage =
-          'Connected — ${_catalog.length} titles from ${ApiService.I.config.cleanBase}';
+      backendMessage = 'Content library is up to date';
       syncError = null;
       lastSyncAt = DateTime.now();
       ok = true;
       notifyListeners();
-    } catch (e) {
+    } catch (_) {
       backendMode = BackendMode.offline;
-      backendMessage = 'Backend unreachable (${_short(e)})';
-      syncError = _short(e);
+      backendMessage = 'Content unavailable — check your connection';
+      syncError = null;
       notifyListeners();
       return false;
     }
@@ -427,11 +429,6 @@ class AppState extends ChangeNotifier {
     if (diff.inDays == 1) return 'Yesterday';
     if (diff.inDays < 30) return '${diff.inDays} days ago';
     return _hhmm(aired);
-  }
-
-  static String _short(Object e) {
-    String s = e.toString();
-    return s.length > 48 ? '${s.substring(0, 48)}…' : s;
   }
 
   // =========================================================================

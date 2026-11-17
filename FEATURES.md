@@ -1,8 +1,20 @@
-# Animax v1.9.0 — 55 Features
+# Animax v1.9.1 — 55 + 6 Features
 
-This release adds **55 new features** across the whole app: two brand-new
-entertainment sections (Cartoons, Comics), a re-engineered Cinema player,
-gesture-rich native players, a personal library layer and a themeable UI.
+v1.9.0 shipped **55 features** across the whole app (Cartoons, Comics, a
+re-engineered Cinema player, gesture-rich native players, a personal
+library layer and a themeable UI). v1.9.1 adds the **Akwam section** and
+removes every user-facing connection diagnostic from the UI.
+
+## Akwam section (akwam.ss) + debug cleanup — new in v1.9.1 (6)
+
+| # | Feature | Where |
+|---|---------|-------|
+| 1 | **Akwam tab** — Arabic movies, series & shows: Recently Added / Movies / Series / Shows feeds with infinite scroll | `core/akwam_api.dart`, `screens/akwam_tab.dart` |
+| 2 | Keyword search (Arabic + English) with debounced input and lazy pagination | `screens/akwam_search_screen.dart` |
+| 3 | Details screen — story, rating, quality label, genres, episode list with air dates | `screens/akwam_details_screen.dart` |
+| 4 | **Native MP4 playback** — quality tabs resolved from the /watch page into direct streams (no WebView), auto-fallback to the next quality | `screens/akwam_player_screen.dart` |
+| 5 | Player: quality switcher, prev/next episode, auto-advance, speed, mute, lock, fullscreen, double-tap seek gestures | `screens/akwam_player_screen.dart` |
+| 6 | **Debug cleanup** — Profile→API Backend screen, settings row, mock server (`backend_reference/`) and per-endpoint probe machinery removed; "Connecting to …" / raw error dumps replaced with neutral status text | `core/app_state.dart`, `screens/splash_screen.dart`, `screens/home_tab.dart` |
 
 ## Cinema — verification-failed fix + player overhaul (11)
 
@@ -89,11 +101,14 @@ gesture-rich native players, a personal library layer and a themeable UI.
 | 54 | "What's new" changelog dialog once per version | `screens/home_shell.dart` |
 | 55 | Settings hub — appearance / player / comics / data / about + check-for-updates against GitHub releases | `screens/settings_screen.dart` |
 
-## Live verification (2026-11-17)
+## Live verification (2026-11-17, updated for v1.9.1)
 
 - Cinemeta catalogs incl. `genre=Animation` — HTTP 200, plain JSON
 - MangaDex — search / feed / at-home pages all 200 (throttled client)
 - Embed providers verified: vidsrc.sh 200, vidfast 200, vidlink 200 (movies),
   vidsrc.cc/2embed/multiembed reachable from consumer networks (fallbacks)
+- Akwam live checks — /movies, /series, /recent, /shows, /search all 200;
+  /watch/{fileId} pages expose direct MP4s (HTTP 206 on range requests)
 - `flutter analyze` clean (Windows-conditional media_kit notes excluded —
-  dead file not compiled into the APK), 73 tests green
+  dead file not compiled into the APK), parser tests green incl. the new
+  Akwam fixtures

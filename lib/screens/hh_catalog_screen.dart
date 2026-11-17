@@ -99,7 +99,7 @@ class _HhCatalogScreenState extends State<HhCatalogScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        if (_items.isEmpty) _error = 'Cannot reach hentaihaven.xxx.';
+        if (_items.isEmpty) _error = 'Cannot reach the source — check your connection.';
       });
     }
   }

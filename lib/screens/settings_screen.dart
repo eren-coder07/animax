@@ -336,19 +336,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            leading: Icon(Icons.build_rounded,
-                size: 21, color: AppColors.accent),
-            title: const Text('API backend',
-                style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    color: AppColors.text)),
-            trailing: const Icon(Icons.chevron_right_rounded,
-                size: 22, color: AppColors.muted),
-            onTap: () => Navigator.pushNamed(context, '/backend'),
-          ),
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: Icon(Icons.help_outline_rounded,
                 size: 21, color: AppColors.accent),
             title: const Text('Help center',
@@ -363,7 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
-              child: Text('Animax v1.9.0 (10) · built for the love of anime',
+              child: Text('Animax v1.9.1 (12) · built for the love of anime',
                   style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 11,
@@ -432,7 +419,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final String tag =
           ((jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['tag_name'] ?? '')
               .toString();
-      final String current = 'v1.9.0';
+      final String current = 'v1.9.1';
       final bool newer = _isNewer(tag, current);
       if (mounted) {
         setState(() {
@@ -442,11 +429,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               : 'You are on the latest version ($current)';
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
           _checkingUpdate = false;
-          _updateMessage = 'Could not check — $e';
+          _updateMessage = 'Could not check for updates — check your connection.';
         });
       }
     }
