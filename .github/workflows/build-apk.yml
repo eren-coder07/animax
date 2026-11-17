@@ -1,9 +1,12 @@
-name: Build Animax APK (Netflix UI)
+name: Build Animax 32-bit APK
 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -27,15 +30,46 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      - name: Build release APK
+      - name: Read app version
+        run: |
+          VER=$(grep -E '^version:' pubspec.yaml | sed 's/version: *//' | cut -d+ -f1)
+          echo "APP_VERSION=$VER" >> "$GITHUB_ENV"
+          echo "App version: $VER"
+
+      - name: Build 32-bit (armeabi-v7a) release APK
         run: >
           flutter build apk --release
-          --target-platform android-arm64,android-arm
+          --target-platform android-arm
+          --split-per-abi
           --dart-define=cronetHttpNoPlay=true
+
+      - name: Rename APK
+        run: |
+          ls -la build/app/outputs/flutter-apk/
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk \
+             animax-${APP_VERSION}-32bit-armeabi-v7a.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: animax-netflix-ui-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: animax-32bit-apk
+          path: animax-*-32bit-armeabi-v7a.apk
           if-no-files-found: error
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.APP_VERSION }}-32bit
+          name: Animax v${{ env.APP_VERSION }} (32-bit)
+          body: |
+            32-bit release APK built by GitHub Actions.
+
+            - ABI: armeabi-v7a (32-bit ARM)
+            - Version: ${{ env.APP_VERSION }}
+            - Commit: ${{ github.sha }}
+
+            Install: download the APK and open it on a 32-bit Android device (allow installs from unknown sources).
+          files: animax-*-32bit-armeabi-v7a.apk
+          make_latest: "true"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
