@@ -16,11 +16,11 @@ extension LibStatusX on LibStatus {
         LibStatus.drop => 'drop',
       };
   String get label => switch (this) {
-        LibStatus.plan => 'Plan to Watch',
-        LibStatus.watching => 'Watching',
-        LibStatus.done => 'Completed',
-        LibStatus.hold => 'On Hold',
-        LibStatus.drop => 'Dropped',
+        LibStatus.plan => 'سأشاهده',
+        LibStatus.watching => 'أشاهده',
+        LibStatus.done => 'مكتمل',
+        LibStatus.hold => 'مؤجّل',
+        LibStatus.drop => 'متوقف',
       };
 }
 

@@ -197,7 +197,7 @@ void main() {
 
   group('AccentTheme', () {
     test('byKey falls back to default green', () {
-      expect(AccentTheme.byKey('red').name, 'Cinema Red');
+      expect(AccentTheme.byKey('red').name, 'أحمر سينمائي');
       expect(AccentTheme.byKey('nonsense'), AccentTheme.def);
       expect(AccentTheme.byKey('nonsense').key, 'green');
     });

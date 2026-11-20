@@ -27,7 +27,7 @@ class NotificationsScreen extends StatelessWidget {
                   IconBubble(Icons.arrow_back_rounded,
                       onTap: () => Navigator.pop(context)),
                   const Spacer(),
-                  const Text('Notification', style: AppText.h3),
+                  const Text('الإشعارات', style: AppText.h3),
                   const Spacer(),
                   Text('09/05/2026',
                       style: AppText.label.copyWith(fontSize: 11)),
@@ -39,8 +39,8 @@ class NotificationsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: GestureDetector(
                 onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('All notifications marked as read'))),
-                child: Text('Mark all as read',
+                    const SnackBar(content: Text('تم تعليم كل الإشعارات كمقروءة'))),
+                child: Text('تعليم الكل كمقروء',
                     style: AppText.bodyBold
                         .copyWith(color: AppColors.accent, fontSize: 12)),
               ),
@@ -49,8 +49,8 @@ class NotificationsScreen extends StatelessWidget {
               child: state.notices.isEmpty
                   ? const EmptyState(
                       icon: Icons.notifications_none_rounded,
-                      title: 'No notifications',
-                      message: 'New episode alerts will show up here.',
+                      title: 'لا توجد إشعارات',
+                      message: 'ستظهر تنبيهات الحلقات الجديدة هنا.',
                     )
                   : ListView.separated(
                       physics: const BouncingScrollPhysics(),
@@ -87,8 +87,8 @@ class NotificationsScreen extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 Text(
                                   n.anime.isMovie
-                                      ? 'Now streaming'
-                                      : 'Episode ${n.episode}',
+                                      ? 'يُعرض الآن'
+                                      : 'الحلقة ${n.episode}',
                                   style: AppText.label.copyWith(fontSize: 11),
                                 ),
                                 const SizedBox(height: 5),
@@ -105,9 +105,9 @@ class NotificationsScreen extends StatelessWidget {
                               color: AppColors.accent.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(9),
                             ),
-                            child: Text('Updates',
+                            child: Text('التحديثات',
                                 style: TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Cairo',
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.accent)),

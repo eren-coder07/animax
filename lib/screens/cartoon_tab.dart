@@ -97,7 +97,7 @@ class _CartoonTabState extends State<CartoonTab>
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
               child: Row(
                 children: <Widget>[
-                  const Text('Cartoons', style: AppText.h1),
+                  const Text('كرتون', style: AppText.h1),
                   const Spacer(),
                   Icon(Icons.animation_rounded,
                       color: AppColors.accent, size: 24),
@@ -107,9 +107,9 @@ class _CartoonTabState extends State<CartoonTab>
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
               child: Text(
-                  'Animated movies & series — family favorites and modern '
-                  'classics, streaming with the same multi-server player as '
-                  'Cinema.',
+                  'أفلام ومسلسلات كرتون — مفضّلات العائلة والكلاسيكيات '
+                  'الحديثة، تُعرض بنفس مشغّل السيرفرات المتعددة مثل '
+                  'السينما.',
                   style: AppText.label),
             ),
             // Inline search
@@ -119,13 +119,13 @@ class _CartoonTabState extends State<CartoonTab>
                 controller: _searchCtl,
                 onChanged: _onSearchChanged,
                 style: const TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 13.5,
                     color: AppColors.text),
                 decoration: InputDecoration(
-                  hintText: 'Search cartoons…',
+                  hintText: 'ابحث عن كرتون…',
                   hintStyle: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 13,
                       color: AppColors.muted),
                   prefixIcon: const Icon(Icons.search_rounded,
@@ -147,10 +147,10 @@ class _CartoonTabState extends State<CartoonTab>
             if (_searchResults != null || _searching) ...<Widget>[
               _buildSearchResults(),
             ] else ...<Widget>[
-              _CinemaRow(title: 'Trending cartoons', future: _trending!, onOpen: _openItem),
-              _CinemaRow(title: 'Popular animated series', future: _popularSeries!, onOpen: _openItem),
-              _CinemaRow(title: 'Top animated movies', future: _topMovies!, onOpen: _openItem),
-              _CinemaRow(title: 'Best rated animation', future: _bestRated!, onOpen: _openItem),
+              _CinemaRow(title: 'كرتون رائج', future: _trending!, onOpen: _openItem),
+              _CinemaRow(title: 'مسلسلات كرتون شائعة', future: _popularSeries!, onOpen: _openItem),
+              _CinemaRow(title: 'أفضل أفلام الكرتون', future: _topMovies!, onOpen: _openItem),
+              _CinemaRow(title: 'الأعلى تقييمًا', future: _bestRated!, onOpen: _openItem),
             ],
             const SizedBox(height: 24),
           ],
@@ -165,7 +165,7 @@ class _CartoonTabState extends State<CartoonTab>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(_searching ? 'Searching…' : 'Results',
+          Text(_searching ? 'جارٍ البحث…' : 'النتائج',
               style: AppText.h3),
           const SizedBox(height: 12),
           if (_searching)
@@ -176,7 +176,7 @@ class _CartoonTabState extends State<CartoonTab>
                     child: CircularProgressIndicator(
                         strokeWidth: 2.2, color: AppColors.accent)))
           else if (_searchResults!.isEmpty)
-            Text('No animated titles found for "${_searchCtl.text}".',
+            Text('لا توجد نتائج كرتون لـ «${_searchCtl.text}».',
                 style: AppText.label)
           else
             ...List<Widget>.generate(_searchResults!.length, (int i) {
@@ -233,17 +233,17 @@ class _SearchRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: AppColors.text)),
                     const SizedBox(height: 3),
                     Text(
-                      '${item.isSeries ? 'Series' : 'Movie'}'
+                      '${item.isSeries ? 'مسلسل' : 'فيلم'}'
                       '${item.releaseInfo.isEmpty ? '' : ' · ${item.releaseInfo}'}'
                       '${item.imdbRating > 0 ? ' · ★ ${item.imdbRating.toStringAsFixed(1)}' : ''}',
                       style: const TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 10.5,
                           color: AppColors.muted),
                     ),
@@ -300,8 +300,8 @@ class _CinemaRow extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     snap.hasError
-                        ? 'Could not load — ${snap.error}'
-                        : 'Nothing here right now.',
+                        ? 'تعذّر التحميل — ${snap.error}'
+                        : 'لا شيء هنا حاليًا.',
                     style: AppText.label,
                   ),
                 );
@@ -383,7 +383,7 @@ class _CartoonCard extends StatelessWidget {
                                 Text(
                                   item.imdbRating.toStringAsFixed(1),
                                   style: const TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Cairo',
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white),
@@ -404,7 +404,7 @@ class _CartoonCard extends StatelessWidget {
                 style: AppText.bodyBold.copyWith(
                     fontSize: 12, color: AppColors.text)),
             Text(
-              '${item.isSeries ? 'Series' : 'Movie'}'
+              '${item.isSeries ? 'Series' : 'فيلم'}'
               '${item.releaseInfo.isEmpty ? '' : ' · ${item.releaseInfo}'}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

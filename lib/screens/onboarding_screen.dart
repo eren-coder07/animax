@@ -42,10 +42,10 @@ class OnboardingScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 10, 22, 10),
                 children: [
-                  const Text('Tell us what you love', style: AppText.h1),
+                  const Text('أخبرنا بما تحب', style: AppText.h1),
                   const SizedBox(height: 8),
                   Text(
-                    'Pick the genres you enjoy — we will build your home feed around them. You can change this anytime in settings.',
+                    'اختر التصنيفات التي تحبها — سنبني صفحتك الرئيسية حولها. يمكنك تغييرها في أي وقت من الإعدادات.',
                     style: AppText.body,
                   ),
                   const SizedBox(height: 24),
@@ -72,7 +72,7 @@ class OnboardingScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: GhostChip(
-                      label: 'Skip',
+                      label: 'تخطّي',
                       padding: const EdgeInsets.symmetric(vertical: 15),
                       onTap: () async {
                         await _markOnboarded();
@@ -85,7 +85,7 @@ class OnboardingScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: PrimaryButton(
-                      label: 'Continue',
+                      label: 'متابعة',
                       expanded: true,
                       onTap: () async {
                         await _markOnboarded();

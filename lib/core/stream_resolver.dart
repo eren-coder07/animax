@@ -177,7 +177,7 @@ ResolvedStream? parseGetSources(dynamic body,
     final String url = raw.trim();
     return ResolvedStream(
       url: url,
-      qualities: <String, String>{'Auto': url},
+      qualities: <String, String>{'تلقائي': url},
       introStart: introStart,
       introEnd: introEnd,
       referer: referer,

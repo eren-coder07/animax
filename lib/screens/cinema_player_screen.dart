@@ -81,10 +81,10 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
     final String? direct = widget._directTitle;
     if (direct != null) return direct;
     final CinemaMeta? m = widget.meta;
-    if (m == null) return 'Cinema';
+    if (m == null) return 'سينما';
     if (widget.episode > 0) {
       final String ep = widget.episodeName.isEmpty
-          ? 'Episode ${widget.episode}'
+          ? 'الحلقة ${widget.episode}'
           : widget.episodeName;
       return '${m.name} — S${widget.season} · $ep';
     }
@@ -197,8 +197,8 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
         return;
       }
       if (bad) {
-        _probeText = text.isEmpty ? 'server verification failed' : text;
-        _switchServer(reason: 'Verification failed');
+        _probeText = text.isEmpty ? 'فشل التحقق من السيرفر' : text;
+        _switchServer(reason: 'فشل التحقق');
       }
     } catch (_) {
       // Non-JSON messages from the page are ignored.
@@ -234,10 +234,10 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
           _recordStart();
         } else if (bad && !_playing) {
           _probeText = (d['text'] ?? '').toString();
-          _switchServer(reason: 'Verification failed');
+          _switchServer(reason: 'فشل التحقق');
         } else if (!video && !iframe && !_playing && !_loading) {
           // Page settled into an empty shell — treat as dead server.
-          _switchServer(reason: 'Empty player');
+          _switchServer(reason: 'المشغّل فارغ');
         }
       } catch (_) {
         // Probe races with navigation; ignore.
@@ -249,7 +249,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
     _graceTimer?.cancel();
     _graceTimer = Timer(const Duration(seconds: 14), () {
       if (!mounted || _playing) return;
-      _switchServer(reason: 'No video signal');
+      _switchServer(reason: 'لا توجد إشارة فيديو');
     });
   }
 
@@ -258,7 +258,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
     _graceTimer?.cancel();
   }
 
-  void _switchServer({String reason = 'server error'}) {
+  void _switchServer({String reason = 'خطأ في السيرفر'}) {
     if (!mounted || _isTrailer) return;
     _stopProbes();
     _attempts++;
@@ -314,13 +314,13 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
     final CinemaMeta? m = widget.meta;
     LibraryStore.I.pushHistory(
       key: _key,
-      title: m?.name ?? widget._directTitle ?? 'Cinema',
+      title: m?.name ?? widget._directTitle ?? 'سينما',
       poster: m?.poster ?? '',
       kind: m?.isSeries == true ? 'cinema' : 'cinema',
       sub: widget.episode > 0 ? 'S${widget.season}E${widget.episode}' : 'movie',
       label: widget.episode > 0
           ? 'S${widget.season} · E${widget.episode}'
-          : 'Movie',
+          : 'فيلم',
     );
   }
 
@@ -351,7 +351,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
       context: context,
       barrierDismissible: false,
       builder: (BuildContext ctx) => _NextEpisodeDialog(
-        title: target.name.isEmpty ? 'Episode ${target.number}' : target.name,
+        title: target.name.isEmpty ? 'الحلقة ${target.number}' : target.name,
         seconds: 10,
         onPlay: () {
           _nextTimer?.cancel();
@@ -451,9 +451,9 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
           children: <Widget>[
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 18, 20, 6),
-              child: Text('Streaming servers',
+              child: Text('سيرفرات البث',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.text)),
@@ -461,10 +461,10 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Text(
-                'Pick a server if playback stalls. The player falls back '
-                'automatically when one fails.',
+                'اختر سيرفرًا إذا توقّف التشغيل. ينتقل المشغّل '
+                'تلقائيًا إلى سيرفر آخر عند الفشل.',
                 style: TextStyle(
-                    fontFamily: 'Poppins', fontSize: 11.5, color: AppColors.sub),
+                    fontFamily: 'Cairo', fontSize: 11.5, color: AppColors.sub),
               ),
             ),
             for (int i = 0; i < cinemaProviders.length; i++)
@@ -479,13 +479,13 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                 ),
                 title: Text(cinemaProviders[i].name,
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.text)),
                 subtitle: Text(cinemaProviders[i].home,
                     style: const TextStyle(
-                        fontFamily: 'Poppins', fontSize: 11, color: AppColors.muted)),
+                        fontFamily: 'Cairo', fontSize: 11, color: AppColors.muted)),
                 trailing: i == _providerIdx
                     ? Icon(Icons.check_rounded, color: AppColors.accent)
                     : null,
@@ -517,9 +517,9 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
               padding: EdgeInsets.fromLTRB(20, 18, 20, 10),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Episodes',
+                child: Text('الحلقات',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppColors.text)),
@@ -537,18 +537,18 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                     dense: true,
                     leading: Text(e.label,
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                             color: current
                                 ? AppColors.accent
                                 : AppColors.muted)),
                     title: Text(
-                        e.name.isEmpty ? 'Episode ${e.number}' : e.name,
+                        e.name.isEmpty ? 'الحلقة ${e.number}' : e.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 13,
                             fontWeight: current
                                 ? FontWeight.w700
@@ -604,7 +604,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 13.5,
                               fontWeight: FontWeight.w600,
                               color: Colors.white)),
@@ -620,7 +620,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                         onPressed: _openServerSheet,
                         child: Text(_provider.name.split('·').last.trim(),
                             style: const TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Cairo',
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white)),
@@ -657,12 +657,12 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                         Text(
                           _attempts == 0
                               ? (_loadPct > 0 && _loadPct < 100
-                                  ? 'Loading player $_loadPct%'
-                                  : 'Loading…')
-                              : 'Switching server…',
+                                  ? 'جارٍ تحميل المشغّل $_loadPct%'
+                                  : 'جارٍ التحميل…')
+                              : 'جارٍ تبديل السيرفر…',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 11.5,
                               color: Colors.white),
                         ),
@@ -688,21 +688,21 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                       const Icon(Icons.error_outline_rounded,
                           color: AppColors.danger, size: 40),
                       const SizedBox(height: 12),
-                      const Text('All servers failed',
+                      const Text('فشلت جميع السيرفرات',
                           style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
                               color: AppColors.text)),
                       const SizedBox(height: 6),
                       Text(
                         _probeText?.isEmpty ?? true
-                            ? 'The stream providers are unreachable right '
-                                'now. Check your connection or retry later.'
-                            : 'Last server said: "$_probeText".',
+                            ? 'تعذّر الوصول إلى مزوّدي البث '
+                                'حاليًا. تحقّق من اتصالك أو أعد المحاولة لاحقًا.'
+                            : 'رسالة آخر سيرفر: «$_probeText».',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 12,
                             height: 1.5,
                             color: AppColors.sub),
@@ -715,9 +715,9 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                             onPressed: _reload,
                             icon: const Icon(Icons.refresh_rounded,
                                 size: 18, color: AppColors.text),
-                            label: const Text('Retry all',
+                            label: const Text('إعادة المحاولة للكل',
                                 style: TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Cairo',
                                     fontSize: 12.5,
                                     color: AppColors.text)),
                           ),
@@ -732,9 +732,9 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                             },
                             icon: const Icon(Icons.dns_rounded,
                                 size: 18, color: AppColors.sub),
-                            label: const Text('Pick server',
+                            label: const Text('اختر سيرفرًا',
                                 style: TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Cairo',
                                     fontSize: 12.5,
                                     color: AppColors.sub)),
                           ),
@@ -790,30 +790,30 @@ class _NextEpisodeDialogState extends State<_NextEpisodeDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text('Up next',
+      title: const Text('التالي',
           style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Cairo',
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppColors.text)),
-      content: Text('${widget.title} — playing in $_left s',
+      content: Text('${widget.title} — يبدأ خلال $_left ث',
           style: const TextStyle(
-              fontFamily: 'Poppins', fontSize: 13, color: AppColors.sub)),
+              fontFamily: 'Cairo', fontSize: 13, color: AppColors.sub)),
       actions: <Widget>[
         TextButton(
           onPressed: widget.onCancel,
-          child: const Text('Cancel',
+          child: const Text('إلغاء',
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 12.5,
                   color: AppColors.sub)),
         ),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
           onPressed: widget.onPlay,
-          child: Text('Play now',
+          child: Text('شغّل الآن',
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.ink)),

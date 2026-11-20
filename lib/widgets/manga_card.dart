@@ -45,7 +45,7 @@ class MangaCard extends StatelessWidget {
                           child: Text(
                             manga.title.isNotEmpty ? manga.title[0] : '?',
                             style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Cairo',
                                 fontSize: 36,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.accent),
@@ -71,7 +71,7 @@ class MangaCard extends StatelessWidget {
                                 const SizedBox(width: 3),
                                 Text(manga.followedLabel,
                                     style: const TextStyle(
-                                        fontFamily: 'Poppins',
+                                        fontFamily: 'Cairo',
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white)),
@@ -94,7 +94,7 @@ class MangaCard extends StatelessWidget {
             ),
             Text(
               manga.tags.isEmpty
-                  ? (manga.year.isEmpty ? 'Manga' : manga.year)
+                  ? (manga.year.isEmpty ? 'مانغا' : manga.year)
                   : manga.tags.take(2).map((MangaTag t) => t.name).join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -146,8 +146,8 @@ class MangaRow extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
                     snap.hasError
-                        ? 'Could not load — check your connection.'
-                        : 'Nothing here right now.',
+                        ? 'تعذّر التحميل — تحقّق من اتصالك.'
+                        : 'لا شيء هنا حاليًا.',
                     style: AppText.label,
                   ),
                 );

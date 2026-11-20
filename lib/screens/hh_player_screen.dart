@@ -133,7 +133,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       _stream = null;
       _error = null;
       _resolving = true;
-      _status = 'Loading…';
+      _status = 'جارٍ التحميل…';
     });
     HhStream? stream;
     String? error;
@@ -142,13 +142,13 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     } on ApiException catch (e) {
       error = e.message;
     } catch (_) {
-      error = 'Cannot reach the source — check your connection.';
+      error = 'تعذّر الوصول إلى المصدر — تحقّق من اتصالك.';
     }
     if (!mounted) return;
     if (stream == null) {
       setState(() {
         _resolving = false;
-        _error = error ?? 'Stream unavailable.';
+        _error = error ?? 'البث غير متاح.';
       });
       return;
     }
@@ -162,7 +162,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     try {
       final ResolvedStream auto = await HlsQuality.autoSelect(ResolvedStream(
         url: stream.url,
-        qualities: <String, String>{'Auto': stream.url},
+        qualities: <String, String>{'تلقائي': stream.url},
         referer: '${HentaiApi.frontBase}/',
       ));
       playUrl = auto.url;
@@ -188,7 +188,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       await _disposePlayer();
       setState(() {
         _resolving = false;
-        _error = 'Player failed to open the stream.\n$e';
+        _error = 'تعذّر على المشغّل فتح البث.\n$e';
       });
       return;
     }
@@ -230,7 +230,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     if (st == null) return;
     await DownloadManager.I.addVideo(
       title: _series.title,
-      subtitle: 'Episode $_episode',
+      subtitle: 'الحلقة $_episode',
       poster: st.poster,
       url: st.url,
       headers: <String, String>{
@@ -249,7 +249,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     if (!mounted || _player != c) return;
     final VideoPlayerValue v = c.value;
     if (v.hasError && !_resolving) {
-      _onStreamDied(v.errorDescription ?? 'unknown error');
+      _onStreamDied(v.errorDescription ?? 'خطأ غير معروف');
       return;
     }
     if (v.isCompleted && !_resolving) {
@@ -287,7 +287,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       if (mounted) {
         setState(() {
           _resolving = false;
-          _error = 'Playback failed: $detail';
+          _error = 'فشل التشغيل: $detail';
         });
       }
     } catch (_) {
@@ -428,8 +428,8 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final String episodeLabel = 'Episode $_episode'
-        '${_episodes.isNotEmpty ? ' of ${_episodes.length}' : ''}';
+    final String episodeLabel = 'الحلقة $_episode'
+        '${_episodes.isNotEmpty ? ' من ${_episodes.length}' : ''}';
     return Scaffold(
       backgroundColor: Colors.black,
       body: PlayerGestureOverlay(
@@ -528,7 +528,7 @@ class _ResolvingCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(state._status,
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 12.5,
                   color: Colors.white70)),
         ],
@@ -555,9 +555,9 @@ class _ErrorCard extends StatelessWidget {
             const Icon(Icons.error_outline_rounded,
                 color: HhColors.red, size: 42),
             const SizedBox(height: 14),
-            Text('Playback failed',
+            Text('فشل التشغيل',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),
@@ -565,7 +565,7 @@ class _ErrorCard extends StatelessWidget {
             Text(state._error ?? '',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 12,
                     height: 1.6,
                     color: Colors.white70)),
@@ -588,9 +588,9 @@ class _ErrorCard extends StatelessWidget {
                         const Icon(Icons.refresh_rounded,
                             color: Colors.white, size: 18),
                         const SizedBox(width: 6),
-                        Text('Retry',
+                        Text('إعادة المحاولة',
                             style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Cairo',
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white)),
@@ -651,7 +651,7 @@ class _TopBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         color: Colors.white)),
@@ -659,7 +659,7 @@ class _TopBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 10.5,
                         color: Colors.white70)),
               ],
@@ -686,13 +686,13 @@ class _TopBar extends StatelessWidget {
               color: state._locked ? HhColors.red : Colors.white,
               size: 20,
             ),
-            tooltip: state._locked ? 'Unlock controls' : 'Lock controls',
+            tooltip: state._locked ? 'فتح القفل' : 'قفل التحكم',
             onPressed: state._toggleLock,
           ),
           IconButton(
             icon: const Icon(Icons.picture_in_picture_rounded,
                 color: Colors.white, size: 20),
-            tooltip: 'Picture-in-Picture',
+            tooltip: 'صورة داخل صورة',
             onPressed: () async {
               await enterPipMode();
             },
@@ -709,7 +709,7 @@ class _TopBar extends StatelessWidget {
                   child: Text(
                       '${s}x${state._speed == s ? '  ✓' : ''}',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 13,
                           color: Colors.white)),
                 ),
@@ -828,7 +828,7 @@ class _BottomControls extends StatelessWidget {
             children: <Widget>[
               Text(state._fmt(pos),
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 11,
                       color: Colors.white)),
               Expanded(
@@ -865,9 +865,9 @@ class _BottomControls extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(dur > Duration.zero ? state._fmt(dur) : 'LIVE',
+              Text(dur > Duration.zero ? state._fmt(dur) : 'مباشر',
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 11,
                       color: Colors.white)),
             ],
@@ -878,12 +878,12 @@ class _BottomControls extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 _EpNavButton(
-                  label: 'Prev ep',
+                  label: 'الحلقة السابقة',
                   enabled: _hasEp(state, -1),
                   onTap: () => state._switchEpisode(state._episode - 1),
                 ),
                 _EpNavButton(
-                  label: 'Next ep',
+                  label: 'الحلقة التالية',
                   enabled: _hasEp(state, 1),
                   onTap: () => state._switchEpisode(state._episode + 1),
                 ),
@@ -925,7 +925,7 @@ class _EpNavButton extends StatelessWidget {
           ),
           child: Text(label,
               style: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: Colors.white)),

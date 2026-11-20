@@ -57,24 +57,24 @@ class AppColors {
   );
 }
 
-/// Typography shortcuts (Poppins).
+/// Typography shortcuts (Cairo — Arabic + Latin).
 class AppText {
   AppText._();
 
   static const TextStyle h1 = TextStyle(
-      fontFamily: 'Poppins', fontSize: 26, fontWeight: FontWeight.w800, height: 1.25);
+      fontFamily: 'Cairo', fontSize: 26, fontWeight: FontWeight.w800, height: 1.25);
   static const TextStyle h2 = TextStyle(
-      fontFamily: 'Poppins', fontSize: 20, fontWeight: FontWeight.w700, height: 1.3);
+      fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700, height: 1.3);
   static const TextStyle h3 = TextStyle(
-      fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w700, height: 1.35);
+      fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w700, height: 1.35);
   static const TextStyle body = TextStyle(
-      fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w400, height: 1.6, color: AppColors.sub);
+      fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w400, height: 1.6, color: AppColors.sub);
   static const TextStyle bodyBold = TextStyle(
-      fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w600, height: 1.55);
+      fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w600, height: 1.55);
   static const TextStyle label = TextStyle(
-      fontFamily: 'Poppins', fontSize: 11.5, fontWeight: FontWeight.w500, color: AppColors.muted);
+      fontFamily: 'Cairo', fontSize: 11.5, fontWeight: FontWeight.w500, color: AppColors.muted);
   static const TextStyle button = TextStyle(
-      fontFamily: 'Poppins', fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text);
+      fontFamily: 'Cairo', fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text);
 }
 
 class AppTheme {
@@ -88,7 +88,7 @@ class AppTheme {
     final ThemeData base = ThemeData(
       brightness: Brightness.dark,
       useMaterial3: true,
-      fontFamily: 'Poppins',
+      fontFamily: 'Cairo',
       scaffoldBackgroundColor: AppColors.bg,
       colorScheme: ColorScheme.dark(
         primary: a,
@@ -100,7 +100,7 @@ class AppTheme {
     );
     return base.copyWith(
       textTheme: base.textTheme.apply(
-        fontFamily: 'Poppins',
+        fontFamily: 'Cairo',
         bodyColor: AppColors.text,
         displayColor: AppColors.text,
       ),
@@ -111,7 +111,7 @@ class AppTheme {
         centerTitle: true,
         iconTheme: IconThemeData(color: AppColors.text),
         titleTextStyle: TextStyle(
-            fontFamily: 'Poppins', fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
+            fontFamily: 'Cairo', fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
       ),
       dividerTheme: const DividerThemeData(color: AppColors.stroke, thickness: 1, space: 1),
       switchTheme: SwitchThemeData(
@@ -128,7 +128,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceHi,
-        contentTextStyle: const TextStyle(fontFamily: 'Poppins', fontSize: 13, color: AppColors.text),
+        contentTextStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.text),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),

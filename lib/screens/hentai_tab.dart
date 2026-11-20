@@ -70,7 +70,7 @@ class _HentaiTabState extends State<HentaiTab>
     await SharedPreferences.getInstance()
         .then((SharedPreferences p) => p.setBool(_kAgeOk, false));
     if (!mounted) return;
-    AppState.I.setTab(0);
+    AppState.I.setTab(AppState.homeTab);
   }
 
   Future<void> _loadAll() async {
@@ -88,14 +88,14 @@ class _HentaiTabState extends State<HentaiTab>
         if (!mounted) return;
         setState(() {
           _trending = fallback;
-          _error = 'Trending list unavailable — showing new releases instead.';
+          _error = 'قائمة الرائج غير متاحة — نعرض الإصدارات الجديدة بدلًا منها.';
         });
       } catch (_) {
         if (mounted) setState(() => _error = e.message);
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'Cannot reach the source right now.');
+        setState(() => _error = 'تعذّر الوصول إلى المصدر حاليًا.');
       }
     }
     // Secondary sections — parallel, failures stay silent (rows hidden).
@@ -170,21 +170,21 @@ class _AgeGate extends StatelessWidget {
                     color: HhColors.red, size: 52),
               ),
               const SizedBox(height: 26),
-              Text('Adult content ahead',
+              Text('محتوى للبالغين',
                   textAlign: TextAlign.center, style: AppText.h1),
               const SizedBox(height: 12),
               Text(
-                'This section streams explicit adult content (18+) from an '
-                'external source. By entering you confirm that you are of '
-                'legal age in your jurisdiction and that you want to view '
-                'adult content.',
+                'يعرض هذا القسم محتوى صريحًا للبالغين (+18) من '
+                'مصدر خارجي. بالدخول تؤكد أنك '
+                'بلغت السن القانونية في بلدك وأنك تريد مشاهدة '
+                'محتوى للبالغين.',
                 textAlign: TextAlign.center,
                 style: AppText.body.copyWith(fontSize: 13.5, height: 1.7),
               ),
               const SizedBox(height: 34),
-              _PrimaryActionButton(label: 'I am 18 or older — Enter', onTap: onEnter),
+              _PrimaryActionButton(label: 'عمري 18 أو أكثر — دخول', onTap: onEnter),
               const SizedBox(height: 12),
-              HhChip(label: 'Leave', onTap: onLeave),
+              HhChip(label: 'خروج', onTap: onLeave),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -196,9 +196,9 @@ class _AgeGate extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: HhColors.red, width: 1.4),
                     ),
-                    child: Text('RTA · 18+ ONLY',
+                    child: Text('RTA · +18 فقط',
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
@@ -256,7 +256,7 @@ class _Home extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        Text('Hentai', style: AppText.h1),
+                        Text('هنتاي', style: AppText.h1),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -266,9 +266,9 @@ class _Home extends StatelessWidget {
                             color: HhColors.redSoft,
                             border: Border.all(color: HhColors.red, width: 1.2),
                           ),
-                          child: Text('18+',
+                          child: Text('+18',
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
                                   color: HhColors.red)),
@@ -299,7 +299,7 @@ class _Home extends StatelessWidget {
                       const SizedBox(height: 8),
                       GestureDetector(
                         onTap: onRetry,
-                        child: Text('Tap to retry',
+                        child: Text('اضغط لإعادة المحاولة',
                             style: AppText.bodyBold
                                 .copyWith(color: HhColors.red, fontSize: 12.5)),
                       ),
@@ -313,33 +313,33 @@ class _Home extends StatelessWidget {
 
             // ---------- Trending ----------
             _Row(
-              title: 'Trending Now',
+              title: 'الرائج الآن',
               items: trend.take(12).skip(1).toList(),
               seeAll: () => Navigator.pushNamed(
                   context, '/hh-catalog',
                   arguments: const HhCatalogQuery(
-                      mode: HhCatalogMode.trending, title: 'Trending Now')),
+                      mode: HhCatalogMode.trending, title: 'الرائج الآن')),
             ),
 
             // ---------- Recently Updated ----------
             _Row(
-              title: 'Recently Updated',
+              title: 'حُدّث مؤخرًا',
               items: updated ?? const <HhSeries>[],
               seeAll: () => Navigator.pushNamed(
                   context, '/hh-catalog',
                   arguments: const HhCatalogQuery(
                       mode: HhCatalogMode.updated,
-                      title: 'Recently Updated')),
+                      title: 'حُدّث مؤخرًا')),
             ),
 
             // ---------- New Releases ----------
             _Row(
-              title: 'New Releases',
+              title: 'إصدارات جديدة',
               items: newest ?? const <HhSeries>[],
               seeAll: () => Navigator.pushNamed(
                   context, '/hh-catalog',
                   arguments: const HhCatalogQuery(
-                      mode: HhCatalogMode.newest, title: 'New Releases')),
+                      mode: HhCatalogMode.newest, title: 'إصدارات جديدة')),
             ),
 
             // ---------- Genres ----------
@@ -352,7 +352,7 @@ class _Home extends StatelessWidget {
                     padding: EdgeInsets.fromLTRB(20, 0, 20, 14),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('Browse by Genre',
+                      child: Text('تصفّح حسب التصنيف',
                           style: AppText.h2, textAlign: TextAlign.left),
                     ),
                   ),
@@ -410,7 +410,7 @@ class _PrimaryActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
           child: Text(label,
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
                   color: Colors.white)),
@@ -443,7 +443,7 @@ class HhChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
           child: Text(label,
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: onTap == null ? AppColors.sub : Colors.white)),
@@ -514,9 +514,9 @@ class _Hero extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                             color: HhColors.red,
                           ),
-                          child: Text('#1 TRENDING',
+                          child: Text('الأكثر رواجًا #1',
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.8,
@@ -561,9 +561,9 @@ class _Hero extends StatelessWidget {
                                 const Icon(Icons.play_arrow_rounded,
                                     color: Colors.white, size: 20),
                                 const SizedBox(width: 4),
-                                Text('Watch',
+                                Text('شاهد',
                                     style: TextStyle(
-                                        fontFamily: 'Poppins',
+                                        fontFamily: 'Cairo',
                                         fontSize: 12.5,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.white)),
@@ -610,7 +610,7 @@ class _Row extends StatelessWidget {
               if (seeAll != null)
                 GestureDetector(
                   onTap: seeAll,
-                  child: Text('See all',
+                  child: Text('عرض الكل',
                       style: AppText.bodyBold
                           .copyWith(color: HhColors.red, fontSize: 12.5)),
                 ),
@@ -688,9 +688,9 @@ class HhSeriesCard extends StatelessWidget {
                               border:
                                   Border.all(color: HhColors.red, width: 1),
                             ),
-                            child: Text('18+',
+                            child: Text('+18',
                                 style: TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Cairo',
                                     fontSize: 8,
                                     fontWeight: FontWeight.w800,
                                     color: HhColors.red)),
@@ -714,7 +714,7 @@ class HhSeriesCard extends StatelessWidget {
                                   const SizedBox(width: 2),
                                   Text(series.rating.toStringAsFixed(1),
                                       style: TextStyle(
-                                          fontFamily: 'Poppins',
+                                          fontFamily: 'Cairo',
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white)),
@@ -734,7 +734,7 @@ class HhSeriesCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: AppText.bodyBold.copyWith(fontSize: 12.5)),
             if (series.viewsLabel.isNotEmpty)
-              Text('${series.viewsLabel} views',
+              Text('${series.viewsLabel} مشاهدة',
                   style: AppText.label.copyWith(fontSize: 10.5)),
           ],
         ),
@@ -761,7 +761,7 @@ class _Letter extends StatelessWidget {
       child: Text(
         series.title.isNotEmpty ? series.title[0].toUpperCase() : '?',
         style: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Cairo',
             fontSize: 40,
             fontWeight: FontWeight.w800,
             color: HhColors.red),

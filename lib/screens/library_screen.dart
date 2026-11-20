@@ -27,7 +27,7 @@ class _LibraryScreenState extends State<LibraryScreen>
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('My Library'),
+        title: const Text('مكتبتي'),
         backgroundColor: AppColors.bg,
         bottom: TabBar(
           controller: _tabs,
@@ -35,11 +35,11 @@ class _LibraryScreenState extends State<LibraryScreen>
           labelColor: AppColors.text,
           unselectedLabelColor: AppColors.muted,
           labelStyle:
-              const TextStyle(fontFamily: 'Poppins', fontSize: 12.5, fontWeight: FontWeight.w600),
+              const TextStyle(fontFamily: 'Cairo', fontSize: 12.5, fontWeight: FontWeight.w600),
           tabs: const <Tab>[
-            Tab(text: 'My List'),
-            Tab(text: 'History'),
-            Tab(text: 'Stats'),
+            Tab(text: 'قائمتي'),
+            Tab(text: 'السجل'),
+            Tab(text: 'الإحصاءات'),
           ],
         ),
       ),
@@ -67,10 +67,10 @@ class _LibraryScreenState extends State<LibraryScreen>
       return Center(
         child: EmptyState(
           icon: Icons.bookmark_border_rounded,
-          title: 'Your list is empty',
+          title: 'قائمتك فارغة',
           message:
-              'Tap the bookmark icon on any anime, movie or comic to track '
-              'your watching here.',
+              'اضغط على أيقونة الحفظ في أي فيلم أو مسلسل أو مانغا '
+              'لمتابعته هنا.',
         ),
       );
     }
@@ -132,7 +132,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
                               color: AppColors.accent),
@@ -147,7 +147,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.text)),
@@ -159,7 +159,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   const SizedBox(width: 2),
                   Text('${e.rating}/10',
                       style: const TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 10,
                           color: AppColors.muted)),
                 ],
@@ -178,9 +178,9 @@ class _LibraryScreenState extends State<LibraryScreen>
       return Center(
         child: EmptyState(
           icon: Icons.history_rounded,
-          title: 'No history yet',
-          message: 'Everything you play or read shows up here so you can '
-              'jump back in instantly.',
+          title: 'لا يوجد سجل بعد',
+          message: 'كل ما تشاهده أو تقرأه يظهر هنا لتعود إليه '
+              'فورًا.',
         ),
       );
     }
@@ -222,14 +222,14 @@ class _LibraryScreenState extends State<LibraryScreen>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Cairo',
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.text)),
                         const SizedBox(height: 3),
                         Text('${r.label} · ${_ago(r.at)}',
                             style: const TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Cairo',
                                 fontSize: 10.5,
                                 color: AppColors.muted)),
                       ],
@@ -237,7 +237,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   ),
                   Text(_kindLabel(r.kind),
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 9.5,
                           fontWeight: FontWeight.w700,
                           color: AppColors.accent)),
@@ -262,27 +262,27 @@ class _LibraryScreenState extends State<LibraryScreen>
         const SizedBox(height: 6),
         Row(
           children: <Widget>[
-            _statCard('Episodes\nwatched', s.episodesWatched.toString(),
+            _statCard('حلقات\nمُشاهدة', s.episodesWatched.toString(),
                 Icons.play_circle_outline_rounded),
             const SizedBox(width: 12),
-            _statCard('Chapters\nread', s.chaptersRead.toString(),
+            _statCard('فصول\nمقروءة', s.chaptersRead.toString(),
                 Icons.menu_book_rounded),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: <Widget>[
-            _statCard('Titles\ntracked', s.titlesTracked.toString(),
+            _statCard('أعمال\nمتابَعة', s.titlesTracked.toString(),
                 Icons.bookmark_rounded),
             const SizedBox(width: 12),
-            _statCard('Hours\nstreamed', s.hoursWatched.toStringAsFixed(1),
+            _statCard('ساعات\nمشاهدة', s.hoursWatched.toStringAsFixed(1),
                 Icons.schedule_rounded),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: <Widget>[
-            _statCard('Active\ndays', s.activeDays.toString(),
+            _statCard('أيام\nنشاط', s.activeDays.toString(),
                 Icons.local_fire_department_rounded),
             const SizedBox(width: 12),
             Expanded(
@@ -299,19 +299,19 @@ class _LibraryScreenState extends State<LibraryScreen>
                     Icon(Icons.insights_rounded,
                         size: 22, color: AppColors.accent),
                     const SizedBox(height: 8),
-                    Text('Keep watching!',
+                    Text('واصل المشاهدة!',
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)),
                     const SizedBox(height: 4),
                     Text(
                         s.hoursWatched > 24
-                            ? 'That is more than a full day of anime.'
-                            : 'Your stats grow with every episode.',
+                            ? 'هذا أكثر من يوم كامل من المشاهدة.'
+                            : 'إحصاءاتك تنمو مع كل حلقة.',
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 10.5,
                             color: AppColors.muted)),
                   ],
@@ -340,14 +340,14 @@ class _LibraryScreenState extends State<LibraryScreen>
             const SizedBox(height: 10),
             Text(value,
                 style: const TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: AppColors.text)),
             const SizedBox(height: 4),
             Text(label,
                 style: const TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 10.5,
                     height: 1.3,
                     color: AppColors.muted)),
@@ -358,18 +358,19 @@ class _LibraryScreenState extends State<LibraryScreen>
   }
 
   static String _kindLabel(String kind) => switch (kind) {
-        'manga' => 'COMIC',
-        'cinema' => 'CINEMA',
-        'cartoon' => 'CARTOON',
-        _ => 'ANIME',
+        'manga' => 'مانغا',
+        'cinema' => 'سينما',
+        'cartoon' => 'كرتون',
+        'akwam' => 'أكوام',
+        _ => 'أنمي',
       };
 
   static String _ago(DateTime at) {
     final Duration d = DateTime.now().difference(at);
-    if (d.inMinutes < 1) return 'just now';
-    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-    if (d.inHours < 24) return '${d.inHours}h ago';
-    if (d.inDays < 30) return '${d.inDays}d ago';
+    if (d.inMinutes < 1) return 'الآن';
+    if (d.inMinutes < 60) return 'منذ ${d.inMinutes} د';
+    if (d.inHours < 24) return 'منذ ${d.inHours} س';
+    if (d.inDays < 30) return 'منذ ${d.inDays} يوم';
     return '${at.year}-${at.month.toString().padLeft(2, '0')}'
         '-${at.day.toString().padLeft(2, '0')}';
   }

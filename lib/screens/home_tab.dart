@@ -60,7 +60,7 @@ class _HomeTabState extends State<HomeTab> {
     final Anime pick =
         state.catalog[DateTime.now().microsecondsSinceEpoch % state.catalog.length];
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Surprise: ${pick.title}')));
+        content: Text('مفاجأة: ${pick.title}')));
     _openAnime(pick);
   }
 
@@ -105,9 +105,9 @@ class _HomeTabState extends State<HomeTab> {
                 _buildContinueWatching(),
                 _buildMyList(),
                 SectionHeader(
-                  title: 'Top Hits Anime',
+                  title: 'أنمي الأكثر مشاهدة',
                   onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('Top Hits Anime', state.topHits)),
+                      arguments: ('أنمي الأكثر مشاهدة', state.topHits)),
                 ),
                 SizedBox(
                   height: 306,
@@ -145,7 +145,7 @@ class _HomeTabState extends State<HomeTab> {
                                           child: Text(
                                             '${i + 1}',
                                             style: TextStyle(
-                                              fontFamily: 'Poppins',
+                                              fontFamily: 'Cairo',
                                               fontSize: 84,
                                               fontWeight: FontWeight.w800,
                                               color: Colors.white,
@@ -183,9 +183,9 @@ class _HomeTabState extends State<HomeTab> {
                 ),
                 const SizedBox(height: 26),
                 SectionHeader(
-                  title: 'New Episode Releases',
+                  title: 'حلقات جديدة',
                   onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('New Episode Releases', state.newEpisodes)),
+                      arguments: ('حلقات جديدة', state.newEpisodes)),
                 ),
                 SizedBox(
                   height: 250,
@@ -201,16 +201,16 @@ class _HomeTabState extends State<HomeTab> {
                         anime: anime,
                         width: 136,
                         subtitle:
-                            anime.isMovie ? 'Movie • ${anime.duration}' : 'Episode ${anime.episodeCount}',
+                            anime.isMovie ? 'فيلم • ${anime.duration}' : 'الحلقة ${anime.episodeCount}',
                       );
                     },
                   ),
                 ),
                 const SizedBox(height: 26),
                 SectionHeader(
-                  title: 'Popular This Season',
+                  title: 'الأشهر هذا الموسم',
                   onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('Popular This Season', state.catalog)),
+                      arguments: ('الأشهر هذا الموسم', state.catalog)),
                 ),
                 SizedBox(
                   height: 250,
@@ -247,11 +247,11 @@ class _HomeTabState extends State<HomeTab> {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Row(
             children: <Widget>[
-              Text('Continue Watching', style: AppText.h2),
+              Text('تابع المشاهدة', style: AppText.h2),
               const Spacer(),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/library'),
-                child: Text('Library',
+                child: Text('المكتبة',
                     style: AppText.bodyBold.copyWith(
                         color: AppColors.accent, fontSize: 12.5)),
               ),
@@ -359,11 +359,11 @@ class _HomeTabState extends State<HomeTab> {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Row(
             children: <Widget>[
-              Text('My List', style: AppText.h2),
+              Text('قائمتي', style: AppText.h2),
               const Spacer(),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/library'),
-                child: Text('See all',
+                child: Text('عرض الكل',
                     style: AppText.bodyBold.copyWith(
                         color: AppColors.accent, fontSize: 12.5)),
               ),
@@ -412,7 +412,7 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                               child: Text(e.status?.label ?? '',
                                   style: TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Cairo',
                                       fontSize: 8.5,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.accent)),
@@ -508,7 +508,7 @@ class _HeroCarousel extends StatelessWidget {
                                     const SizedBox(width: 3),
                                     Text(a.score.toStringAsFixed(1),
                                         style: const TextStyle(
-                                            fontFamily: 'Poppins',
+                                            fontFamily: 'Cairo',
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.w700,
                                             color: Colors.white)),
@@ -516,7 +516,7 @@ class _HeroCarousel extends StatelessWidget {
                                   ],
                                   Text(a.year,
                                       style: const TextStyle(
-                                          fontFamily: 'Poppins',
+                                          fontFamily: 'Cairo',
                                           fontSize: 11,
                                           color: Colors.white70)),
                                 ],
@@ -526,7 +526,7 @@ class _HeroCarousel extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Cairo',
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800,
                                       color: Colors.white)),
@@ -536,7 +536,7 @@ class _HeroCarousel extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Cairo',
                                     fontSize: 11,
                                     color: Colors.white60),
                               ),
@@ -585,13 +585,13 @@ class _SyncBanner extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            offline ? 'Content unavailable' : 'Refreshing…',
+            offline ? 'المحتوى غير متاح' : 'جارٍ التحديث…',
             style: AppText.bodyBold.copyWith(fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
             offline
-                ? 'The content library could not be reached. Check your connection and retry.'
+                ? 'تعذّر الوصول إلى مكتبة المحتوى. تحقّق من اتصالك وأعد المحاولة.'
                 : state.backendMessage,
             textAlign: TextAlign.center,
             style: AppText.label.copyWith(fontSize: 11),
@@ -599,7 +599,7 @@ class _SyncBanner extends StatelessWidget {
           if (offline) ...<Widget>[
             const SizedBox(height: 14),
             GhostChip(
-              label: 'Retry sync',
+              label: 'إعادة المزامنة',
               active: true,
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -619,9 +619,9 @@ class _BackendChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool live = mode == 'LIVE';
-    final bool syncing = mode == 'SYNC…';
-    final bool bad = mode == 'OFFLINE';
+    final bool live = mode == 'مباشر';
+    final bool syncing = mode == 'مزامنة…';
+    final bool bad = mode == 'غير متصل';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
@@ -664,7 +664,7 @@ class _BackendChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(mode,
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 9.5,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,

@@ -290,8 +290,8 @@ List<Episode> parseEpisodeList(String html) {
       dotAll: true,
     ).firstMatch(m.group(2)!);
     String title = t == null ? '' : _stripTags(t.group(1)!);
-    if (title.isEmpty || title == 'Episode $num') {
-      title = 'Episode $num';
+    if (title.isEmpty || title == 'الحلقة $num') {
+      title = 'الحلقة $num';
     }
 
     final int? durSec = int.tryParse(a['data-duration'] ?? '');

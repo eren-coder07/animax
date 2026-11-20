@@ -37,7 +37,7 @@ class AppState extends ChangeNotifier {
 
   /// Neutral, user-facing status line (no URLs, no raw errors — diagnostics
   /// stay out of the UI on purpose).
-  String backendMessage = 'Loading…';
+  String backendMessage = 'جارٍ التحميل…';
 
   /// Human-readable reason of the last failed sync (splash / home banner).
   String? syncError;
@@ -86,11 +86,11 @@ class AppState extends ChangeNotifier {
   String get backendChip {
     switch (backendMode) {
       case BackendMode.loading:
-        return 'SYNC…';
+        return 'مزامنة…';
       case BackendMode.connected:
-        return 'LIVE';
+        return 'مباشر';
       case BackendMode.offline:
-        return 'OFFLINE';
+        return 'غير متصل';
     }
   }
 
@@ -159,13 +159,13 @@ class AppState extends ChangeNotifier {
   Future<bool> refreshFromApi({bool withSchedule = false}) async {
     if (!ApiService.I.config.isConfigured) {
       backendMode = BackendMode.offline;
-      backendMessage = 'Content unavailable';
+      backendMessage = 'المحتوى غير متاح';
       syncError = null;
       notifyListeners();
       return false;
     }
     backendMode = BackendMode.loading;
-    backendMessage = 'Loading content…';
+    backendMessage = 'جارٍ تحميل المحتوى…';
     syncError = null;
     notifyListeners();
 
@@ -174,14 +174,14 @@ class AppState extends ChangeNotifier {
       final List<Anime> remote = await ApiService.I.fetchCatalog();
       _catalog = remote;
       backendMode = BackendMode.connected;
-      backendMessage = 'Content library is up to date';
+      backendMessage = 'مكتبة المحتوى محدّثة';
       syncError = null;
       lastSyncAt = DateTime.now();
       ok = true;
       notifyListeners();
     } catch (_) {
       backendMode = BackendMode.offline;
-      backendMessage = 'Content unavailable — check your connection';
+      backendMessage = 'المحتوى غير متاح — تحقّق من اتصالك';
       syncError = null;
       notifyListeners();
       return false;
@@ -235,8 +235,8 @@ class AppState extends ChangeNotifier {
                 a,
                 it.episode,
                 dayDiff == 0
-                    ? 'Today'
-                    : '${-dayDiff} day${dayDiff == -1 ? '' : 's'} ago'));
+                    ? 'اليوم'
+                    : 'منذ ${-dayDiff} ${dayDiff == -1 ? 'يوم' : 'أيام'}'));
           }
         }
         rows.sort((CalendarEntry x, CalendarEntry y) => x.time.compareTo(y.time));
@@ -423,11 +423,11 @@ class AppState extends ChangeNotifier {
 
   static String _relativeAgo(DateTime now, DateTime aired) {
     final Duration diff = now.difference(aired);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
-    if (diff.inHours < 24) return '${diff.inHours} hours ago';
-    if (diff.inDays == 1) return 'Yesterday';
-    if (diff.inDays < 30) return '${diff.inDays} days ago';
+    if (diff.inMinutes < 1) return 'الآن';
+    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} دقيقة';
+    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
+    if (diff.inDays == 1) return 'أمس';
+    if (diff.inDays < 30) return 'منذ ${diff.inDays} يوم';
     return _hhmm(aired);
   }
 
@@ -435,7 +435,10 @@ class AppState extends ChangeNotifier {
   // Shell
   // =========================================================================
 
-  int navIndex = 0;
+  /// Akwam (Arabic movies & series) is the app's home screen.
+  static const int homeTab = 3;
+
+  int navIndex = homeTab;
 
   void setTab(int index) {
     navIndex = index;
@@ -457,7 +460,7 @@ class AppState extends ChangeNotifier {
   // Onboarding genres
   // =========================================================================
 
-  final Set<String> pickedGenres = <String>{'Action', 'Shounen'};
+  final Set<String> pickedGenres = <String>{'أكشن', 'شونين'};
 
   void toggleGenre(String g) {
     pickedGenres.contains(g) ? pickedGenres.remove(g) : pickedGenres.add(g);

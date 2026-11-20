@@ -469,7 +469,7 @@ class DownloadManager extends ChangeNotifier {
         next.status = DownloadStatus.failed;
         next.error = e is DownloadException
             ? e.message
-            : 'Download failed — check your connection and retry.';
+            : 'فشل التحميل — تحقّق من اتصالك وأعد المحاولة.';
       }
     } finally {
       _running = null;
@@ -512,8 +512,8 @@ class DownloadManager extends ChangeNotifier {
         if (r.statusCode == 200 || r.statusCode == 206) return r.bodyBytes;
         if (r.statusCode == 403 || r.statusCode == 404 || r.statusCode == 410) {
           throw DownloadException(
-              'The source refused the download (HTTP ${r.statusCode}). '
-              'Open the episode again and retry.');
+              'رفض المصدر التحميل (HTTP ${r.statusCode}). '
+              'افتح الحلقة مرة أخرى وأعد المحاولة.');
         }
         last = DownloadException('HTTP ${r.statusCode}');
       } on DownloadException {
@@ -526,7 +526,7 @@ class DownloadManager extends ChangeNotifier {
     }
     throw last is DownloadException
         ? last
-        : DownloadException('Network error while downloading.');
+        : DownloadException('خطأ في الشبكة أثناء التحميل.');
   }
 
   // ----- progressive (MP4 & co.) -----
@@ -548,7 +548,7 @@ class DownloadManager extends ChangeNotifier {
         res = await _http.send(req).timeout(const Duration(seconds: 40));
       } catch (e) {
         if (++attempt > 4) {
-          throw DownloadException('Network error while downloading.');
+          throw DownloadException('خطأ في الشبكة أثناء التحميل.');
         }
         await Future<void>.delayed(Duration(seconds: 2 * attempt));
         continue;
@@ -557,7 +557,7 @@ class DownloadManager extends ChangeNotifier {
       if (res.statusCode != 200 && res.statusCode != 206) {
         await res.stream.drain<void>().catchError((_) {});
         throw DownloadException(
-            'The source refused the download (HTTP ${res.statusCode}).');
+            'رفض المصدر التحميل (HTTP ${res.statusCode}).');
       }
       contentType = res.headers['content-type'] ?? '';
       if (res.statusCode == 200 && have > 0) {
@@ -594,7 +594,7 @@ class DownloadManager extends ChangeNotifier {
       }
       if (!dropped && (it.total == 0 || have >= it.total)) break;
       if (++attempt > 6) {
-        throw DownloadException('The connection kept dropping — retry later.');
+        throw DownloadException('الاتصال ينقطع باستمرار — أعد المحاولة لاحقًا.');
       }
       await Future<void>.delayed(Duration(seconds: attempt));
     }
@@ -647,7 +647,7 @@ class DownloadManager extends ChangeNotifier {
     if (HlsParser.isMaster(top)) {
       final HlsMaster m = HlsParser.parseMaster(top, src);
       final HlsStreamVariant? v = m.best();
-      if (v == null) throw DownloadException('This stream has no playable quality.');
+      if (v == null) throw DownloadException('لا توجد جودة قابلة للتشغيل في هذا البث.');
       videoUri = v.uri;
       audioUri = m.audioFor(v)?.uri;
       videoBody =
@@ -662,12 +662,12 @@ class DownloadManager extends ChangeNotifier {
     }
     for (final HlsMediaPlaylist p in <HlsMediaPlaylist>[vp, ?ap]) {
       if (p.segments.isEmpty) {
-        throw DownloadException('The stream playlist is empty.');
+        throw DownloadException('قائمة البث فارغة.');
       }
       if (p.segments.any((HlsSegment s) =>
           s.key != null && s.key!.method != 'AES-128')) {
         throw DownloadException(
-            'This stream uses DRM protection and cannot be saved.');
+            'هذا البث محمي بنظام DRM ولا يمكن حفظه.');
       }
     }
     final int totalSegs = vp.segments.length + (ap?.segments.length ?? 0);
@@ -745,7 +745,7 @@ class DownloadManager extends ChangeNotifier {
         final String ku = key.uri.toString();
         final Uint8List k = keys[ku] ??= await _getBytes(it, key.uri!);
         if (k.length != 16) {
-          throw DownloadException('This stream uses an unsupported key.');
+          throw DownloadException('هذا البث يستخدم تشفيرًا غير مدعوم.');
         }
         data = HlsParser.decryptAes128(data, k, HlsParser.ivFor(key, sequence));
       }
@@ -818,9 +818,9 @@ class DownloadManager extends ChangeNotifier {
     try {
       pages = await MangaApi.I.pages(it.chapterId);
     } catch (_) {
-      throw DownloadException('Could not load the chapter pages.');
+      throw DownloadException('تعذّر تحميل صفحات الفصل.');
     }
-    if (pages.isEmpty) throw DownloadException('This chapter has no pages.');
+    if (pages.isEmpty) throw DownloadException('هذا الفصل لا يحتوي على صفحات.');
     final pw.Document doc = pw.Document(
       title: '${it.title} — ${it.subtitle}',
       creator: 'Animax',
@@ -867,7 +867,7 @@ class DownloadManager extends ChangeNotifier {
     if (jpeg || png) return pw.MemoryImage(bytes);
     final img.Image? decoded = img.decodeImage(bytes);
     if (decoded == null) {
-      throw DownloadException('A page image could not be read.');
+      throw DownloadException('تعذّرت قراءة صورة إحدى الصفحات.');
     }
     return pw.MemoryImage(Uint8List.fromList(img.encodeJpg(decoded, quality: 90)));
   }

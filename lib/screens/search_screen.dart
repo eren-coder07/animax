@@ -84,7 +84,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _loading = false;
         _error = e is ApiException
             ? e.message
-            : 'Something went wrong — try again.';
+            : 'حدث خطأ — حاول مرة أخرى.';
       });
     }
   }
@@ -118,7 +118,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     .copyWith(fontSize: 14, color: AppColors.text),
                 cursorColor: AppColors.accent,
                 decoration: InputDecoration(
-                  hintText: 'Search anime…',
+                  hintText: 'ابحث عن أنمي…',
                   hintStyle: AppText.label.copyWith(fontSize: 13),
                   border: InputBorder.none,
                   isDense: true,
@@ -165,7 +165,7 @@ class _SearchScreenState extends State<SearchScreen> {
               const Icon(Icons.wifi_off_rounded,
                   color: AppColors.muted, size: 40),
               const SizedBox(height: 12),
-              Text('Search failed',
+              Text('فشل البحث',
                   style: AppText.bodyBold.copyWith(fontSize: 14)),
               const SizedBox(height: 6),
               Text(_error!,
@@ -185,7 +185,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(color: AppColors.accent),
                   ),
-                  child: Text('Try again',
+                  child: Text('حاول مجددًا',
                       style: AppText.bodyBold.copyWith(
                           fontSize: 12.5, color: AppColors.accent)),
                 ),
@@ -203,10 +203,10 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             const Icon(Icons.search_rounded, color: AppColors.muted, size: 44),
             const SizedBox(height: 12),
-            Text('Find your next anime',
+            Text('ابحث عن الأنمي القادم',
                 style: AppText.bodyBold.copyWith(fontSize: 14)),
             const SizedBox(height: 6),
-            Text('Type at least 2 characters —\nresults appear as you type.',
+            Text('اكتب حرفين على الأقل —\nتظهر النتائج أثناء الكتابة.',
                 textAlign: TextAlign.center,
                 style: AppText.label.copyWith(fontSize: 11.5)),
           ],
@@ -222,10 +222,10 @@ class _SearchScreenState extends State<SearchScreen> {
             const Icon(Icons.search_off_rounded,
                 color: AppColors.muted, size: 44),
             const SizedBox(height: 12),
-            Text('No results for “$_query”',
+            Text('لا توجد نتائج لـ «$_query»',
                 style: AppText.bodyBold.copyWith(fontSize: 14)),
             const SizedBox(height: 6),
-            Text('Check the spelling or try a shorter keyword.',
+            Text('تحقّق من الإملاء أو جرّب كلمة أقصر.',
                 style: AppText.label.copyWith(fontSize: 11.5)),
           ],
         ),
@@ -239,7 +239,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
             child: Text(
-                '${_results.length} result${_results.length == 1 ? '' : 's'} for “$_query”',
+                '${_results.length} نتيجة لـ «$_query»',
                 style: AppText.label.copyWith(fontSize: 11)),
           ),
           Expanded(

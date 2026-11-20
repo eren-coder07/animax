@@ -65,7 +65,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         _loadingChapters = false;
         _chapterError = e is MangaApiException
             ? e.message
-            : 'Cannot reach MangaDex — check your connection.';
+            : 'تعذّر الوصول إلى MangaDex — تحقّق من اتصالك.';
       });
     }
   }
@@ -87,10 +87,13 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
   void _openReader(MangaChapter chapter) {
     final int index = _chapters.indexOf(chapter);
     Navigator.of(context).push(SlideFadeRoute<void>(
-      page: ComicReaderScreen(
-        manga: item,
-        chapters: _chapters,
-        startIndex: index < 0 ? 0 : index,
+      page: Directionality(
+        textDirection: TextDirection.ltr,
+        child: ComicReaderScreen(
+          manga: item,
+          chapters: _chapters,
+          startIndex: index < 0 ? 0 : index,
+        ),
       ),
     ));
   }
@@ -102,7 +105,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
       lib.removeListEntry(_key);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${item.title} removed from My List')));
+            content: Text('أُزيل ${item.title} من قائمتي')));
       }
     } else {
       lib.setListStatus(
@@ -111,12 +114,12 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         poster: item.cover,
         kind: 'manga',
         status: LibStatus.watching,
-        meta: '${item.year.isEmpty ? 'Manga' : item.year}'
+        meta: '${item.year.isEmpty ? 'مانغا' : item.year}'
             '${item.status.isEmpty ? '' : ' · ${item.status}'}',
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${item.title} saved to My List')));
+            content: Text('حُفظ ${item.title} في قائمتي')));
       }
     }
   }
@@ -136,9 +139,9 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                 padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
                 child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Save to…',
+                    child: Text('حفظ في…',
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)))),
@@ -157,7 +160,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                     color: s == current ? AppColors.accent : AppColors.muted),
                 title: Text(s.label,
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 13.5,
                         color:
                             s == current ? AppColors.accent : AppColors.text)),
@@ -175,7 +178,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
       poster: item.cover,
       kind: 'manga',
       status: picked,
-      meta: '${item.year.isEmpty ? 'Manga' : item.year}'
+      meta: '${item.year.isEmpty ? 'مانغا' : item.year}'
           '${item.status.isEmpty ? '' : ' · ${item.status}'}',
     );
     if (mounted) setState(() {});
@@ -256,11 +259,11 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                     runSpacing: 6,
                     children: <Widget>[
                       _metaChip(m.status.isEmpty
-                          ? 'Manga'
+                          ? 'مانغا'
                           : m.status[0].toUpperCase() + m.status.substring(1)),
                       if (m.year.isNotEmpty) _metaChip(m.year),
                       if (m.chapterCount > 0)
-                        _metaChip('${m.chapterCount} chapters'),
+                        _metaChip('${m.chapterCount} فصل'),
                       if (m.authors.isNotEmpty) _metaChip(m.authors.first),
                     ],
                   ),
@@ -271,7 +274,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                         Icon(Icons.favorite_rounded,
                             size: 14, color: AppColors.accent),
                         const SizedBox(width: 5),
-                        Text('${m.followedLabel} followers',
+                        Text('${m.followedLabel} متابع',
                             style: AppText.label),
                       ],
                     ),
@@ -291,10 +294,10 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                           LibraryStore.I.progressOf(_key,
                                       _continueTarget!.id) !=
                                   null
-                              ? 'Continue ${_continueTarget!.chipLabel}'
-                              : 'Start reading ${_continueTarget!.chipLabel}',
+                              ? 'تابع ${_continueTarget!.chipLabel}'
+                              : 'ابدأ القراءة ${_continueTarget!.chipLabel}',
                           style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700),
                         ),
@@ -331,7 +334,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                                 ),
                                 child: Text(t.name,
                                     style: const TextStyle(
-                                        fontFamily: 'Poppins',
+                                        fontFamily: 'Cairo',
                                         fontSize: 10.5,
                                         color: AppColors.sub)),
                               ))
@@ -359,7 +362,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         ),
         child: Text(label,
             style: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Cairo',
                 fontSize: 10.5,
                 fontWeight: FontWeight.w600,
                 color: AppColors.sub)),
@@ -384,16 +387,16 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
       context: context,
       builder: (BuildContext d) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Download all chapters?'),
-        content: Text('${list.length} chapters will be saved as PDFs in '
+        title: const Text('تحميل جميع الفصول؟'),
+        content: Text('سيتم حفظ ${list.length} فصل كملفات PDF في '
             'Download/Animax/Comics.'),
         actions: <Widget>[
           TextButton(
               onPressed: () => Navigator.pop(d, false),
-              child: const Text('Cancel')),
+              child: const Text('إلغاء')),
           TextButton(
               onPressed: () => Navigator.pop(d, true),
-              child: const Text('Download')),
+              child: const Text('تحميل')),
         ],
       ),
     );
@@ -407,14 +410,14 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
   Widget _buildChapterHeader() {
     return Row(
       children: <Widget>[
-        Text('Chapters',
+        Text('الفصول',
             style: AppText.h3.copyWith(fontSize: 17)),
         const Spacer(),
         if (_chapters.isNotEmpty) ...<Widget>[
-          Text('${_chapters.length} available',
+          Text('${_chapters.length} متاح',
               style: AppText.label),
           IconButton(
-            tooltip: 'Download all',
+            tooltip: 'تحميل الكل',
             visualDensity: VisualDensity.compact,
             icon: Icon(Icons.download_for_offline_rounded,
                 color: AppColors.accent, size: 22),
@@ -448,14 +451,14 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: <Widget>[
-              Text('Chapters failed to load — $_chapterError',
+              Text('تعذّر تحميل الفصول — $_chapterError',
                   style: AppText.label),
               const SizedBox(height: 10),
               OutlinedButton(
                 onPressed: _loadChapters,
-                child: const Text('Retry',
+                child: const Text('إعادة المحاولة',
                     style: TextStyle(
-                        fontFamily: 'Poppins', color: AppColors.text)),
+                        fontFamily: 'Cairo', color: AppColors.text)),
               ),
             ],
           ),
@@ -467,9 +470,9 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         child: Padding(
           padding: EdgeInsets.all(20),
           child: Text(
-              'No chapters available in your reader language yet — '
-              'change it in Settings → Comics.',
-              style: TextStyle(fontFamily: 'Poppins', fontSize: 12.5, color: AppColors.muted)),
+              'لا توجد فصول بلغة القراءة المختارة بعد — '
+              'غيّرها من الإعدادات ← المانغا.',
+              style: TextStyle(fontFamily: 'Cairo', fontSize: 12.5, color: AppColors.muted)),
         ),
       );
     }
@@ -498,7 +501,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                       width: 64,
                       child: Text(ch.chipLabel,
                           style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color:
@@ -512,7 +515,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
                                   color: read
@@ -520,11 +523,11 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                                       : AppColors.text)),
                           const SizedBox(height: 3),
                           Text(
-                            '${ch.pages} pages'
+                            '${ch.pages} صفحة'
                             '${ch.publishedAt.length >= 10 ? ' · ${ch.publishedAt.substring(0, 10)}' : ''}'
                             '${started && !read ? ' · ${p.fraction.toStringAsFixed(0)}%' : ''}',
                             style: const TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Cairo',
                                 fontSize: 10.5,
                                 color: AppColors.muted),
                           ),

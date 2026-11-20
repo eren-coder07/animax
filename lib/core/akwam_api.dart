@@ -62,15 +62,15 @@ class AkwamApi {
     try {
       res = await _client.get(uri, headers: _headers).timeout(timeout);
     } on TimeoutException {
-      throw AkwamApiException('Request timed out.');
+      throw AkwamApiException('انتهت مهلة الطلب.');
     } catch (_) {
-      throw AkwamApiException('Cannot reach Akwam.');
+      throw AkwamApiException('تعذّر الوصول إلى أكوام.');
     }
     if (res.statusCode == 403 || res.statusCode == 503) {
-      throw AkwamApiException('Akwam is rate-limiting or shielding right now.');
+      throw AkwamApiException('أكوام يحدّ من الطلبات حاليًا — حاول بعد قليل.');
     }
     if (res.statusCode >= 400) {
-      throw AkwamApiException('Akwam returned HTTP ${res.statusCode}.');
+      throw AkwamApiException('أعاد أكوام الخطأ HTTP ${res.statusCode}.');
     }
     return utf8.decode(res.bodyBytes, allowMalformed: true);
   }
@@ -154,7 +154,7 @@ class AkwamApi {
     final String url = extractAkwamStreamUrl(html);
     if (url.isEmpty) {
       throw AkwamApiException(
-          'No playable stream on this server — try another quality.');
+          'لا يوجد بث قابل للتشغيل على هذا السيرفر — جرّب جودة أخرى.');
     }
     return _watchCache[watchPath] = url;
   }
@@ -301,7 +301,7 @@ class AkwamApi {
       rich.episodes.add(AkwamEpisode(
         id: m.group(1)!,
         number: number,
-        label: label.isEmpty ? 'Episode $number' : label,
+        label: label.isEmpty ? 'الحلقة $number' : label,
         path: path,
         date: _entryDate(anchor),
       ));
@@ -498,11 +498,11 @@ extension AkwamKindExt on AkwamKind {
   String get label {
     switch (this) {
       case AkwamKind.movie:
-        return 'Movie';
+        return 'فيلم';
       case AkwamKind.series:
-        return 'Series';
+        return 'مسلسل';
       case AkwamKind.show:
-        return 'Show';
+        return 'برنامج';
     }
   }
 

@@ -25,7 +25,7 @@ class ProfileTab extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 90),
             children: [
-              const Center(child: Text('Profile', style: AppText.h2)),
+              const Center(child: Text('حسابي', style: AppText.h2)),
               const SizedBox(height: 22),
               Center(
                 child: Container(
@@ -41,11 +41,11 @@ class ProfileTab extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Center(
-                  child: Text('Animax Viewer',
+                  child: Text('مشاهد أنيماكس',
                       style: AppText.h3.copyWith(fontSize: 18))),
               const SizedBox(height: 4),
               const Center(
-                  child: Text('Anime · Cinema · Cartoons · Comics',
+                  child: Text('أكوام · سينما · أنمي · كرتون · مانغا',
                       style: AppText.label)),
               const SizedBox(height: 22),
               _StatusCard(state: state),
@@ -61,7 +61,7 @@ class ProfileTab extends StatelessWidget {
                   children: [
                     MenuRow(
                       icon: Icons.video_library_rounded,
-                      label: 'My Library (List · History · Stats)',
+                      label: 'مكتبتي (القائمة · السجل · الإحصاءات)',
                       onTap: () => Navigator.pushNamed(context, '/library'),
                     ),
                     const Divider(indent: 54),
@@ -71,7 +71,7 @@ class ProfileTab extends StatelessWidget {
                         final int n = DownloadManager.I.activeCount;
                         return MenuRow(
                           icon: Icons.download_rounded,
-                          label: 'Downloads',
+                          label: 'التحميلات',
                           trailing: n == 0
                               ? null
                               : Container(
@@ -84,7 +84,7 @@ class ProfileTab extends StatelessWidget {
                                   ),
                                   child: Text('$n',
                                       style: TextStyle(
-                                          fontFamily: 'Poppins',
+                                          fontFamily: 'Cairo',
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.accent)),
@@ -97,7 +97,7 @@ class ProfileTab extends StatelessWidget {
                     const Divider(indent: 54),
                     MenuRow(
                       icon: Icons.notifications_none_rounded,
-                      label: 'Notifications',
+                      label: 'الإشعارات',
                       trailing: state.notices.isEmpty
                           ? null
                           : Container(
@@ -109,7 +109,7 @@ class ProfileTab extends StatelessWidget {
                               ),
                               child: Text('${state.notices.length}',
                                   style: TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Cairo',
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.accent)),
@@ -119,13 +119,13 @@ class ProfileTab extends StatelessWidget {
                     const Divider(indent: 54),
                     MenuRow(
                       icon: Icons.settings_rounded,
-                      label: 'Settings (theme · player · data)',
+                      label: 'الإعدادات (المظهر · المشغّل · البيانات)',
                       onTap: () => Navigator.pushNamed(context, '/settings'),
                     ),
                     const Divider(indent: 54),
                     MenuRow(
                       icon: Icons.help_outline_rounded,
-                      label: 'Help Center',
+                      label: 'مركز المساعدة',
                       onTap: () => Navigator.pushNamed(context, '/help'),
                     ),
                   ],
@@ -135,8 +135,8 @@ class ProfileTab extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Text(
-                  'Anime, movies, series, cartoons and comics in one app — '
-                  'everything streams from free, open backends.',
+                  'أفلام ومسلسلات عربية وأجنبية، أنمي، كرتون ومانغا في تطبيق واحد — '
+                  'كل شيء يُبث من مصادر مجانية ومفتوحة.',
                   style: AppText.label.copyWith(fontSize: 10.5),
                 ),
               ),
@@ -165,7 +165,7 @@ class _StatsStrip extends StatelessWidget {
               children: <Widget>[
                 Text(value,
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: AppColors.accent)),
@@ -173,7 +173,7 @@ class _StatsStrip extends StatelessWidget {
                 Text(label,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 9.5,
                         color: AppColors.muted)),
               ],
@@ -182,11 +182,11 @@ class _StatsStrip extends StatelessWidget {
         );
     return Row(
       children: <Widget>[
-        card(stats.episodesWatched.toString(), 'Episodes\nwatched'),
+        card(stats.episodesWatched.toString(), 'حلقات\nمُشاهدة'),
         const SizedBox(width: 10),
-        card(stats.chaptersRead.toString(), 'Chapters\nread'),
+        card(stats.chaptersRead.toString(), 'فصول\nمقروءة'),
         const SizedBox(width: 10),
-        card(stats.hoursWatched.toStringAsFixed(0), 'Hours\nstreamed'),
+        card(stats.hoursWatched.toStringAsFixed(0), 'ساعات\nمشاهدة'),
       ],
     );
   }
@@ -243,10 +243,10 @@ class _StatusCard extends StatelessWidget {
               children: [
                 Text(
                   live
-                      ? 'Content library up to date'
+                      ? 'مكتبة المحتوى محدّثة'
                       : syncing
-                          ? 'Refreshing…'
-                          : 'Offline — using cached content',
+                          ? 'جارٍ التحديث…'
+                          : 'غير متصل — نعرض المحتوى المحفوظ',
                   style: AppText.h3.copyWith(fontSize: 14.5),
                 ),
                 const SizedBox(height: 3),

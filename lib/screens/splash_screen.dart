@@ -101,9 +101,9 @@ class _SplashScreenState extends State<SplashScreen>
                 child: const AnimaxLogo(size: 84),
               ),
               const SizedBox(height: 18),
-              const Text('Animax', style: AppText.h1),
+              const Text('أنيماكس', style: AppText.h1),
               const SizedBox(height: 4),
-              const Text('Anime. Anytime. Anywhere.', style: AppText.label),
+              const Text('أفلام · مسلسلات · أنمي — في أي وقت وأي مكان', style: AppText.label),
               const SizedBox(height: 34),
               if (_failed)
                 _SyncError(onRetry: _sync)
@@ -120,9 +120,9 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Text(
                     _retrying
                         ? (_scheduleStep
-                            ? 'Preparing content…'
+                            ? 'جارٍ تجهيز المحتوى…'
                             : state.backendMessage)
-                        : 'Starting…',
+                        : 'جارٍ البدء…',
                     textAlign: TextAlign.center,
                     style: AppText.label.copyWith(
                         fontSize: 11.5, color: AppColors.sub),
@@ -130,7 +130,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Preparing content',
+                  'جارٍ تجهيز المحتوى',
                   style: AppText.label.copyWith(
                       fontSize: 10,
                       color: AppColors.muted,
@@ -167,17 +167,17 @@ class _SyncError extends StatelessWidget {
             const Icon(Icons.wifi_off_rounded,
                 color: Colors.redAccent, size: 34),
             const SizedBox(height: 10),
-            Text('Content unavailable',
+            Text('المحتوى غير متاح',
                 style: AppText.bodyBold.copyWith(fontSize: 14)),
             const SizedBox(height: 6),
             Text(
-              'The content library could not be reached. Check your internet connection.',
+              'تعذّر الوصول إلى مكتبة المحتوى. تحقّق من اتصالك بالإنترنت.',
               textAlign: TextAlign.center,
               style: AppText.label.copyWith(fontSize: 11),
             ),
             const SizedBox(height: 16),
             PrimaryButton(
-              label: 'Retry sync',
+              label: 'إعادة المزامنة',
               expanded: true,
               onTap: onRetry,
             ),
@@ -185,7 +185,7 @@ class _SyncError extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: GhostChip(
-                label: 'Continue offline',
+                label: 'المتابعة بدون إنترنت',
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 onTap: () {
                   // Enter anyway — tabs show their own offline/retry states.

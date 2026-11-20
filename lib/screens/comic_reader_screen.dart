@@ -111,7 +111,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
         _loadingPages = false;
         _pageError = e is MangaApiException
             ? e.message
-            : 'Cannot reach MangaDex — check your connection.';
+            : 'تعذّر الوصول إلى MangaDex — تحقّق من اتصالك.';
       });
     }
   }
@@ -153,7 +153,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
       _openChapter(_chapterIdx + 1);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('This is the newest chapter — you are caught up!')));
+          content: Text('هذا أحدث فصل — أنت متابع لكل شيء!')));
     }
   }
 
@@ -177,9 +177,9 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
             shrinkWrap: true,
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
             children: <Widget>[
-              const Text('Reader settings',
+              const Text('إعدادات القارئ',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.text)),
@@ -192,16 +192,16 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                   setM(() {});
                   setState(() {}); // rebuild reader with the new mode
                 },
-                title: const Text('Paged mode (swipe sideways)',
+                title: const Text('وضع الصفحات (اسحب جانبيًا)',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 13.5,
                         color: AppColors.text)),
                 subtitle: Text(prefs.readerMode == 'paged'
-                    ? 'Horizontal pages'
-                    : 'Vertical scroll',
+                    ? 'صفحات أفقية'
+                    : 'تمرير عمودي',
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 11,
                         color: AppColors.muted)),
               ),
@@ -214,9 +214,9 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                     setM(() {});
                     setState(() {});
                   },
-                  title: const Text('Right-to-left (manga style)',
+                  title: const Text('من اليمين لليسار (أسلوب المانغا)',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 13.5,
                           color: AppColors.text)),
                 ),
@@ -229,21 +229,21 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                   _prefetched.clear();
                   _openChapter(_chapterIdx, resume: true);
                 },
-                title: const Text('Data saver images',
+                title: const Text('صور موفّرة للبيانات',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 13.5,
                         color: AppColors.text)),
-                subtitle: const Text('Smaller compressed pages',
+                subtitle: const Text('صفحات مضغوطة أصغر',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 11,
                         color: AppColors.muted)),
               ),
               const SizedBox(height: 6),
-              const Text('Background',
+              const Text('الخلفية',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 12,
                       color: AppColors.muted)),
               const SizedBox(height: 8),
@@ -314,19 +314,19 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
-                            Text('Pages failed — $_pageError',
+                            Text('تعذّر تحميل الصفحات — $_pageError',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Cairo',
                                     fontSize: 12,
                                     color: AppColors.sub)),
                             const SizedBox(height: 12),
                             OutlinedButton(
                               onPressed: () => _openChapter(_chapterIdx,
                                   resume: true),
-                              child: const Text('Retry',
+                              child: const Text('إعادة المحاولة',
                                   style: TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Cairo',
                                       color: AppColors.text)),
                             ),
                           ],
@@ -334,9 +334,9 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                       )
                     : _pages.isEmpty
                         ? const Center(
-                            child: Text('This chapter has no pages.',
+                            child: Text('هذا الفصل لا يحتوي على صفحات.',
                                 style: TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Cairo',
                                     fontSize: 13,
                                     color: AppColors.sub)))
                         : PageView.builder(
@@ -379,13 +379,13 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white)),
                           Text(_chapter.chipLabel,
                               style: const TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 10.5,
                                   color: Colors.white60)),
                         ],
@@ -423,7 +423,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                 child: Row(
                   children: <Widget>[
                     IconButton(
-                      tooltip: 'Previous chapter',
+                      tooltip: 'الفصل السابق',
                       onPressed: _prevChapter,
                       icon: const Icon(Icons.skip_previous_rounded,
                           color: Colors.white, size: 24),
@@ -454,13 +454,13 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                     Text(
                       _pages.isEmpty ? '' : '${_pageIndex + 1}/${_pages.length}',
                       style: const TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color: Colors.white),
                     ),
                     IconButton(
-                      tooltip: 'Next chapter',
+                      tooltip: 'الفصل التالي',
                       onPressed: _nextChapter,
                       icon: const Icon(Icons.skip_next_rounded,
                           color: Colors.white, size: 24),
@@ -512,7 +512,7 @@ class _PageImage extends StatelessWidget {
                             const SizedBox(height: 10),
                             Text(label,
                                 style: const TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Cairo',
                                     fontSize: 11,
                                     color: Colors.white54)),
                           ],

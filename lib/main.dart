@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:video_player_media_kit/video_player_media_kit.dart';
 
 import 'core/app_prefs.dart';
@@ -53,8 +54,16 @@ class AnimaxApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: AppPrefs.I,
       builder: (BuildContext context, _) => MaterialApp(
-        title: 'Animax',
+        title: 'أنيماكس',
         debugShowCheckedModeBanner: false,
+        // Arabic-first app: Arabic strings, right-to-left layout everywhere.
+        locale: const Locale('ar'),
+        supportedLocales: const <Locale>[Locale('ar'), Locale('en')],
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: AppTheme.dark(),
         initialRoute: '/',
         routes: <String, WidgetBuilder>{
@@ -62,7 +71,9 @@ class AnimaxApp extends StatelessWidget {
           '/onboarding': (_) => const OnboardingScreen(),
           '/shell': (_) => const HomeShell(),
           '/details': (_) => const DetailsScreen(),
-          '/player': (_) => const PlayerScreen(),
+          // Video players + comic reader keep a left-to-right layout (seek
+          // bars, page order) inside the Arabic RTL app.
+          '/player': (_) => const _Ltr(PlayerScreen()),
           '/search': (_) => const SearchScreen(),
           '/catalog': (_) => const CatalogScreen(),
           '/notifications': (_) => const NotificationsScreen(),
@@ -76,11 +87,11 @@ class AnimaxApp extends StatelessWidget {
               tag: null, title: 'Popular'),
           '/hh-catalog': (_) => const HhCatalogScreen(),
           '/hh-details': (_) => const HhDetailsScreen(),
-          '/hh-player': (_) => const HhPlayerScreen(),
+          '/hh-player': (_) => const _Ltr(HhPlayerScreen()),
           '/hh-search': (_) => const HhSearchScreen(),
           '/akwam-search': (_) => const AkwamSearchScreen(),
           '/akwam-details': (_) => const AkwamDetailsScreen(),
-          '/akwam-player': (_) => const AkwamPlayerScreen(),
+          '/akwam-player': (_) => const _Ltr(AkwamPlayerScreen()),
         },
         // Comic screens take constructor arguments → onGenerateRoute.
         onGenerateRoute: (RouteSettings settings) {
@@ -89,10 +100,10 @@ class AnimaxApp extends StatelessWidget {
             return _page(ComicDetailsScreen(manga: args));
           }
           if (settings.name == '/comic-reader' && args is ReaderArgs) {
-            return _page(ComicReaderScreen(
+            return _page(_Ltr(ComicReaderScreen(
                 manga: args.manga,
                 chapters: args.chapters,
-                startIndex: args.startIndex));
+                startIndex: args.startIndex)));
           }
           return null;
         },
@@ -121,4 +132,14 @@ class ReaderArgs {
   final MangaItem manga;
   final List<MangaChapter> chapters;
   final int startIndex;
+}
+
+/// Forces a left-to-right layout for one screen inside the RTL app.
+class _Ltr extends StatelessWidget {
+  const _Ltr(this.child);
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      Directionality(textDirection: TextDirection.ltr, child: child);
 }

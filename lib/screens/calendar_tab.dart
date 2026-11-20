@@ -14,7 +14,7 @@ class CalendarTab extends StatelessWidget {
   const CalendarTab({super.key});
 
   static const List<String> _weekdays = [
-    'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'
+    'أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'
   ];
 
   @override
@@ -46,13 +46,13 @@ class CalendarTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              const Center(child: Text('Release Calendar', style: AppText.h2)),
+              const Center(child: Text('تقويم العرض', style: AppText.h2)),
               const SizedBox(height: 8),
               Center(
                 child: Text(
                   state.scheduleLive
-                      ? 'Airing schedule from the backend'
-                      : 'Derived from episode air dates',
+                      ? 'جدول العرض من المصدر'
+                      : 'مستخرج من مواعيد عرض الحلقات',
                   style: AppText.label.copyWith(fontSize: 11),
                 ),
               ),
@@ -91,7 +91,7 @@ class CalendarTab extends StatelessWidget {
                               child: Text(
                                 '${day.day}',
                                 style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: selected
@@ -113,9 +113,9 @@ class CalendarTab extends StatelessWidget {
                   padding: EdgeInsets.only(top: 60),
                   child: EmptyState(
                     icon: Icons.event_busy_rounded,
-                    title: 'Nothing airs today',
+                    title: 'لا يوجد عرض اليوم',
                     message:
-                        'Pick another day to see upcoming simulcast episodes.',
+                        'اختر يومًا آخر لرؤية الحلقات القادمة.',
                   ),
                 )
               else
@@ -133,7 +133,7 @@ class CalendarTab extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 14),
                               child: Text(e.time,
                                   style: const TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Cairo',
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.text)),
@@ -217,11 +217,11 @@ class _CalendarCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: AppText.bodyBold.copyWith(fontSize: 13)),
                   const SizedBox(height: 3),
-                  Text('Episode ${entry.episode}',
+                  Text('الحلقة ${entry.episode}',
                       style: AppText.label.copyWith(fontSize: 11)),
                   const SizedBox(height: 8),
                   GhostChip(
-                    label: 'Watch',
+                    label: 'شاهد',
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     onTap: () => Navigator.pushNamed(

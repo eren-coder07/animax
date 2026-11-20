@@ -45,7 +45,7 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Could not load details. Check your connection.');
+      setState(() => _error = 'تعذّر تحميل التفاصيل. تحقّق من اتصالك.');
     }
   }
 
@@ -53,7 +53,9 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
     final CinemaMeta? meta = _meta;
     if (meta == null) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => CinemaPlayerScreen(meta: meta),
+      builder: (_) => Directionality(
+          textDirection: TextDirection.ltr,
+          child: CinemaPlayerScreen(meta: meta)),
     ));
   }
 
@@ -61,11 +63,14 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
     final CinemaMeta? meta = _meta;
     if (meta == null) return;
     await Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => CinemaPlayerScreen(
-        meta: meta,
-        season: ep.season,
-        episode: ep.number,
-        episodeName: ep.name,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: CinemaPlayerScreen(
+          meta: meta,
+          season: ep.season,
+          episode: ep.number,
+          episodeName: ep.name,
+        ),
       ),
     ));
   }
@@ -74,7 +79,7 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => CinemaPlayerScreen.direct(
         url: 'https://www.youtube.com/embed/${t.source}?autoplay=1&rel=0',
-        title: '${_meta?.name ?? widget.item.name} — trailer',
+        title: '${_meta?.name ?? widget.item.name} — الإعلان',
       ),
     ));
   }
@@ -164,7 +169,7 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                     spacing: 6,
                     runSpacing: 6,
                     children: <Widget>[
-                      _Chip(label: _isSeries ? 'SERIES' : 'MOVIE',
+                      _Chip(label: _isSeries ? 'مسلسل' : 'فيلم',
                           gold: !_isSeries),
                       if (rating > 0)
                         _Chip(label: 'IMDb ${rating.toStringAsFixed(1)}',
@@ -187,17 +192,17 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                   if (!_isSeries)
                     _PrimaryButton(
                       icon: Icons.play_arrow_rounded,
-                      label: _meta == null ? 'Loading…' : 'Play movie',
+                      label: _meta == null ? 'جارٍ التحميل…' : 'تشغيل الفيلم',
                       onTap: _meta == null ? null : _playMovie,
                     )
                   else
                     _PrimaryButton(
                       icon: Icons.play_arrow_rounded,
                       label: _meta == null
-                          ? 'Loading…'
+                          ? 'جارٍ التحميل…'
                           : (_meta!.episodes.isEmpty
-                              ? 'No episodes listed'
-                              : 'Play S$_season'),
+                              ? 'لا توجد حلقات'
+                              : 'تشغيل الموسم $_season'),
                       onTap: _meta == null ||
                               _meta!.episodes.isEmpty
                           ? null
@@ -228,7 +233,7 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                             ),
                             icon: const Icon(Icons.movie_creation_outlined,
                                 size: 18, color: AppColors.sub),
-                            label: Text('Watch trailer (YouTube)',
+                            label: Text('شاهد الإعلان (يوتيوب)',
                                 style: AppText.bodyBold.copyWith(fontSize: 13)),
                           ),
                         ),
@@ -238,7 +243,7 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                   // ----- Description -----
                   if ((meta?.description ?? widget.item.description)
                       .isNotEmpty) ...<Widget>[
-                    Text('Storyline', style: AppText.h3),
+                    Text('القصة', style: AppText.h3),
                     const SizedBox(height: 8),
                     Text(meta?.description ?? widget.item.description,
                         style: AppText.body.copyWith(
@@ -247,7 +252,7 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                   ],
                   // ----- Cast -----
                   if (meta != null && meta.cast.isNotEmpty) ...<Widget>[
-                    Text('Cast', style: AppText.h3),
+                    Text('طاقم التمثيل', style: AppText.h3),
                     const SizedBox(height: 8),
                     Text(meta.cast.take(6).join(', '),
                         style: AppText.label.copyWith(color: AppColors.sub)),
@@ -271,9 +276,9 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                       onPressed: _load,
                       icon: const Icon(Icons.refresh_rounded,
                           size: 18, color: AppColors.text),
-                      label: const Text('Retry',
+                      label: const Text('إعادة المحاولة',
                           style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 12.5,
                               color: AppColors.text)),
                     ),
@@ -318,7 +323,7 @@ class _EpisodeList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text('Episodes', style: AppText.h3),
+        Text('الحلقات', style: AppText.h3),
         const SizedBox(height: 10),
         if (seasons.length > 1)
           SizedBox(
@@ -332,11 +337,11 @@ class _EpisodeList extends StatelessWidget {
                 final int s = seasons[i];
                 final bool active = s == currentSeason;
                 return ChoiceChip(
-                  label: Text('Season $s'),
+                  label: Text('الموسم $s'),
                   selected: active,
                   onSelected: (_) => onSeason(s),
                   labelStyle: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: active ? AppColors.ink : AppColors.text),
@@ -413,7 +418,7 @@ class _EpisodeTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('${ep.label} · ${ep.name.isEmpty ? 'Episode' : ep.name}',
+                  Text('${ep.label} · ${ep.name.isEmpty ? 'حلقة' : ep.name}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppText.bodyBold.copyWith(fontSize: 13)),
@@ -457,7 +462,7 @@ class _Chip extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Cairo',
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,
@@ -519,13 +524,13 @@ class _BookmarkButton extends StatelessWidget {
             listed ? Icons.bookmark_added_rounded : Icons.bookmark_add_outlined,
             color: listed ? AppColors.accent : Colors.white,
           ),
-          tooltip: listed ? 'Remove from My List' : 'Save to My List',
+          tooltip: listed ? 'إزالة من قائمتي' : 'حفظ في قائمتي',
           onPressed: () {
             final LibraryStore lib = LibraryStore.I;
             if (listed) {
               lib.removeListEntry(_key);
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${item.name} removed from My List')));
+                  SnackBar(content: Text('أُزيل ${item.name} من قائمتي')));
             } else {
               lib.setListStatus(
                 key: _key,
@@ -537,7 +542,7 @@ class _BookmarkButton extends StatelessWidget {
                     '${item.imdbRating > 0 ? ' · ★ ${item.imdbRating.toStringAsFixed(1)}' : ''}',
               );
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${item.name} saved to My List')));
+                  SnackBar(content: Text('حُفظ ${item.name} في قائمتي')));
             }
           },
         );

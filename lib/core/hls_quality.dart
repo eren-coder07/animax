@@ -257,11 +257,11 @@ class HlsQuality {
       final HlsVariant? chosen = pick(variants, mbps, wifi);
       if (chosen == null) return rs;
       final Map<String, String> qualities = <String, String>{
-        'Auto (${chosen.label})': chosen.uri.toString(),
+        'تلقائي (${chosen.label})': chosen.uri.toString(),
         for (final HlsVariant v in variants
             .where((HlsVariant v) => v.uri != chosen.uri))
           v.label: v.uri.toString(),
-        'Master (ABR)': rs.url,
+        'تكيّفي (ABR)': rs.url,
       };
       return ResolvedStream(
         url: chosen.uri.toString(),

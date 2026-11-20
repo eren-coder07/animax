@@ -94,7 +94,7 @@ class _AkwamSearchScreenState extends State<AkwamSearchScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        if (_results.isEmpty) _error = 'Search failed — try again.';
+        if (_results.isEmpty) _error = 'فشل البحث — حاول مرة أخرى.';
       });
     }
   }
@@ -123,13 +123,13 @@ class _AkwamSearchScreenState extends State<AkwamSearchScreen> {
                       onSubmitted: _search,
                       textInputAction: TextInputAction.search,
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 14,
                           color: AppColors.text),
                       decoration: InputDecoration(
-                        hintText: 'Search Akwam — movies, series, shows…',
+                        hintText: 'ابحث في أكوام — أفلام، مسلسلات، برامج…',
                         hintStyle: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 12.5,
                             color: AppColors.muted),
                         prefixIcon: Icon(Icons.search_rounded,
@@ -157,7 +157,7 @@ class _AkwamSearchScreenState extends State<AkwamSearchScreen> {
             if (showResults)
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
-                child: Text('Results for “$_lastQuery”',
+                child: Text('نتائج «$_lastQuery»',
                     style: AppText.h3.copyWith(fontSize: 14)),
               ),
             if (_error != null)
@@ -175,7 +175,7 @@ class _AkwamSearchScreenState extends State<AkwamSearchScreen> {
                               color: AkwamColors.teal, strokeWidth: 2.4))
                       : _results.isEmpty
                           ? const Center(
-                              child: Text('No results on Akwam.',
+                              child: Text('لا توجد نتائج على أكوام.',
                                   style: AppText.body))
                           : NotificationListener<ScrollNotification>(
                               onNotification: (ScrollNotification n) {
@@ -231,10 +231,10 @@ class _Hint extends StatelessWidget {
           Icon(Icons.movie_filter_rounded,
               color: AkwamColors.teal.withValues(alpha: 0.6), size: 44),
           const SizedBox(height: 12),
-          Text('Type to search akwam.ss',
+          Text('اكتب للبحث في أكوام',
               style: AppText.body.copyWith(fontSize: 13)),
           const SizedBox(height: 6),
-          Text('Arabic and English titles both work',
+          Text('يمكنك البحث بالعربية أو الإنجليزية',
               style: AppText.label.copyWith(fontSize: 11)),
         ],
       ),

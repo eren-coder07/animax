@@ -70,7 +70,7 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not load this title.';
+        _error = 'تعذّر تحميل هذا العنوان.';
         _busy = false;
       });
     }
@@ -156,9 +156,9 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                                 width: 1.2),
                           ),
                           child: Text(
-                              'AKWAM · ${_item.kind.label.toUpperCase()}',
+                              'أكوام · ${_item.kind.label}',
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.8,
@@ -198,8 +198,8 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                             final int n = _episodes?.length ?? 0;
                             return Text(
                                 n > 0
-                                    ? '$n episode${n == 1 ? '' : 's'}'
-                                    : 'Akwam',
+                                    ? (n == 1 ? 'حلقة واحدة' : '$n حلقة')
+                                    : 'أكوام',
                                 style:
                                     AppText.label.copyWith(fontSize: 11.5));
                           }),
@@ -217,7 +217,7 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                     const SizedBox(height: 20),
                     _PlayButton(
                         onTap: _busy ? null : _playFirst,
-                        label: _item.isSeries ? 'Play E1' : 'Play'),
+                        label: _item.isSeries ? 'تشغيل الحلقة 1' : 'تشغيل'),
                     if (_item.synopsis.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 22),
                       Text(_expanded
@@ -233,7 +233,7 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                           child: Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                                _expanded ? 'Show less' : 'Read more',
+                                _expanded ? 'عرض أقل' : 'اقرأ المزيد',
                                 style: AppText.bodyBold.copyWith(
                                     color: AkwamColors.teal, fontSize: 12)),
                           ),
@@ -250,7 +250,7 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                   padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Episodes',
+                    child: Text('الحلقات',
                         style: AppText.h2, textAlign: TextAlign.left),
                   ),
                 ),
@@ -264,7 +264,7 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                   padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Watch — quality',
+                    child: Text('المشاهدة — الجودة',
                         style: AppText.h2, textAlign: TextAlign.left),
                   ),
                 ),
@@ -307,7 +307,7 @@ class _PlayButton extends StatelessWidget {
               const SizedBox(width: 6),
               Text(label,
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: onTap == null ? AppColors.muted : Colors.white)),
@@ -343,10 +343,10 @@ class _EpisodeSection extends StatelessWidget {
       return _NoteCard(message: state._error!);
     }
     if (eps == null) {
-      return const _NoteCard(message: 'Loading episodes…');
+      return const _NoteCard(message: 'جارٍ تحميل الحلقات…');
     }
     if (eps.isEmpty) {
-      return const _NoteCard(message: 'No episodes on Akwam yet for this title.');
+      return const _NoteCard(message: 'لا توجد حلقات على أكوام لهذا العنوان بعد.');
     }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -394,7 +394,7 @@ class _EpisodeTile extends StatelessWidget {
                   ),
                   child: Text('${episode.number}',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: AkwamColors.teal)),
@@ -404,7 +404,7 @@ class _EpisodeTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Episode ${episode.number}',
+                      Text('الحلقة ${episode.number}',
                           style:
                               AppText.bodyBold.copyWith(fontSize: 13.5)),
                       if (episode.date.isNotEmpty) ...<Widget>[
@@ -454,7 +454,7 @@ class _QualitySection extends StatelessWidget {
     }
     if (sources == null || sources.isEmpty) {
       return const _NoteCard(
-          message: 'No playable quality found on Akwam right now.');
+          message: 'لا توجد جودة قابلة للتشغيل على أكوام حاليًا.');
     }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -501,7 +501,7 @@ class _QualityTile extends StatelessWidget {
                   ),
                   child: Text(source.quality,
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: AkwamColors.teal)),
@@ -511,7 +511,7 @@ class _QualityTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Direct stream (MP4)',
+                      Text('بث مباشر (MP4)',
                           style:
                               AppText.bodyBold.copyWith(fontSize: 13.5)),
                       if (source.size.isNotEmpty) ...<Widget>[

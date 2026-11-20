@@ -18,13 +18,13 @@ extension AkwamFeedX on AkwamFeed {
   String get label {
     switch (this) {
       case AkwamFeed.recent:
-        return 'Recently Added';
+        return 'أُضيف حديثًا';
       case AkwamFeed.movies:
-        return 'Movies';
+        return 'أفلام';
       case AkwamFeed.series:
-        return 'Series';
+        return 'مسلسل';
       case AkwamFeed.shows:
-        return 'Shows';
+        return 'برامج';
     }
   }
 }
@@ -103,7 +103,7 @@ class _AkwamTabState extends State<AkwamTab>
       if (!mounted) return;
       setState(() {
         _loading = false;
-        if (_items.isEmpty) _error = 'Cannot reach Akwam — try again later.';
+        if (_items.isEmpty) _error = 'تعذّر الوصول إلى أكوام — حاول لاحقًا.';
       });
     }
   }
@@ -126,7 +126,7 @@ class _AkwamTabState extends State<AkwamTab>
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
                 child: Row(
                   children: <Widget>[
-                    Text('Akwam', style: AppText.h1),
+                    Text('أكوام', style: AppText.h1),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -137,9 +137,9 @@ class _AkwamTabState extends State<AkwamTab>
                         border:
                             Border.all(color: AkwamColors.teal, width: 1.2),
                       ),
-                      child: Text('AKWAM',
+                      child: Text('أكوام',
                           style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 9.5,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.8,
@@ -196,7 +196,7 @@ class _AkwamTabState extends State<AkwamTab>
                               style: AppText.body
                                   .copyWith(color: AppColors.danger)),
                           const SizedBox(height: 8),
-                          Text('Tap to retry',
+                          Text('اضغط لإعادة المحاولة',
                               style: AppText.bodyBold.copyWith(
                                   color: AkwamColors.teal, fontSize: 12.5)),
                         ],
@@ -266,7 +266,7 @@ class _FeedChip extends StatelessWidget {
           child: Center(
             child: Text(label,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 12,
                     fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                     color: active ? Colors.white : AppColors.sub)),
@@ -329,7 +329,7 @@ class AkwamCard extends StatelessWidget {
                           ),
                           child: Text(item.qualityLabel,
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 8.5,
                                   fontWeight: FontWeight.w700,
                                   color: AkwamColors.teal)),
@@ -351,7 +351,7 @@ class AkwamCard extends StatelessWidget {
                               const SizedBox(width: 3),
                               Text(item.rating.toStringAsFixed(1),
                                   style: TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Cairo',
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white)),

@@ -100,27 +100,27 @@ class AnimaxData {
 
   /// Genre chips shown during onboarding.
   static const List<String> genres = [
-    'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Magic',
-    'Mecha', 'Music', 'Mystery', 'Romance', 'Sci-Fi', 'Shounen',
-    'Slice of Life', 'Sports', 'Supernatural', 'Television',
+    'أكشن', 'مغامرة', 'كوميديا', 'دراما', 'فانتازيا', 'سحر',
+    'ميكا', 'موسيقى', 'غموض', 'رومانسي', 'خيال علمي', 'شونين',
+    'شريحة من الحياة', 'رياضة', 'خارق للطبيعة', 'تلفزيون',
   ];
 
   static const List<Map<String, String>> faqs = [
     {
-      'q': 'How do I play an episode?',
-      'a': 'Open any title, tap an episode and pick a server under SUB / S-SUB / DUB. Playback runs inside the app on the native player — no browser needed.',
+      'q': 'كيف أشغّل حلقة؟',
+      'a': 'افتح أي عنوان، اضغط على حلقة واختر سيرفرًا من مترجم / مترجم-S / مدبلج. التشغيل يتم داخل التطبيق بالمشغّل الأصلي — بدون متصفح.',
     },
     {
-      'q': 'A server is not loading — what now?',
-      'a': 'Streaming servers occasionally go down. Switch to another server chip in the player, or try a different audio track (SUB or DUB). The player falls back automatically and reports which server it is using.',
+      'q': 'سيرفر لا يعمل — ماذا أفعل؟',
+      'a': 'قد تتوقف سيرفرات البث أحيانًا. انتقل إلى سيرفر آخر من المشغّل أو جرّب مسارًا صوتيًا مختلفًا (مترجم أو مدبلج). ينتقل المشغّل تلقائيًا إلى سيرفر بديل.',
     },
     {
-      'q': 'Where do the release times come from?',
-      'a': 'The Release Calendar is loaded from the schedule and shows the exact airing times for each episode, so new simulcast episodes appear the moment they drop.',
+      'q': 'من أين تأتي مواعيد العرض؟',
+      'a': 'يُحمَّل تقويم العرض من الجدول الرسمي ويعرض المواعيد الدقيقة لكل حلقة، فتظهر الحلقات الجديدة فور صدورها.',
     },
     {
-      'q': 'What is the Akwam section?',
-      'a': 'The Akwam tab lists Arabic movies, series and shows from akwam.ss. Playback is a direct MP4 stream inside the app — pick a quality, tap play, and switch servers or qualities from the player.',
+      'q': 'ما هو قسم أكوام؟',
+      'a': 'قسم أكوام هو الصفحة الرئيسية: أفلام ومسلسلات وبرامج عربية وأجنبية من akwam.ss. التشغيل مباشر داخل التطبيق — اختر الجودة واضغط تشغيل، ويمكنك تحميل أي حلقة أو فيلم.',
     },
   ];
 }

@@ -38,7 +38,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '1.9.1';
+    const String version = '2.0.0';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -88,27 +88,33 @@ typedef _Section = ({
 /// Sections pinned to the bottom bar (order = left → right, with the
 /// "More" button inserted before Profile).
 const List<_Section> _primary = <_Section>[
-  (index: 0, icon: Icons.home_rounded, label: 'Home', blurb: '', tint: null),
+  (
+    index: 3,
+    icon: Icons.home_rounded,
+    label: 'الرئيسية',
+    blurb: '',
+    tint: Color(0xFF18A2B8)
+  ),
   (
     index: 2,
     icon: Icons.theaters_rounded,
-    label: 'Cinema',
+    label: 'سينما',
     blurb: '',
     tint: Color(0xFFE50914)
   ),
   (
-    index: 3,
-    icon: Icons.movie_filter_rounded,
-    label: 'Akwam',
+    index: 0,
+    icon: Icons.animation_rounded,
+    label: 'أنمي',
     blurb: '',
-    tint: Color(0xFF18A2B8)
+    tint: null
   ),
 ];
 
 const _Section _profile = (
   index: 7,
   icon: Icons.person_rounded,
-  label: 'Profile',
+  label: 'حسابي',
   blurb: '',
   tint: null
 );
@@ -118,29 +124,29 @@ const List<_Section> _more = <_Section>[
   (
     index: 1,
     icon: Icons.calendar_month_rounded,
-    label: 'Calendar',
-    blurb: 'Airing schedule',
+    label: 'التقويم',
+    blurb: 'جدول العرض',
     tint: Color(0xFF7C8CFF)
   ),
   (
     index: 4,
     icon: Icons.animation_rounded,
-    label: 'Cartoons',
-    blurb: 'Animated shows',
+    label: 'كرتون',
+    blurb: 'مسلسلات كرتون',
     tint: Color(0xFFFFB020)
   ),
   (
     index: 5,
     icon: Icons.menu_book_rounded,
-    label: 'Comics',
-    blurb: 'Manga reader',
+    label: 'مانغا',
+    blurb: 'قارئ المانغا',
     tint: Color(0xFF3DD6A0)
   ),
   (
     index: 6,
     icon: Icons.eighteen_up_rating_rounded,
-    label: '18+',
-    blurb: 'Adults only',
+    label: '+18',
+    blurb: 'للبالغين فقط',
     tint: Color(0xFFFF5A8A)
   ),
 ];
@@ -175,7 +181,7 @@ class _BottomNav extends StatelessWidget {
         ),
       _NavItem(
         icon: activeMore?.icon ?? Icons.grid_view_rounded,
-        label: activeMore?.label ?? 'More',
+        label: activeMore?.label ?? 'المزيد',
         active: activeMore != null,
         color: activeMore?.tint ?? accent,
         badge: activeMore == null && _calendarBadge,
@@ -279,7 +285,7 @@ class _NavItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Cairo',
                 fontSize: 11,
                 fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                 color: active ? color : AppColors.muted,
@@ -323,9 +329,9 @@ class _MoreSheet extends StatelessWidget {
           children: <Widget>[
             const Padding(
               padding: EdgeInsets.only(left: 4, bottom: 12),
-              child: Text('More sections',
+              child: Text('أقسام أخرى',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: AppColors.text)),
@@ -343,9 +349,9 @@ class _MoreSheet extends StatelessWidget {
             ),
             const Padding(
               padding: EdgeInsets.only(left: 4, top: 18, bottom: 12),
-              child: Text('Your stuff',
+              child: Text('محتواك',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       color: AppColors.text)),
@@ -365,16 +371,16 @@ class _MoreSheet extends StatelessWidget {
                     _routeTile(
                       context,
                       icon: Icons.download_rounded,
-                      label: 'Downloads',
-                      blurb: n > 0 ? '$n in progress' : 'Saved offline',
+                      label: 'التحميلات',
+                      blurb: n > 0 ? '$n قيد التحميل' : 'محفوظ بدون إنترنت',
                       tint: accent,
                       route: '/downloads',
                     ),
                     _routeTile(
                       context,
                       icon: Icons.video_library_rounded,
-                      label: 'My Library',
-                      blurb: 'List · history',
+                      label: 'مكتبتي',
+                      blurb: 'القائمة · السجل',
                       tint: const Color(0xFF5AB4FF),
                       route: '/library',
                     ),
@@ -433,7 +439,7 @@ class _MoreSheet extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)),
@@ -441,7 +447,7 @@ class _MoreSheet extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 10.5,
                             color: AppColors.sub)),
                   ],
@@ -515,7 +521,7 @@ class _MoreSheet extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)),
@@ -523,7 +529,7 @@ class _MoreSheet extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 10.5,
                             color: AppColors.sub)),
                   ],
@@ -544,11 +550,11 @@ class WhatsNewDialog extends StatelessWidget {
   final String version;
 
   static const List<String> highlights = <String>[
-    'Akwam section — Arabic movies, series & shows from akwam.ss with native MP4 playback',
-    'Cleaner app — all connection diagnostics and debug screens removed from the UI',
-    'Player gestures — double-tap seek, swipe brightness/volume, 2× boost',
-    'My Library — watchlist, history, ratings and stats',
-    'Accent colors, AMOLED mode and a fresh home with hero carousel',
+    'أكوام أصبح الصفحة الرئيسية — أفلام ومسلسلات عربية وأجنبية',
+    'التطبيق بالكامل باللغة العربية مع واجهة من اليمين لليسار',
+    'تحميل الحلقات والأفلام كملفات MP4 والمانغا كملفات PDF',
+    'أزرار التحميل في صفحات التفاصيل وتحميل كل الحلقات دفعة واحدة',
+    'تشغيل أسرع وإصلاح مشاكل التشغيل',
   ];
 
   @override
@@ -561,9 +567,9 @@ class WhatsNewDialog extends StatelessWidget {
           Icon(Icons.auto_awesome_rounded,
               color: AppColors.accent, size: 22),
           const SizedBox(width: 10),
-          Text('What\'s new in v$version',
+          Text('الجديد في الإصدار $version',
               style: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 16.5,
                   fontWeight: FontWeight.w800,
                   color: AppColors.text)),
@@ -584,7 +590,7 @@ class WhatsNewDialog extends StatelessWidget {
                   Expanded(
                     child: Text(h,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 12,
                             height: 1.45,
                             color: AppColors.sub)),
@@ -597,9 +603,9 @@ class WhatsNewDialog extends StatelessWidget {
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Let\'s go',
+          child: Text('هيا بنا',
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppColors.accent)),

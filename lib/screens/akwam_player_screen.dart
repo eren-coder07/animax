@@ -127,8 +127,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       _sources = const <AkwamSource>[];
       _sourceIndex = 0;
       _status = episode == null
-          ? 'Loading qualities…'
-          : 'Loading episode ${episode.number}…';
+          ? 'جارٍ تحميل الجودات…'
+          : 'جارٍ تحميل الحلقة ${episode.number}…';
     });
 
     // 1. Sources (qualities) from the episode page — or the movie page.
@@ -148,7 +148,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (!mounted) return;
       setState(() {
         _resolving = false;
-        _error = 'Cannot reach Akwam — check your connection.';
+        _error = 'تعذّر الوصول إلى أكوام — تحقّق من اتصالك.';
       });
       return;
     }
@@ -156,7 +156,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (!mounted) return;
       setState(() {
         _resolving = false;
-        _error = 'No playable quality found for this title.';
+        _error = 'لا توجد جودة قابلة للتشغيل لهذا العنوان.';
       });
       return;
     }
@@ -165,7 +165,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (!mounted) return;
     setState(() {
       _sources = sources;
-      _status = 'Loading…';
+      _status = 'جارٍ التحميل…';
     });
     await _playSource(0, resumeAt: resumeAt);
 
@@ -189,7 +189,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       _sourceIndex = index;
       _resolving = true;
       _error = null;
-      _status = 'Loading…';
+      _status = 'جارٍ التحميل…';
     });
 
     String url;
@@ -206,7 +206,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (!mounted) return;
       setState(() {
         _resolving = false;
-        _error = 'Cannot reach Akwam — check your connection.';
+        _error = 'تعذّر الوصول إلى أكوام — تحقّق من اتصالك.';
       });
       return;
     }
@@ -240,7 +240,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       await _disposePlayer();
       setState(() {
         _resolving = false;
-        _error = 'Player failed to open the stream. Try another quality.';
+        _error = 'تعذّر على المشغّل فتح البث. جرّب جودة أخرى.';
       });
       return;
     }
@@ -318,7 +318,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (mounted) {
         setState(() {
           _resolving = false;
-          _error = 'Playback failed — try another quality.';
+          _error = 'فشل التشغيل — جرّب جودة أخرى.';
         });
       }
     } catch (_) {
@@ -468,7 +468,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-              child: Text('Quality — Akwam',
+              child: Text('الجودة — أكوام',
                   style: AppText.h3.copyWith(fontSize: 14)),
             ),
             for (int i = 0; i < _sources.length; i++)
@@ -486,7 +486,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                           ? '  ·  ${_sources[i].size}'
                           : ''),
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.text),
@@ -524,7 +524,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     await DownloadManager.I.addVideo(
       title: _item.title,
       subtitle: <String>[
-        if (_episode != null) 'Episode ${_episode!.number}',
+        if (_episode != null) 'الحلقة ${_episode!.number}',
         if (quality.isNotEmpty) quality,
       ].join(' · '),
       poster: _item.poster,
@@ -622,7 +622,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                     color: Colors.white),
@@ -705,7 +705,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
               children: <Widget>[
                 Text(_fmt(position),
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 10.5,
                         color: Colors.white70)),
                 Expanded(
@@ -735,7 +735,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 ),
                 Text(_fmt(duration),
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 10.5,
                         color: Colors.white70)),
               ],
@@ -745,9 +745,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 TextButton(
                   onPressed: _showQualitySheet,
                   child: Text(
-                    'HQ ${_sources.isNotEmpty ? _sources[_sourceIndex].quality : ''}',
+                    'الجودة ${_sources.isNotEmpty ? _sources[_sourceIndex].quality : ''}',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         color: AkwamColors.teal),
@@ -765,11 +765,11 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                   onPressed: _toggleMute,
                 ),
                 PopupMenuButton<double>(
-                  tooltip: 'Speed',
+                  tooltip: 'السرعة',
                   color: AppColors.surface,
                   icon: Text('${_speed.toStringAsFixed(1)}×',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                           color: Colors.white)),
@@ -779,7 +779,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                         value: s,
                         child: Text('${s.toStringAsFixed(2)}×',
                             style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Cairo',
                                 fontSize: 12.5,
                                 color: AppColors.text)),
                       ),
@@ -822,7 +822,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
               Text(_status,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 12,
                       color: Colors.white70)),
             ],
@@ -851,7 +851,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
             Text(_error ?? '',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 12.5,
                     height: 1.45,
                     color: Colors.white70)),
@@ -865,9 +865,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                       setState(() => _error = null);
                       _showQualitySheet();
                     },
-                    child: Text('Pick quality',
+                    child: Text('اختر الجودة',
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                             color: AkwamColors.teal)),
@@ -877,9 +877,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                     setState(() => _error = null);
                     _playSource(_sourceIndex);
                   },
-                  child: Text('Retry',
+                  child: Text('إعادة المحاولة',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: Colors.white)),

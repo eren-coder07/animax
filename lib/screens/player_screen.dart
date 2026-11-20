@@ -192,8 +192,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!mounted) return;
     setState(() {
       _resolving = false;
-      _error = 'No server is responding right now.\n'
-          'Try another server or audio track below.';
+      _error = 'لا يوجد سيرفر يستجيب حاليًا.\n'
+          'جرّب سيرفرًا آخر أو مسارًا صوتيًا مختلفًا بالأسفل.';
     });
   }
 
@@ -207,7 +207,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       _server = server;
       _resolving = true;
       _error = null;
-      _status = 'Loading ${server.name}…';
+      _status = 'جارٍ تحميل ${server.name}…';
     });
     final ResolvedStream? rs =
         await StreamResolver.I.resolve(server).timeout(
@@ -218,7 +218,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (rs == null) {
       setState(() {
         _resolving = false;
-        _status = '${server.name} is unavailable — trying the next server…';
+        _status = '${server.name} غير متاح — جارٍ تجربة السيرفر التالي…';
       });
       return false;
     }
@@ -229,7 +229,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       setState(() {
         _stream = null;
         _resolving = false;
-        _status = '${server.name} did not respond — trying the next server…';
+        _status = '${server.name} لم يستجب — جارٍ تجربة السيرفر التالي…';
       });
       return false;
     }
@@ -313,7 +313,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         poster: _anime.poster,
         kind: 'anime',
         sub: '${_episode?.number ?? 1}',
-        label: 'Episode ${_episode?.number ?? 1}',
+        label: 'الحلقة ${_episode?.number ?? 1}',
       );
     }
     return true;
@@ -325,7 +325,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!mounted || _player != c) return;
     final VideoPlayerValue v = c.value;
     if (v.hasError && !_resolving) {
-      _onStreamDied(v.errorDescription ?? 'unknown error');
+      _onStreamDied(v.errorDescription ?? 'خطأ غير معروف');
       return;
     }
     // Auto-skip intro (Settings → Player → Auto-skip intro).
@@ -409,7 +409,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         _recovering = false;
         setState(() {
           _resolving = true;
-          _status = 'Switching server…';
+          _status = 'جارٍ تبديل السيرفر…';
         });
         await _resolveAndPlay(rest.first, rest: rest.sublist(1));
         return;
@@ -418,7 +418,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (mounted) {
         setState(() {
           _resolving = false;
-          _error = 'Playback failed: $detail';
+          _error = 'فشل التشغيل: $detail';
         });
       }
     } catch (_) {
@@ -440,7 +440,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (rs == null) return;
     await DownloadManager.I.addVideo(
       title: _anime.title,
-      subtitle: 'Episode ${_episode?.number ?? 1}',
+      subtitle: 'الحلقة ${_episode?.number ?? 1}',
       poster: _anime.poster,
       url: rs.url,
       headers: <String, String>{
@@ -612,7 +612,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
-              'Picture-in-Picture is not available on this device or Android version.')));
+              'خاصية صورة داخل صورة غير متاحة على هذا الجهاز أو إصدار أندرويد.')));
     }
   }
 
@@ -629,9 +629,9 @@ class _PlayerScreenState extends State<PlayerScreen>
           children: <Widget>[
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text('Sleep timer',
+              child: Text('مؤقت النوم',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: AppColors.text)),
@@ -646,9 +646,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                         ? AppColors.accent
                         : AppColors.muted,
                     size: 20),
-                title: Text(m == 0 ? 'Off' : '$m minutes',
+                title: Text(m == 0 ? 'إيقاف' : '$m دقيقة',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 13.5,
                         color: _sleepMinutes == m
                             ? AppColors.accent
@@ -675,7 +675,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           setState(() => _controlsVisible = true);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(
-                  'Sleep timer — paused after $minutes minutes')));
+                  'مؤقت النوم — توقف التشغيل بعد $minutes دقيقة')));
         }
       }
       if (mounted) setState(() => _sleepMinutes = 0);
@@ -737,7 +737,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   Widget build(BuildContext context) {
     final int epNum = _episode?.number ?? 1;
-    final String epTitle = _episode?.title ?? 'Episode $epNum';
+    final String epTitle = _episode?.title ?? 'الحلقة $epNum';
 
     final Widget stage = _VideoStage(
       state: this,
@@ -781,8 +781,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 AppText.bodyBold.copyWith(fontSize: 13.5)),
                         Text(
                           _episode == null
-                              ? 'Movie • Native player'
-                              : 'Episode $epNum • Native player',
+                              ? 'فيلم • المشغّل الأصلي'
+                              : 'الحلقة $epNum • المشغّل الأصلي',
                           style: AppText.label.copyWith(fontSize: 10.5),
                         ),
                       ],
@@ -814,7 +814,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Now playing',
+                  Text('يُعرض الآن',
                       style: AppText.label.copyWith(
                           color: AppColors.accent,
                           fontSize: 11,
@@ -879,12 +879,12 @@ class _VideoStage extends StatelessWidget {
     if (state._error != null) {
       return _StageMessage(
         icon: Icons.error_outline_rounded,
-        title: 'Playback problem',
+        title: 'مشكلة في التشغيل',
         message: state._error!,
         actions: [
           if (stream != null || state._server != null)
             GhostChip(
-              label: 'Try again',
+              label: 'حاول مجددًا',
               active: true,
               padding:
                   const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -899,7 +899,7 @@ class _VideoStage extends StatelessWidget {
               },
             ),
           GhostChip(
-            label: 'Open in browser',
+            label: 'فتح في المتصفح',
             padding:
                 const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             onTap: state._openInBrowser,
@@ -912,9 +912,9 @@ class _VideoStage extends StatelessWidget {
     if (state._resolving && player == null) {
       return _StageMessage(
         icon: Icons.hourglass_top_rounded,
-        title: 'Loading…',
+        title: 'جارٍ التحميل…',
         message: state._status.isEmpty
-            ? 'Getting your video ready.'
+            ? 'جارٍ تجهيز الفيديو.'
             : state._status,
         busy: true,
       );
@@ -925,16 +925,16 @@ class _VideoStage extends StatelessWidget {
       if (player == null) {
         return _StageMessage(
           icon: Icons.play_circle_outline_rounded,
-          title: 'Pick a server',
+          title: 'اختر سيرفرًا',
           message: state._status.isEmpty
-              ? 'Choose a SUB / S-SUB / DUB server below to start watching.'
+              ? 'اختر سيرفرًا (مترجم / مدبلج) بالأسفل لبدء المشاهدة.'
               : state._status,
         );
       }
       return const _StageMessage(
         icon: Icons.hourglass_top_rounded,
-        title: 'Buffering…',
-        message: 'Opening the video stream.',
+        title: 'جارٍ التخزين المؤقت…',
+        message: 'جارٍ فتح البث.',
         busy: true,
       );
     }
@@ -1004,7 +1004,7 @@ class _VideoStage extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.only(right: 14),
                             child: GhostChip(
-                              label: 'Skip intro',
+                              label: 'تخطّي المقدمة',
                               active: true,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 9),
@@ -1066,7 +1066,7 @@ class _TopGradientBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         color: Colors.white)),
@@ -1074,7 +1074,7 @@ class _TopGradientBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Cairo',
                         fontSize: 10.5,
                         color: Colors.white70)),
               ],
@@ -1094,7 +1094,7 @@ class _TopGradientBar extends StatelessWidget {
               color: state._loop ? AppColors.accent : Colors.white,
               size: 21,
             ),
-            tooltip: 'Loop episode',
+            tooltip: 'تكرار الحلقة',
             onPressed: state._toggleLoop,
           ),
           IconButton(
@@ -1103,13 +1103,13 @@ class _TopGradientBar extends StatelessWidget {
               color: state._sleepMinutes > 0 ? AppColors.accent : Colors.white,
               size: 21,
             ),
-            tooltip: 'Sleep timer',
+            tooltip: 'مؤقت النوم',
             onPressed: state._pickSleepTimer,
           ),
           IconButton(
             icon: const Icon(Icons.picture_in_picture_rounded,
                 color: Colors.white, size: 20),
-            tooltip: 'Picture-in-Picture',
+            tooltip: 'صورة داخل صورة',
             onPressed: state._enterPip,
           ),
           IconButton(
@@ -1120,7 +1120,7 @@ class _TopGradientBar extends StatelessWidget {
               color: state._locked ? AppColors.accent : Colors.white,
               size: 20,
             ),
-            tooltip: state._locked ? 'Unlock controls' : 'Lock controls',
+            tooltip: state._locked ? 'فتح القفل' : 'قفل التحكم',
             onPressed: state._toggleLock,
           ),
         ],
@@ -1209,7 +1209,7 @@ class _BottomControls extends StatelessWidget {
             children: [
               Text(_fmt(pos),
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 10.5,
                       color: Colors.white)),
               Expanded(
@@ -1244,7 +1244,7 @@ class _BottomControls extends StatelessWidget {
               ),
               Text(_fmt(dur),
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 10.5,
                       color: Colors.white)),
             ],
@@ -1266,7 +1266,7 @@ class _BottomControls extends StatelessWidget {
                 )
               else if (stream != null)
                 const _OverlayLabel(
-                    icon: Icons.high_quality_rounded, label: 'AUTO'),
+                    icon: Icons.high_quality_rounded, label: 'تلقائي'),
               const Spacer(),
               DownloadIconButton(
                 url: stream?.url ?? '',
@@ -1307,7 +1307,7 @@ class _BottomControls extends StatelessWidget {
     for (final MapEntry<String, String> e in stream.qualities.entries) {
       if (e.value == stream.url) return e.key;
     }
-    return 'AUTO';
+    return 'تلقائي';
   }
 }
 
@@ -1337,7 +1337,7 @@ class _OverlayMenuButton<T> extends StatelessWidget {
           height: 38,
           child: Text(entries[i].$1,
               style: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.text)),
@@ -1352,7 +1352,7 @@ class _OverlayMenuButton<T> extends StatelessWidget {
             const SizedBox(width: 5),
             Text(label,
                 style: const TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),
@@ -1380,7 +1380,7 @@ class _OverlayLabel extends StatelessWidget {
           const SizedBox(width: 5),
           Text(label,
               style: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: Colors.white)),
@@ -1468,9 +1468,9 @@ class _ServersPanel extends StatelessWidget {
   final ValueChanged<Episode> onSwitch;
 
   static const Map<String, String> _kindLabel = <String, String>{
-    'sub': 'SUB',
-    'ssub': 'S-SUB',
-    'dub': 'DUB',
+    'sub': 'مترجم',
+    'ssub': 'مترجم-S',
+    'dub': 'مدبلج',
   };
 
   @override
@@ -1528,14 +1528,14 @@ class _ServersPanel extends StatelessWidget {
                             color: AppColors.accent, strokeWidth: 2),
                       ),
                       const SizedBox(width: 10),
-                      Text('Loading servers…',
+                      Text('جارٍ تحميل السيرفرات…',
                           style: AppText.label.copyWith(fontSize: 11.5)),
                     ],
                   ),
                 )
               else if (kinds.isEmpty && status.isEmpty)
                 Text(
-                  'Servers could not be loaded for this episode — check your connection or try again later.',
+                  'تعذّر تحميل السيرفرات لهذه الحلقة — تحقّق من اتصالك أو حاول لاحقًا.',
                   style: AppText.label.copyWith(fontSize: 11),
                 )
               else if (kinds.isNotEmpty) ...<Widget>[
@@ -1603,14 +1603,14 @@ class _ServersPanel extends StatelessWidget {
               Row(
                 children: [
                   _NavButton(
-                    label: 'Prev ep',
+                    label: 'الحلقة السابقة',
                     icon: Icons.skip_previous_rounded,
                     enabled: prev != null,
                     onTap: prev == null ? null : () => onSwitch(prev),
                   ),
                   const SizedBox(width: 10),
                   _NavButton(
-                    label: 'Next ep',
+                    label: 'الحلقة التالية',
                     icon: Icons.skip_next_rounded,
                     enabled: next != null,
                     onTap: next == null ? null : () => onSwitch(next),
@@ -1620,7 +1620,7 @@ class _ServersPanel extends StatelessWidget {
               if (episode != null && episodes.isNotEmpty) ...<Widget>[
                 const SizedBox(height: 8),
                 Text(
-                  'Episode ${episode!.number} of ${episodes.length}',
+                  'الحلقة ${episode!.number} من ${episodes.length}',
                   style: AppText.label.copyWith(fontSize: 10, color: AppColors.sub),
                 ),
               ],

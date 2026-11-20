@@ -28,7 +28,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // The UI is mobile-first: open as a tall phone-like window.
   Win32Window::Point origin(80, 40);
   Win32Window::Size size(480, 900);
-  if (!window.Create(L"Animax", origin, size)) {
+  // Window title: "أنيماكس" (Animax in Arabic), escaped for MSVC.
+  if (!window.Create(L"\u0623\u0646\u064A\u0645\u0627\u0643\u0633", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

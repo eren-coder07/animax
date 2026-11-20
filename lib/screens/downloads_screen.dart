@@ -15,9 +15,9 @@ class DownloadsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         surfaceTintColor: Colors.transparent,
-        title: const Text('Downloads',
+        title: const Text('التحميلات',
             style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Cairo',
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppColors.text)),
@@ -36,20 +36,20 @@ class DownloadsScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             children: <Widget>[
               if (active.isNotEmpty) ...<Widget>[
-                const _Header('In progress'),
+                const _Header('قيد التحميل'),
                 for (final DownloadItem d in active) _DownloadTile(item: d),
               ],
               if (done.isNotEmpty) ...<Widget>[
-                const _Header('Saved on this device'),
+                const _Header('محفوظ على هذا الجهاز'),
                 for (final DownloadItem d in done) _DownloadTile(item: d),
               ],
               const SizedBox(height: 10),
               const Text(
-                'Files are saved to Download/Animax on your phone and open '
-                'in any video player or PDF reader. Keep the app open while '
-                'large videos download.',
+                'تُحفظ الملفات في مجلد Download/Animax على هاتفك وتفتح '
+                'بأي مشغّل فيديو أو قارئ PDF. أبقِ التطبيق مفتوحًا أثناء '
+                'تحميل الفيديوهات الكبيرة.',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 11,
                     height: 1.5,
                     color: AppColors.muted),
@@ -71,7 +71,7 @@ class _Header extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(2, 14, 0, 8),
         child: Text(text,
             style: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Cairo',
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: AppColors.sub)),
@@ -100,19 +100,19 @@ class _Empty extends StatelessWidget {
                   color: AppColors.accent, size: 36),
             ),
             const SizedBox(height: 16),
-            const Text('No downloads yet',
+            const Text('لا توجد تحميلات بعد',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Cairo',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColors.text)),
             const SizedBox(height: 6),
             const Text(
-              'Tap the download button in any player or on a comic '
-              'chapter to save it for offline viewing.',
+              'اضغط زر التحميل في صفحة أي فيلم أو حلقة أو في المشغّل أو على '
+              'فصل مانغا لحفظه ومشاهدته بدون إنترنت.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Cairo',
                   fontSize: 12,
                   height: 1.5,
                   color: AppColors.sub),
@@ -130,7 +130,7 @@ class _DownloadTile extends StatelessWidget {
 
   static String _size(int bytes) {
     if (bytes <= 0) return '';
-    const List<String> units = <String>['B', 'KB', 'MB', 'GB'];
+    const List<String> units = <String>['بايت', 'ك.ب', 'م.ب', 'ج.ب'];
     double v = bytes.toDouble();
     int u = 0;
     while (v >= 1024 && u < units.length - 1) {
@@ -144,21 +144,21 @@ class _DownloadTile extends StatelessWidget {
     final String size = _size(item.received);
     switch (item.status) {
       case DownloadStatus.queued:
-        return 'Waiting…';
+        return 'في الانتظار…';
       case DownloadStatus.running:
         final String pct = item.progress > 0
             ? '${(item.progress * 100).clamp(0, 100).toStringAsFixed(0)}%'
-            : 'Starting…';
-        final String total = item.total > 0 ? ' of ${_size(item.total)}' : '';
+            : 'جارٍ البدء…';
+        final String total = item.total > 0 ? ' من ${_size(item.total)}' : '';
         return size.isEmpty ? pct : '$pct · $size$total';
       case DownloadStatus.paused:
-        return 'Paused${size.isEmpty ? '' : ' · $size'}';
+        return 'متوقف مؤقتًا${size.isEmpty ? '' : ' · $size'}';
       case DownloadStatus.failed:
-        return item.error.isEmpty ? 'Failed' : item.error;
+        return item.error.isEmpty ? 'فشل' : item.error;
       case DownloadStatus.done:
         return item.resultLocation.isEmpty
-            ? 'Saved'
-            : 'Saved · ${item.resultLocation}';
+            ? 'محفوظ'
+            : 'محفوظ · ${item.resultLocation}';
     }
   }
 
@@ -204,7 +204,7 @@ class _DownloadTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)),
@@ -213,7 +213,7 @@ class _DownloadTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 11.5,
                               color: AppColors.sub)),
                     const SizedBox(height: 6),
@@ -237,7 +237,7 @@ class _DownloadTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Cairo',
                             fontSize: 10.5,
                             color: failed ? AppColors.danger : AppColors.muted)),
                   ],
@@ -265,12 +265,12 @@ class _DownloadTile extends StatelessWidget {
       case DownloadStatus.running:
         return Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
           IconButton(
-            tooltip: 'Pause',
+            tooltip: 'إيقاف مؤقت',
             icon: const Icon(Icons.pause_rounded, color: AppColors.text),
             onPressed: () => m.pause(item),
           ),
           IconButton(
-            tooltip: 'Cancel',
+            tooltip: 'إلغاء',
             icon: const Icon(Icons.close_rounded, color: AppColors.muted),
             onPressed: () => m.remove(item),
           ),
@@ -279,7 +279,7 @@ class _DownloadTile extends StatelessWidget {
       case DownloadStatus.failed:
         return Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
           IconButton(
-            tooltip: item.status == DownloadStatus.failed ? 'Retry' : 'Resume',
+            tooltip: item.status == DownloadStatus.failed ? 'إعادة المحاولة' : 'استئناف',
             icon: Icon(
                 item.status == DownloadStatus.failed
                     ? Icons.refresh_rounded
@@ -288,7 +288,7 @@ class _DownloadTile extends StatelessWidget {
             onPressed: () => m.resume(item),
           ),
           IconButton(
-            tooltip: 'Remove',
+            tooltip: 'إزالة',
             icon: const Icon(Icons.close_rounded, color: AppColors.muted),
             onPressed: () => m.remove(item),
           ),
@@ -307,11 +307,11 @@ class _DownloadTile extends StatelessWidget {
             }
           },
           itemBuilder: (_) => const <PopupMenuEntry<String>>[
-            PopupMenuItem<String>(value: 'open', child: Text('Open')),
+            PopupMenuItem<String>(value: 'open', child: Text('فتح')),
             PopupMenuItem<String>(
-                value: 'forget', child: Text('Remove from list')),
+                value: 'forget', child: Text('إزالة من القائمة')),
             PopupMenuItem<String>(
-                value: 'delete', child: Text('Delete file')),
+                value: 'delete', child: Text('حذف الملف')),
           ],
         );
     }
@@ -322,8 +322,8 @@ class _DownloadTile extends StatelessWidget {
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(item.resultLocation.isEmpty
-            ? 'No app found to open this file.'
-            : 'Saved at ${item.resultLocation}'),
+            ? 'لا يوجد تطبيق لفتح هذا الملف.'
+            : 'محفوظ في ${item.resultLocation}'),
       ));
     }
   }

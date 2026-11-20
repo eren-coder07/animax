@@ -67,7 +67,7 @@ class _CinemaTabState extends State<CinemaTab>
     unawaited(row('topseries', () => CinemaApi.I.topSeries()));
     unawaited(row('new', () => CinemaApi.I.moviesByYear(2026)));
     if (_trending == null && mounted) {
-      setState(() => _error = 'Cannot reach the Cinema catalog right now.');
+      setState(() => _error = 'تعذّر الوصول إلى كتالوج السينما حاليًا.');
     }
   }
 
@@ -90,7 +90,7 @@ class _CinemaTabState extends State<CinemaTab>
             padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
             child: Row(
               children: <Widget>[
-                Text('Cinema', style: AppText.h1),
+                Text('سينما', style: AppText.h1),
                 const SizedBox(width: 10),
                 Container(
                   padding:
@@ -102,7 +102,7 @@ class _CinemaTabState extends State<CinemaTab>
                   ),
                   child: const Text('IMDb',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Cairo',
                           fontSize: 9.5,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1,
@@ -140,9 +140,9 @@ class _CinemaTabState extends State<CinemaTab>
                       onPressed: _loadAll,
                       icon: const Icon(Icons.refresh_rounded,
                           size: 18, color: AppColors.text),
-                      label: const Text('Retry',
+                      label: const Text('إعادة المحاولة',
                           style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 12.5,
                               color: AppColors.text)),
                     ),
@@ -151,27 +151,27 @@ class _CinemaTabState extends State<CinemaTab>
               )
             else ...<Widget>[
               _Row(
-                title: 'Trending movies',
+                title: 'أفلام رائجة',
                 items: _trending,
                 onOpen: _openItem,
               ),
               _Row(
-                title: 'Popular series',
+                title: 'مسلسلات شائعة',
                 items: _popularSeries,
                 onOpen: _openItem,
               ),
               _Row(
-                title: 'Top rated movies',
+                title: 'أفلام الأعلى تقييمًا',
                 items: _topMovies,
                 onOpen: _openItem,
               ),
               _Row(
-                title: 'Top rated series',
+                title: 'مسلسلات الأعلى تقييمًا',
                 items: _topSeries,
                 onOpen: _openItem,
               ),
               _Row(
-                title: 'New in 2026',
+                title: 'جديد 2026',
                 items: _newMovies,
                 onOpen: _openItem,
               ),
@@ -225,9 +225,9 @@ class _Row extends StatelessWidget {
         else if (list.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Text('Nothing here right now.',
+            child: Text('لا شيء هنا حاليًا.',
                 style: TextStyle(
-                    fontFamily: 'Poppins', fontSize: 12.5, color: AppColors.sub)),
+                    fontFamily: 'Cairo', fontSize: 12.5, color: AppColors.sub)),
           )
         else
           SizedBox(
@@ -298,7 +298,7 @@ class _Card extends StatelessWidget {
                               const SizedBox(width: 2),
                               Text(item.imdbRating.toStringAsFixed(1),
                                   style: const TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Cairo',
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white)),
@@ -316,9 +316,9 @@ class _Card extends StatelessWidget {
                           color: Colors.black.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(item.isSeries ? 'SERIES' : 'MOVIE',
+                        child: Text(item.isSeries ? 'مسلسل' : 'فيلم',
                             style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Cairo',
                                 fontSize: 7.5,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.8,
@@ -402,7 +402,7 @@ class _CinemaSearchScreenState extends State<CinemaSearchScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Search failed — check your connection.';
+        _error = 'فشل البحث — تحقّق من اتصالك.';
         _loading = false;
       });
     }
@@ -423,7 +423,7 @@ class _CinemaSearchScreenState extends State<CinemaSearchScreen> {
         ),
         title: FieldBox(
           controller: _controller,
-          hint: 'Movies or series…',
+          hint: 'أفلام أو مسلسلات…',
           icon: Icons.search_rounded,
           onChanged: _onChanged,
         ),
@@ -434,14 +434,14 @@ class _CinemaSearchScreenState extends State<CinemaSearchScreen> {
           : _error != null
               ? EmptyState(
                   icon: Icons.wifi_off_rounded,
-                  title: 'Search unavailable',
+                  title: 'البحث غير متاح',
                   message: _error!,
                 )
               : list == null
                   ? const Center(
-                      child: Text('Type at least 2 characters to search.',
+                      child: Text('اكتب حرفين على الأقل للبحث.',
                           style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Cairo',
                               fontSize: 13,
                               color: AppColors.sub)))
                   : GridView.builder(

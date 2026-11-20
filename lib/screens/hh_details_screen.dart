@@ -67,7 +67,7 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
       setState(() => _episodesError = e.message);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _episodesError = 'Could not load episodes.');
+      setState(() => _episodesError = 'تعذّر تحميل الحلقات.');
     }
   }
 
@@ -146,9 +146,9 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                             border: Border.all(color: HhColors.red,
                                 width: 1.2),
                           ),
-                          child: Text('18+ HENTAI',
+                          child: Text('هنتاي +18',
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Cairo',
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.8,
@@ -178,7 +178,7 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                           Icon(Icons.visibility_rounded,
                               color: AppColors.muted, size: 15),
                           const SizedBox(width: 4),
-                          Text('${_series.viewsLabel} views',
+                          Text('${_series.viewsLabel} مشاهدة',
                               style: AppText.label.copyWith(fontSize: 11.5)),
                           const SizedBox(width: 14),
                         ],
@@ -223,7 +223,7 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                           child: Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                                _expanded ? 'Show less' : 'Read more',
+                                _expanded ? 'عرض أقل' : 'اقرأ المزيد',
                                 style: AppText.bodyBold.copyWith(
                                     color: HhColors.red, fontSize: 12)),
                           ),
@@ -239,7 +239,7 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Episodes',
+                  child: Text('الحلقات',
                       style: AppText.h2, textAlign: TextAlign.left),
                 ),
               ),
@@ -282,9 +282,9 @@ class _PlayButton extends StatelessWidget {
               const Icon(Icons.play_arrow_rounded,
                   color: Colors.white, size: 22),
               const SizedBox(width: 6),
-              Text('Play',
+              Text('تشغيل',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Cairo',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Colors.white)),
@@ -409,10 +409,10 @@ class _EpisodeTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Episode ${episode.number}',
+                      Text('الحلقة ${episode.number}',
                           style: AppText.bodyBold.copyWith(fontSize: 13.5)),
                       const SizedBox(height: 3),
-                      Text('HLS stream · 18+',
+                      Text('بث HLS · +18',
                           style: AppText.label.copyWith(fontSize: 10.5)),
                     ],
                   ),

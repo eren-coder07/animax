@@ -13,15 +13,15 @@ class AccentTheme {
   final Color deep;
   final Color ink;
 
-  static const AccentTheme green = AccentTheme('green', 'Neo Green',
+  static const AccentTheme green = AccentTheme('green', 'أخضر نيون',
       Color(0xFF04C14A), Color(0xFF02752E), Color(0xFF06130A));
-  static const AccentTheme red = AccentTheme('red', 'Cinema Red',
+  static const AccentTheme red = AccentTheme('red', 'أحمر سينمائي',
       Color(0xFFE50914), Color(0xFF8E0A0F), Color(0xFFFFFFFF));
-  static const AccentTheme purple = AccentTheme('purple', 'Ultra Violet',
+  static const AccentTheme purple = AccentTheme('purple', 'بنفسجي',
       Color(0xFF8B5CF6), Color(0xFF5B2EC5), Color(0xFFFFFFFF));
-  static const AccentTheme blue = AccentTheme('blue', 'Deep Ocean',
+  static const AccentTheme blue = AccentTheme('blue', 'أزرق المحيط',
       Color(0xFF2E90FA), Color(0xFF1D5FB8), Color(0xFFFFFFFF));
-  static const AccentTheme pink = AccentTheme('pink', 'Sakura Pink',
+  static const AccentTheme pink = AccentTheme('pink', 'وردي ساكورا',
       Color(0xFFF0428C), Color(0xFFB0235E), Color(0xFFFFFFFF));
 
   static const List<AccentTheme> all = <AccentTheme>[
@@ -63,7 +63,8 @@ class AppPrefs extends ChangeNotifier {
   String cinemaProvider = ''; // '' = auto (first working provider)
 
   // ---- Reader ------------------------------------------------------------
-  String mangaLanguage = 'en';
+  /// Arabic first; chapters fall back to English when none exist.
+  String mangaLanguage = 'ar';
   String readerMode = 'vertical'; // vertical | paged
   bool readerRtl = true; // paged mode reading direction
   bool readerDataSaver = false;

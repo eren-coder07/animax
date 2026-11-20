@@ -149,7 +149,7 @@ class _Fallback extends StatelessWidget {
       child: Text(
         letter,
         style: TextStyle(
-            fontFamily: 'Poppins', fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.accent),
+            fontFamily: 'Cairo', fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.accent),
       ),
     );
   }
@@ -171,7 +171,7 @@ class SectionHeader extends StatelessWidget {
           Expanded(child: Text(title, style: AppText.h2)),
           GestureDetector(
             onTap: onSeeAll,
-            child: Text('See all',
+            child: Text('عرض الكل',
                 style: AppText.bodyBold.copyWith(color: AppColors.accent, fontSize: 12.5)),
           ),
         ],

@@ -44,7 +44,7 @@ class DownloadIconButton extends StatelessWidget {
           icon = Icon(Icons.download_rounded,
               color: enabled ? color : color.withValues(alpha: 0.35),
               size: size);
-          tip = 'Download';
+          tip = 'تحميل';
           tap = enabled
               ? () async {
                   await onStart();
@@ -54,7 +54,7 @@ class DownloadIconButton extends StatelessWidget {
         } else if (d.status == DownloadStatus.done) {
           icon = Icon(Icons.download_done_rounded,
               color: AppColors.accent, size: size);
-          tip = 'Downloaded';
+          tip = 'تم التحميل';
           tap = () => Navigator.of(context).pushNamed('/downloads');
         } else if (d.isActive) {
           icon = SizedBox(
@@ -76,13 +76,13 @@ class DownloadIconButton extends StatelessWidget {
               ],
             ),
           );
-          tip = 'Downloading ${(d.progress * 100).round()}%';
+          tip = 'جارٍ التحميل ${(d.progress * 100).round()}%';
           tap = () => Navigator.of(context).pushNamed('/downloads');
         } else {
           icon = Icon(Icons.download_rounded, color: AppColors.amber, size: size);
           tip = d.status == DownloadStatus.failed
-              ? 'Download failed — tap to retry'
-              : 'Paused — tap to resume';
+              ? 'فشل التحميل — اضغط لإعادة المحاولة'
+              : 'متوقف — اضغط للاستئناف';
           tap = () {
             DownloadManager.I.resume(d);
             showDownloadQueuedSnack(context);
@@ -99,10 +99,10 @@ void showDownloadQueuedSnack(BuildContext context) {
   if (m == null) return;
   m.hideCurrentSnackBar();
   m.showSnackBar(SnackBar(
-    content: const Text('Downloading — saved to Download/Animax when done'),
+    content: const Text('جارٍ التحميل — سيُحفظ في Download/Animax عند الانتهاء'),
     behavior: SnackBarBehavior.floating,
     action: SnackBarAction(
-      label: 'View',
+      label: 'عرض',
       onPressed: () => Navigator.of(context).pushNamed('/downloads'),
     ),
   ));
