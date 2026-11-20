@@ -145,6 +145,12 @@ class AkwamApi {
     return parseAkwamSources(html);
   }
 
+  /// Watch sources listed on any movie / episode page.
+  Future<List<AkwamSource>> sourcesForPath(String path) async {
+    final String html = await _get(path);
+    return parseAkwamSources(html);
+  }
+
   /// Resolves a `/watch/{fileId}/…` page into the direct media URL.
   /// Results are cached per watch path.
   Future<String> resolveStream(String watchPath) async {
@@ -588,4 +594,18 @@ class AkwamApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Highest-resolution source (1080p > 720p > 480p …); first one otherwise.
+AkwamSource bestAkwamSource(List<AkwamSource> sources) {
+  int score(AkwamSource s) {
+    final RegExpMatch? m = RegExp(r'(\d{3,4})').firstMatch(s.quality);
+    return m == null ? 0 : int.parse(m.group(1)!);
+  }
+
+  AkwamSource best = sources.first;
+  for (final AkwamSource s in sources) {
+    if (score(s) > score(best)) best = s;
+  }
+  return best;
 }

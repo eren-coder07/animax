@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:animax/core/akwam_api.dart';
 import 'package:animax/core/download_manager.dart';
 import 'package:animax/core/hls_download.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -130,6 +131,45 @@ plain.ts
       expect(sanitizeFileName('a/b:c*?"<>|d'), 'a_b_c______d');
       expect(sanitizeFileName('   '), 'animax');
       expect(sanitizeFileName('x' * 300).length, 110);
+    });
+  });
+
+  group('Details-page downloads', () {
+    test('resolvable items persist source, ref and key', () {
+      final DownloadItem it = DownloadItem(
+        id: 'r1',
+        kind: DownloadKind.video,
+        title: 'مسلسل',
+        subtitle: 'الحلقة 3',
+        source: 'akwam',
+        ref: const <String, String>{'path': '/episode/1/x'},
+        key: 'akwam:/episode/1/x',
+      );
+      final DownloadItem back = DownloadItem.fromJson(it.toJson());
+      expect(back.source, 'akwam');
+      expect(back.ref['path'], '/episode/1/x');
+      expect(back.key, 'akwam:/episode/1/x');
+      expect(back.url, isEmpty); // resolved later
+    });
+
+    test('url downloads use the url as their key', () {
+      final DownloadItem it = DownloadItem(
+          id: 'u', kind: DownloadKind.video, title: 't', url: 'https://x/a.mp4');
+      expect(it.key, 'https://x/a.mp4');
+    });
+
+    test('bestAkwamSource picks the highest resolution', () {
+      const List<AkwamSource> s = <AkwamSource>[
+        AkwamSource(quality: '480p', watchPath: '/watch/1'),
+        AkwamSource(quality: '1080p', watchPath: '/watch/3'),
+        AkwamSource(quality: '720p', watchPath: '/watch/2'),
+      ];
+      expect(bestAkwamSource(s).watchPath, '/watch/3');
+      expect(
+          bestAkwamSource(const <AkwamSource>[
+            AkwamSource(quality: 'HD', watchPath: '/watch/9'),
+          ]).watchPath,
+          '/watch/9');
     });
   });
 }

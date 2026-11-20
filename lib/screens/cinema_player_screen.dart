@@ -516,7 +516,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 18, 20, 10),
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: Text('الحلقات',
                     style: TextStyle(
                         fontFamily: 'Cairo',

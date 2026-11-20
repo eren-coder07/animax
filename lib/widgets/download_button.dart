@@ -13,6 +13,7 @@ class DownloadIconButton extends StatelessWidget {
     super.key,
     this.url = '',
     this.chapterId = '',
+    this.downloadKey = '',
     required this.onStart,
     this.color = Colors.white,
     this.size = 22,
@@ -22,6 +23,9 @@ class DownloadIconButton extends StatelessWidget {
   /// Identity of the download (video source URL or comic chapter id).
   final String url;
   final String chapterId;
+
+  /// Identity of a details-page download (see DownloadManager.addResolvable).
+  final String downloadKey;
 
   /// Queues the download (called when nothing matching exists yet).
   final Future<void> Function() onStart;
@@ -34,9 +38,11 @@ class DownloadIconButton extends StatelessWidget {
     return ListenableBuilder(
       listenable: DownloadManager.I,
       builder: (BuildContext context, _) {
-        final DownloadItem? d = (url.isEmpty && chapterId.isEmpty)
-            ? null
-            : DownloadManager.I.find(url: url, chapterId: chapterId);
+        final DownloadItem? d =
+            (url.isEmpty && chapterId.isEmpty && downloadKey.isEmpty)
+                ? null
+                : DownloadManager.I
+                    .find(url: url, chapterId: chapterId, key: downloadKey);
         Widget icon;
         String tip;
         VoidCallback? tap;

@@ -141,8 +141,8 @@ class _Fallback extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
           colors: [AppColors.surfaceHi, AppColors.accentDeep],
         ),
       ),

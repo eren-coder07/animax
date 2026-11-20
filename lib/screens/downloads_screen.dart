@@ -158,7 +158,7 @@ class _DownloadTile extends StatelessWidget {
       case DownloadStatus.done:
         return item.resultLocation.isEmpty
             ? 'محفوظ'
-            : 'محفوظ · ${item.resultLocation}';
+            : 'محفوظ · ${_ltr(item.resultLocation)}';
     }
   }
 
@@ -323,8 +323,12 @@ class _DownloadTile extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(item.resultLocation.isEmpty
             ? 'لا يوجد تطبيق لفتح هذا الملف.'
-            : 'محفوظ في ${item.resultLocation}'),
+            : 'محفوظ في ${_ltr(item.resultLocation)}'),
       ));
     }
   }
 }
+
+/// Keeps a file path in reading order inside Arabic (RTL) text by wrapping
+/// it in Unicode left-to-right isolate marks.
+String _ltr(String s) => '\u2066$s\u2069';

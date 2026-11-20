@@ -138,7 +138,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
             const Padding(
                 padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
                 child: Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: Text('حفظ في…',
                         style: TextStyle(
                             fontFamily: 'Cairo',

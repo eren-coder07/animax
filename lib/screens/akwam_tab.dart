@@ -22,7 +22,7 @@ extension AkwamFeedX on AkwamFeed {
       case AkwamFeed.movies:
         return 'أفلام';
       case AkwamFeed.series:
-        return 'مسلسل';
+        return 'مسلسلات';
       case AkwamFeed.shows:
         return 'برامج';
     }
@@ -126,7 +126,7 @@ class _AkwamTabState extends State<AkwamTab>
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
                 child: Row(
                   children: <Widget>[
-                    Text('أكوام', style: AppText.h1),
+                    Text('أنيماكس', style: AppText.h1),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(

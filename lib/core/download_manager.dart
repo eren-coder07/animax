@@ -10,9 +10,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'akwam_api.dart';
+import 'api_service.dart';
 import 'app_http.dart';
+import 'hh_api.dart';
 import 'hls_download.dart';
 import 'manga_api.dart';
+import 'stream_resolver.dart';
 
 /// What a download produces.
 enum DownloadKind { video, comic }
@@ -31,6 +35,9 @@ class DownloadItem {
     this.headers = const <String, String>{},
     this.isHls = false,
     this.chapterId = '',
+    this.source = 'url',
+    this.ref = const <String, String>{},
+    String key = '',
     this.status = DownloadStatus.queued,
     this.progress = 0,
     this.received = 0,
@@ -43,7 +50,8 @@ class DownloadItem {
     Map<String, List<int>>? resume,
     DateTime? createdAt,
   })  : resume = resume ?? <String, List<int>>{},
-        createdAt = createdAt ?? DateTime.now();
+        createdAt = createdAt ?? DateTime.now(),
+        key = key.isNotEmpty ? key : (url.isNotEmpty ? url : chapterId);
 
   final String id;
   final DownloadKind kind;
@@ -51,10 +59,20 @@ class DownloadItem {
   final String subtitle;
   final String poster;
 
-  /// Video: direct MP4 or HLS playlist URL.
-  final String url;
-  final Map<String, String> headers;
-  final bool isHls;
+  /// Video: direct MP4 or HLS playlist URL. Empty until resolved for
+  /// downloads queued from a details page ([source] != `url`).
+  String url;
+  Map<String, String> headers;
+  bool isHls;
+
+  /// Where [url] comes from: `url` (given directly), `akwam` (watch/item
+  /// page), `anime` (Aniwaves episode) or `hh` (18+ episode). Resolved
+  /// right before the download starts, so stream links never go stale.
+  final String source;
+  final Map<String, String> ref;
+
+  /// Stable identity used to avoid duplicate downloads.
+  final String key;
 
   /// Comic: MangaDex chapter id (page URLs expire, so they are fetched when
   /// the download actually runs).
@@ -96,6 +114,9 @@ class DownloadItem {
         'headers': headers,
         'isHls': isHls,
         'chapterId': chapterId,
+        'source': source,
+        'ref': ref,
+        'key': key,
         'status': status.name,
         'progress': progress,
         'received': received,
@@ -140,6 +161,12 @@ class DownloadItem {
           : const <String, String>{},
       isHls: j['isHls'] == true,
       chapterId: (j['chapterId'] ?? '').toString(),
+      source: (j['source'] ?? 'url').toString(),
+      ref: (j['ref'] is Map)
+          ? Map<String, String>.from((j['ref'] as Map).map(
+              (dynamic k, dynamic v) => MapEntry(k.toString(), v.toString())))
+          : const <String, String>{},
+      key: (j['key'] ?? '').toString(),
       status: pick(DownloadStatus.values, j['status'] as String?,
           DownloadStatus.queued),
       progress: (j['progress'] as num?)?.toDouble() ?? 0,
@@ -289,13 +316,96 @@ class DownloadManager extends ChangeNotifier {
   // ---------------------------------------------------------------------
 
   /// Existing (non-failed) download of the same source, if any.
-  DownloadItem? find({String url = '', String chapterId = ''}) {
+  DownloadItem? find({String url = '', String chapterId = '', String key = ''}) {
     for (final DownloadItem d in _items) {
+      if (key.isNotEmpty && d.key == key) return d;
       if (d.status == DownloadStatus.failed) continue;
       if (url.isNotEmpty && d.url == url) return d;
       if (chapterId.isNotEmpty && d.chapterId == chapterId) return d;
     }
     return null;
+  }
+
+  /// Queues a video whose stream is resolved when the download starts.
+  /// [source]: `akwam` (ref: path = watch/movie/episode page), `anime`
+  /// (ref: watchId, ep) or `hh` (ref: slug, ep).
+  Future<DownloadItem> addResolvable({
+    required String source,
+    required Map<String, String> ref,
+    required String title,
+    String subtitle = '',
+    String poster = '',
+  }) async {
+    await load();
+    final String key = '$source:${ref.values.join('|')}';
+    final DownloadItem? dup = find(key: key);
+    if (dup != null) {
+      if (dup.status == DownloadStatus.failed) resume(dup);
+      return dup;
+    }
+    final DownloadItem it = DownloadItem(
+      id: _newId(),
+      kind: DownloadKind.video,
+      title: title,
+      subtitle: subtitle,
+      poster: poster,
+      source: source,
+      ref: ref,
+      key: key,
+    );
+    return _enqueue(it);
+  }
+
+  /// Turns a details-page download into a concrete stream URL + headers.
+  Future<void> _resolve(DownloadItem it) async {
+    switch (it.source) {
+      case 'akwam':
+        final String page = it.ref['path'] ?? '';
+        String watch = page;
+        if (!page.contains('/watch/')) {
+          // Movie / episode page → pick the best quality's watch page.
+          final List<AkwamSource> sources =
+              await AkwamApi.I.sourcesForPath(page);
+          if (sources.isEmpty) {
+            throw DownloadException('لا توجد جودة قابلة للتحميل لهذا العنوان.');
+          }
+          watch = bestAkwamSource(sources).watchPath;
+        }
+        it.url = await AkwamApi.I.resolveStream(watch);
+        it.headers = <String, String>{
+          'User-Agent': AkwamApi.ua,
+          'Referer': '${AkwamApi.base}/',
+        };
+        it.isHls = it.url.toLowerCase().contains('.m3u8');
+        return;
+      case 'anime':
+        final String wid = it.ref['watchId'] ?? '';
+        final String ep = it.ref['ep'] ?? '1';
+        final List<EpisodeServer> servers =
+            await ApiService.I.fetchServers(wid, ep);
+        // Soft/hard subs first, dub last.
+        servers.sort((EpisodeServer a, EpisodeServer b) =>
+            (a.kind == 'dub' ? 1 : 0) - (b.kind == 'dub' ? 1 : 0));
+        for (final EpisodeServer s in servers) {
+          _checkCancel();
+          final ResolvedStream? rs = await StreamResolver.I.resolve(s);
+          if (rs == null) continue;
+          it.url = rs.url;
+          it.isHls = rs.isHls;
+          it.headers = <String, String>{
+            if (rs.referer.isNotEmpty) 'Referer': rs.referer,
+          };
+          return;
+        }
+        throw DownloadException('لا يوجد سيرفر متاح لتحميل هذه الحلقة حاليًا.');
+      case 'hh':
+        final HhStream st = await HentaiApi.I.resolveStream(
+            it.ref['slug'] ?? '', int.tryParse(it.ref['ep'] ?? '1') ?? 1);
+        it.url = st.url;
+        it.isHls = st.isHls;
+        it.headers = <String, String>{'Referer': '${HentaiApi.frontBase}/'};
+        return;
+    }
   }
 
   /// Queues a video. [url] may be a direct file or an HLS playlist.
@@ -367,6 +477,9 @@ class DownloadManager extends ChangeNotifier {
     if (it.status == DownloadStatus.paused ||
         it.status == DownloadStatus.failed) {
       it.status = DownloadStatus.queued;
+      if (it.source != 'url' && it.resume.isEmpty && it.received == 0) {
+        it.url = ''; // resolve again
+      }
       it.error = '';
       _changed(persist: true);
       unawaited(_pump());
@@ -449,6 +562,21 @@ class DownloadManager extends ChangeNotifier {
     _changed(persist: true);
     _keepAwake(true);
     try {
+      if (next.kind == DownloadKind.video && next.source != 'url' &&
+          next.url.isEmpty) {
+        try {
+          await _resolve(next);
+        } on DownloadException {
+          rethrow;
+        } on _Cancelled {
+          rethrow;
+        } catch (e) {
+          throw DownloadException(e.toString().isEmpty
+              ? 'تعذّر تجهيز رابط التحميل — حاول لاحقًا.'
+              : e.toString());
+        }
+        _changed(persist: true);
+      }
       if (next.kind == DownloadKind.comic) {
         await _runComic(next);
       } else if (next.isHls) {

@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/api_html.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/library_store.dart';
 import '../widgets/buttons.dart';
 import '../widgets/cards.dart';
 import '../widgets/common.dart';
+import '../widgets/download_button.dart';
 
 class DetailsScreen extends StatefulWidget {
   const DetailsScreen({super.key});
@@ -52,6 +55,50 @@ class _DetailsScreenState extends State<DetailsScreen> {
         year: '',
         genres: <String>[],
         synopsis: '');
+  }
+
+  // ----- Downloads: the stream is resolved when the download starts -----
+
+  String _dlKey(Episode ep) => 'anime:${_anime.watchId ?? ''}|${ep.number}';
+
+  Future<void> _downloadEpisode(Episode ep) async {
+    final String? wid = _anime.watchId;
+    if (wid == null) return;
+    await DownloadManager.I.addResolvable(
+      source: 'anime',
+      ref: <String, String>{'watchId': wid, 'ep': '${ep.number}'},
+      title: _anime.title,
+      subtitle: 'الحلقة ${ep.number}',
+      poster: _anime.poster,
+    );
+  }
+
+  Future<void> _downloadAll() async {
+    final List<Episode> eps =
+        await _episodesFuture ?? const <Episode>[];
+    if (eps.isEmpty || !mounted) return;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext d) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('تحميل كل الحلقات؟'),
+        content: Text('سيتم تحميل ${eps.length} حلقة وحفظها في مجلد '
+            'Download/Animax/Videos.'),
+        actions: <Widget>[
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('إلغاء')),
+          FilledButton(
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('تحميل')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    for (final Episode ep in eps) {
+      await _downloadEpisode(ep);
+    }
+    if (mounted) showDownloadQueuedSnack(context);
   }
 
   @override
@@ -215,6 +262,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       children: [
                         const Text('الحلقات', style: AppText.h3),
                         const Spacer(),
+                        if (_anime.watchId != null)
+                          IconButton(
+                            tooltip: 'تحميل كل الحلقات',
+                            icon: Icon(Icons.download_for_offline_rounded,
+                                color: AppColors.accent, size: 24),
+                            onPressed: _downloadAll,
+                          ),
                         GestureDetector(
                           onTap: () => _pickSeason(context),
                           child: Container(
@@ -289,7 +343,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     children: [
                                       SizedBox(
                                         height: 98,
-                                        child: PosterImage(
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: <Widget>[
+                                        PosterImage(
                                           anime: _anime,
                                           radius: 12,
                                           child: Center(
@@ -310,6 +367,27 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                   size: 21),
                                             ),
                                           ),
+                                        ),
+                                        if (_anime.watchId != null)
+                                          PositionedDirectional(
+                                            top: 0,
+                                            end: 0,
+                                            child: Container(
+                                              margin: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black
+                                                    .withValues(alpha: 0.55),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: DownloadIconButton(
+                                                downloadKey: _dlKey(ep),
+                                                size: 18,
+                                                onStart: () =>
+                                                    _downloadEpisode(ep),
+                                              ),
+                                            ),
+                                          ),
+                                          ],
                                         ),
                                       ),
                                       const SizedBox(height: 6),
@@ -431,7 +509,7 @@ class _QuickActions extends StatelessWidget {
             const Padding(
                 padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
                 child: Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: Text('حفظ في…',
                         style: TextStyle(
                             fontFamily: 'Cairo',

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/hh_api.dart';
 import '../widgets/common.dart' show IconBubble;
+import '../widgets/download_button.dart';
 import 'hentai_tab.dart';
 
 /// Hentai series details: hero poster, rating / views / genres, synopsis and
@@ -70,6 +72,16 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
       setState(() => _episodesError = 'تعذّر تحميل الحلقات.');
     }
   }
+
+  String _dlKey(int ep) => 'hh:${_series.slug}|$ep';
+
+  Future<void> _download(int ep) => DownloadManager.I.addResolvable(
+        source: 'hh',
+        ref: <String, String>{'slug': _series.slug, 'ep': '$ep'},
+        title: _series.title,
+        subtitle: 'الحلقة $ep',
+        poster: _series.thumb,
+      );
 
   void _play(int episodeNumber) {
     Navigator.pushNamed(
@@ -238,9 +250,9 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                 child: Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: AlignmentDirectional.centerStart,
                   child: Text('الحلقات',
-                      style: AppText.h2, textAlign: TextAlign.left),
+                      style: AppText.h2, textAlign: TextAlign.start),
                 ),
               ),
               _EpisodeList(
@@ -346,6 +358,11 @@ class _EpisodeList extends StatelessWidget {
             _EpisodeTile(
               episode: ep,
               onTap: () => state._play(ep.number),
+              trailing: DownloadIconButton(
+                downloadKey: state._dlKey(ep.number),
+                color: AppColors.sub,
+                onStart: () => state._download(ep.number),
+              ),
             ),
         ],
       ),
@@ -354,10 +371,12 @@ class _EpisodeList extends StatelessWidget {
 }
 
 class _EpisodeTile extends StatelessWidget {
-  const _EpisodeTile({required this.episode, required this.onTap});
+  const _EpisodeTile(
+      {required this.episode, required this.onTap, this.trailing});
 
   final HhEpisode episode;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +436,7 @@ class _EpisodeTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                ?trailing,
                 const Icon(Icons.chevron_right_rounded,
                     color: AppColors.muted),
               ],

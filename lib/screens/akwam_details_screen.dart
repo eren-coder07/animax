@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../widgets/common.dart' show IconBubble;
+import '../widgets/download_button.dart';
 import 'akwam_tab.dart';
 
 /// Akwam details: hero backdrop, meta row, synopsis, and either the
@@ -82,6 +84,55 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
       '/akwam-player',
       arguments: (item: _item, episode: episode),
     );
+  }
+
+  // ----- Downloads (resolved to a direct file when the download starts) -----
+
+  String _keyFor(String path) => 'akwam:$path';
+
+  Future<void> _downloadPath(String path, String subtitle) async {
+    await DownloadManager.I.addResolvable(
+      source: 'akwam',
+      ref: <String, String>{'path': path},
+      title: _item.title,
+      subtitle: subtitle,
+      poster: _item.poster,
+    );
+  }
+
+  /// Movie: best quality. Series: asks, then queues every episode.
+  Future<void> _downloadMain() async {
+    if (!_item.isSeries) {
+      await _downloadPath(_item.path, '');
+      if (mounted) showDownloadQueuedSnack(context);
+      return;
+    }
+    final List<AkwamEpisode> eps =
+        List<AkwamEpisode>.of(_episodes ?? const <AkwamEpisode>[])
+          ..sort((AkwamEpisode a, AkwamEpisode b) => a.number - b.number);
+    if (eps.isEmpty) return;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext d) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('تحميل كل الحلقات؟'),
+        content: Text('سيتم تحميل ${eps.length} حلقة بأعلى جودة متاحة '
+            'وحفظها في مجلد Download/Animax/Videos.'),
+        actions: <Widget>[
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('إلغاء')),
+          FilledButton(
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('تحميل')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    for (final AkwamEpisode ep in eps) {
+      await _downloadPath(ep.path, 'الحلقة ${ep.number}');
+    }
+    if (mounted) showDownloadQueuedSnack(context);
   }
 
   void _playFirst() {
@@ -215,9 +266,21 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                       ),
                     ],
                     const SizedBox(height: 20),
-                    _PlayButton(
-                        onTap: _busy ? null : _playFirst,
-                        label: _item.isSeries ? 'تشغيل الحلقة 1' : 'تشغيل'),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: <Widget>[
+                        _PlayButton(
+                            onTap: _busy ? null : _playFirst,
+                            label: _item.isSeries ? 'تشغيل الحلقة 1' : 'تشغيل'),
+                        _PlayButton(
+                          onTap: _busy ? null : _downloadMain,
+                          icon: Icons.download_rounded,
+                          outlined: true,
+                          label: _item.isSeries ? 'تحميل كل الحلقات' : 'تحميل',
+                        ),
+                      ],
+                    ),
                     if (_item.synopsis.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 22),
                       Text(_expanded
@@ -249,9 +312,9 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                 const Padding(
                   padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: Text('الحلقات',
-                        style: AppText.h2, textAlign: TextAlign.left),
+                        style: AppText.h2, textAlign: TextAlign.start),
                   ),
                 ),
                 _EpisodeSection(state: this),
@@ -263,9 +326,9 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                 const Padding(
                   padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: AlignmentDirectional.centerStart,
                     child: Text('المشاهدة — الجودة',
-                        style: AppText.h2, textAlign: TextAlign.left),
+                        style: AppText.h2, textAlign: TextAlign.start),
                   ),
                 ),
                 _QualitySection(state: this),
@@ -283,34 +346,50 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
 // -----------------------------------------------------------------------------
 
 class _PlayButton extends StatelessWidget {
-  const _PlayButton({required this.onTap, required this.label});
+  const _PlayButton({
+    required this.onTap,
+    required this.label,
+    this.icon = Icons.play_arrow_rounded,
+    this.outlined = false,
+  });
 
   final VoidCallback? onTap;
   final String label;
+  final IconData icon;
+  final bool outlined;
 
   @override
   Widget build(BuildContext context) {
+    final Color fg = onTap == null
+        ? AppColors.muted
+        : (outlined ? AkwamColors.teal : Colors.white);
     return Material(
-      color: onTap == null ? AppColors.surfaceHi : AkwamColors.teal,
-      borderRadius: BorderRadius.circular(28),
+      color: onTap == null
+          ? AppColors.surfaceHi
+          : (outlined ? AkwamColors.tealSoft : AkwamColors.teal),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+        side: outlined && onTap != null
+            ? const BorderSide(color: AkwamColors.teal, width: 1.2)
+            : BorderSide.none,
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(28),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 13),
+          padding: EdgeInsets.symmetric(
+              horizontal: outlined ? 22 : 34, vertical: 13),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(Icons.play_arrow_rounded,
-                  color: onTap == null ? AppColors.muted : Colors.white,
-                  size: 22),
+              Icon(icon, color: fg, size: 22),
               const SizedBox(width: 6),
               Text(label,
                   style: TextStyle(
                       fontFamily: 'Cairo',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: onTap == null ? AppColors.muted : Colors.white)),
+                      color: fg)),
             ],
           ),
         ),
@@ -356,6 +435,12 @@ class _EpisodeSection extends StatelessWidget {
             _EpisodeTile(
               episode: ep,
               onTap: () => state._play(episode: ep),
+              trailing: DownloadIconButton(
+                downloadKey: state._keyFor(ep.path),
+                color: AkwamColors.teal,
+                onStart: () =>
+                    state._downloadPath(ep.path, 'الحلقة ${ep.number}'),
+              ),
             ),
         ],
       ),
@@ -364,10 +449,12 @@ class _EpisodeSection extends StatelessWidget {
 }
 
 class _EpisodeTile extends StatelessWidget {
-  const _EpisodeTile({required this.episode, required this.onTap});
+  const _EpisodeTile(
+      {required this.episode, required this.onTap, this.trailing});
 
   final AkwamEpisode episode;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -418,6 +505,7 @@ class _EpisodeTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                ?trailing,
                 const Icon(Icons.play_circle_outline_rounded,
                     color: AkwamColors.teal, size: 26),
               ],
@@ -464,6 +552,11 @@ class _QualitySection extends StatelessWidget {
             _QualityTile(
               source: s,
               onTap: () => state._play(),
+              trailing: DownloadIconButton(
+                downloadKey: state._keyFor(s.watchPath),
+                color: AkwamColors.teal,
+                onStart: () => state._downloadPath(s.watchPath, s.quality),
+              ),
             ),
         ],
       ),
@@ -472,10 +565,12 @@ class _QualitySection extends StatelessWidget {
 }
 
 class _QualityTile extends StatelessWidget {
-  const _QualityTile({required this.source, required this.onTap});
+  const _QualityTile(
+      {required this.source, required this.onTap, this.trailing});
 
   final AkwamSource source;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -523,6 +618,7 @@ class _QualityTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                ?trailing,
                 const Icon(Icons.play_circle_outline_rounded,
                     color: AkwamColors.teal, size: 26),
               ],

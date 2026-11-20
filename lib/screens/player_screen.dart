@@ -1000,7 +1000,7 @@ class _VideoStage extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Align(
-                          alignment: Alignment.bottomRight,
+                          alignment: AlignmentDirectional.bottomEnd,
                           child: Padding(
                             padding: const EdgeInsets.only(right: 14),
                             child: GhostChip(

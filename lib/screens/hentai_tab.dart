@@ -351,15 +351,15 @@ class _Home extends StatelessWidget {
                   const Padding(
                     padding: EdgeInsets.fromLTRB(20, 0, 20, 14),
                     child: Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: Text('تصفّح حسب التصنيف',
-                          style: AppText.h2, textAlign: TextAlign.left),
+                          style: AppText.h2, textAlign: TextAlign.start),
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Align(
-                      alignment: Alignment.centerLeft,
+                      alignment: AlignmentDirectional.centerStart,
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -753,8 +753,8 @@ class _Letter extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
           colors: [AppColors.surfaceHi, AppColors.accentDeep],
         ),
       ),

@@ -163,8 +163,8 @@ class _PlayerGestureOverlayState extends State<PlayerGestureOverlay> {
         if (_seekDir != null)
           Align(
             alignment: _seekDir! < 0
-                ? Alignment.centerLeft
-                : Alignment.centerRight,
+                ? AlignmentDirectional.centerStart
+                : AlignmentDirectional.centerEnd,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 34),
               child: Container(
@@ -217,13 +217,13 @@ class _PlayerGestureOverlayState extends State<PlayerGestureOverlay> {
         // Brightness HUD (left edge)
         if (_brightHud != null)
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: _hud(Icons.brightness_6_rounded, _brightHud!),
           ),
         // Volume HUD (right edge)
         if (_volHud != null)
           Align(
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             child: _hud(
                 _volHud! <= 0
                     ? Icons.volume_off_rounded
