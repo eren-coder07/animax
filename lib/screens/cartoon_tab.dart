@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_theme.dart';
 import '../core/cartoon_api.dart';
 import '../core/cinema_api.dart';
@@ -93,6 +94,7 @@ class _CartoonTabState extends State<CartoonTab>
         child: ListView(
           physics: const BouncingScrollPhysics(),
           children: <Widget>[
+            if (!EmbeddedSection.of(context))
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
               child: Row(
@@ -119,13 +121,13 @@ class _CartoonTabState extends State<CartoonTab>
                 controller: _searchCtl,
                 onChanged: _onSearchChanged,
                 style: const TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 13.5,
                     color: AppColors.text),
                 decoration: InputDecoration(
                   hintText: 'ابحث عن كرتون…',
                   hintStyle: const TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 13,
                       color: AppColors.muted),
                   prefixIcon: const Icon(Icons.search_rounded,
@@ -233,7 +235,7 @@ class _SearchRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: AppColors.text)),
@@ -243,7 +245,7 @@ class _SearchRow extends StatelessWidget {
                       '${item.releaseInfo.isEmpty ? '' : ' · ${item.releaseInfo}'}'
                       '${item.imdbRating > 0 ? ' · ★ ${item.imdbRating.toStringAsFixed(1)}' : ''}',
                       style: const TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 10.5,
                           color: AppColors.muted),
                     ),
@@ -383,7 +385,7 @@ class _CartoonCard extends StatelessWidget {
                                 Text(
                                   item.imdbRating.toStringAsFixed(1),
                                   style: const TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: 'Plex',
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white),

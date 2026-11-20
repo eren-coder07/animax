@@ -149,7 +149,7 @@ class _Fallback extends StatelessWidget {
       child: Text(
         letter,
         style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.accent),
+            fontFamily: 'Plex', fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.accent),
       ),
     );
   }

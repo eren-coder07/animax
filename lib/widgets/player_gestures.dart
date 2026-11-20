@@ -187,7 +187,7 @@ class _PlayerGestureOverlayState extends State<PlayerGestureOverlay> {
                     const SizedBox(height: 2),
                     Text('${_seekDir! < 0 ? '-' : '+'}10 ث',
                         style: const TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: Colors.white)),
@@ -208,7 +208,7 @@ class _PlayerGestureOverlayState extends State<PlayerGestureOverlay> {
               ),
               child: const Text('سرعة 2×',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: Colors.white)),

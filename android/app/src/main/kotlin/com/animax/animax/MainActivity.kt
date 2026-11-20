@@ -12,6 +12,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.util.Rational
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
@@ -152,6 +153,16 @@ class MainActivity : FlutterActivity() {
                             requestPermissions(
                                 arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 4711
                             )
+                        }
+                    }
+                    "dlFreeSpace" -> {
+                        try {
+                            val st = android.os.StatFs(
+                                Environment.getExternalStorageDirectory().absolutePath
+                            )
+                            result.success(st.availableBytes)
+                        } catch (e: Exception) {
+                            result.success(-1L)
                         }
                     }
                     "dlKeepAlive" -> {

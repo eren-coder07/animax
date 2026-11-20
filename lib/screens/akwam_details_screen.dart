@@ -209,7 +209,7 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                           child: Text(
                               'أكوام · ${_item.kind.label}',
                               style: TextStyle(
-                                  fontFamily: 'Cairo',
+                                  fontFamily: 'Plex',
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.8,
@@ -386,7 +386,7 @@ class _PlayButton extends StatelessWidget {
               const SizedBox(width: 6),
               Text(label,
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: fg)),
@@ -481,7 +481,7 @@ class _EpisodeTile extends StatelessWidget {
                   ),
                   child: Text('${episode.number}',
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: AkwamColors.teal)),
@@ -596,7 +596,7 @@ class _QualityTile extends StatelessWidget {
                   ),
                   child: Text(source.quality,
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                           color: AkwamColors.teal)),

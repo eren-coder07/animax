@@ -129,7 +129,7 @@ class _HhCatalogScreenState extends State<HhCatalogScreen> {
                 ),
                 child: Text('+18',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         color: HhColors.red)),

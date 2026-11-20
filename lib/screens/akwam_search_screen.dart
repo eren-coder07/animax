@@ -123,13 +123,13 @@ class _AkwamSearchScreenState extends State<AkwamSearchScreen> {
                       onSubmitted: _search,
                       textInputAction: TextInputAction.search,
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 14,
                           color: AppColors.text),
                       decoration: InputDecoration(
                         hintText: 'ابحث في أكوام — أفلام، مسلسلات، برامج…',
                         hintStyle: TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 12.5,
                             color: AppColors.muted),
                         prefixIcon: Icon(Icons.search_rounded,

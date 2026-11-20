@@ -1,265 +1,219 @@
 import 'package:flutter/material.dart';
 
+import '../core/akwam_api.dart';
 import '../core/app_state.dart';
-import '../core/download_manager.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/library_store.dart';
-import '../widgets/common.dart';
 import '../widgets/animax_logo.dart';
+import '../widgets/mb_ui.dart';
 
-/// Profile tab — only what the backend actually provides: connection state,
-/// release notifications and the API backend configuration. Account-gated
-/// features (sign-in, downloads, premium) are not part of the API and are
-/// therefore not in the app.
+/// "حسابي" — grouped cards: list, watch history (with thumbnails),
+/// notifications, downloads, settings and help.
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppState.I;
-    return SafeArea(
-      child: ListenableBuilder(
-        listenable: Listenable.merge(<Listenable>[state, LibraryStore.I]),
-        builder: (BuildContext context, _) {
-          return ListView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 90),
-            children: [
-              const Center(child: Text('حسابي', style: AppText.h2)),
-              const SizedBox(height: 22),
-              Center(
-                child: Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.surface,
-                    border: Border.all(color: AppColors.accent, width: 2),
+    return ColoredBox(
+      color: AppColors.bg,
+      child: SafeArea(
+        bottom: false,
+        child: ListenableBuilder(
+          listenable: Listenable.merge(
+              <Listenable>[state, LibraryStore.I, DownloadManager.I]),
+          builder: (BuildContext context, _) {
+            final LibraryStore lib = LibraryStore.I;
+            final List<HistoryRow> hist = lib.history.take(6).toList();
+            final int dl = DownloadManager.I.items.length;
+            return ListView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 100),
+              children: <Widget>[
+                _ProfileHeader(state: state),
+                GroupCard(children: <Widget>[
+                  GroupRow(
+                    icon: Icons.bookmark_border_rounded,
+                    label: 'قائمتي',
+                    value: '${lib.allEntries.length}',
+                    onTap: () => Navigator.pushNamed(context, '/library'),
                   ),
-                  child: const Center(child: AnimaxLogo(size: 46)),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Center(
-                  child: Text('مشاهد أنيماكس',
-                      style: AppText.h3.copyWith(fontSize: 18))),
-              const SizedBox(height: 4),
-              const Center(
-                  child: Text('أكوام · سينما · أنمي · كرتون · مانغا',
-                      style: AppText.label)),
-              const SizedBox(height: 22),
-              _StatusCard(state: state),
-              const SizedBox(height: 22),
-              _StatsStrip(),
-              const SizedBox(height: 22),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Column(
-                  children: [
-                    MenuRow(
-                      icon: Icons.video_library_rounded,
-                      label: 'مكتبتي (القائمة · السجل · الإحصاءات)',
-                      onTap: () => Navigator.pushNamed(context, '/library'),
-                    ),
-                    const Divider(indent: 54),
-                    ListenableBuilder(
-                      listenable: DownloadManager.I,
-                      builder: (BuildContext context, _) {
-                        final int n = DownloadManager.I.activeCount;
-                        return MenuRow(
-                          icon: Icons.download_rounded,
-                          label: 'التحميلات',
-                          trailing: n == 0
-                              ? null
-                              : Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 9, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.accent
-                                        .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text('$n',
-                                      style: TextStyle(
-                                          fontFamily: 'Cairo',
-                                          fontSize: 9.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.accent)),
-                                ),
-                          onTap: () =>
-                              Navigator.pushNamed(context, '/downloads'),
-                        );
-                      },
-                    ),
-                    const Divider(indent: 54),
-                    MenuRow(
-                      icon: Icons.notifications_none_rounded,
-                      label: 'الإشعارات',
-                      trailing: state.notices.isEmpty
-                          ? null
-                          : Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 9, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.accent.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(20),
+                  GroupRow(
+                    icon: Icons.history_rounded,
+                    label: 'سجل المشاهدة',
+                    onTap: () => Navigator.pushNamed(context, '/library'),
+                    below: hist.isEmpty
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: SizedBox(
+                              height: 92,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: hist.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(width: 12),
+                                itemBuilder: (BuildContext c, int i) =>
+                                    _HistoryThumb(row: hist[i]),
                               ),
-                              child: Text('${state.notices.length}',
-                                  style: TextStyle(
-                                      fontFamily: 'Cairo',
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.accent)),
                             ),
-                      onTap: () => Navigator.pushNamed(context, '/notifications'),
-                    ),
-                    const Divider(indent: 54),
-                    MenuRow(
-                      icon: Icons.settings_rounded,
-                      label: 'الإعدادات (المظهر · المشغّل · البيانات)',
-                      onTap: () => Navigator.pushNamed(context, '/settings'),
-                    ),
-                    const Divider(indent: 54),
-                    MenuRow(
-                      icon: Icons.help_outline_rounded,
-                      label: 'مركز المساعدة',
-                      onTap: () => Navigator.pushNamed(context, '/help'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Text(
-                  'أفلام ومسلسلات عربية وأجنبية، أنمي، كرتون ومانغا في تطبيق واحد — '
-                  'كل شيء يُبث من مصادر مجانية ومفتوحة.',
-                  style: AppText.label.copyWith(fontSize: 10.5),
-                ),
-              ),
-            ],
-          );
-        },
+                          ),
+                  ),
+                  GroupRow(
+                    icon: Icons.notifications_none_rounded,
+                    label: 'الإشعارات',
+                    badge: state.notices.length,
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/notifications'),
+                  ),
+                ]),
+                GroupCard(children: <Widget>[
+                  GroupRow(
+                    icon: Icons.download_outlined,
+                    label: 'التحميلات',
+                    value: '$dl',
+                    onTap: () => state.setTab(1),
+                  ),
+                  GroupRow(
+                    icon: Icons.insights_rounded,
+                    label: 'الإحصاءات',
+                    onTap: () => Navigator.pushNamed(context, '/library'),
+                  ),
+                ]),
+                GroupCard(children: <Widget>[
+                  GroupRow(
+                    icon: Icons.settings_outlined,
+                    label: 'الإعدادات',
+                    onTap: () => Navigator.pushNamed(context, '/settings'),
+                  ),
+                  GroupRow(
+                    icon: Icons.help_outline_rounded,
+                    label: 'مركز المساعدة',
+                    onTap: () => Navigator.pushNamed(context, '/help'),
+                  ),
+                  const GroupRow(
+                    icon: Icons.info_outline_rounded,
+                    label: 'الإصدار',
+                    value: '2.1.0',
+                  ),
+                ]),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-/// Compact stats strip (episodes watched / chapters read / hours streamed).
-class _StatsStrip extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final stats = LibraryStore.I.stats();
-    Widget card(String value, String label) => Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.stroke),
-            ),
-            child: Column(
-              children: <Widget>[
-                Text(value,
-                    style: TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.accent)),
-                const SizedBox(height: 2),
-                Text(label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 9.5,
-                        color: AppColors.muted)),
-              ],
-            ),
-          ),
-        );
-    return Row(
-      children: <Widget>[
-        card(stats.episodesWatched.toString(), 'حلقات\nمُشاهدة'),
-        const SizedBox(width: 10),
-        card(stats.chaptersRead.toString(), 'فصول\nمقروءة'),
-        const SizedBox(width: 10),
-        card(stats.hoursWatched.toStringAsFixed(0), 'ساعات\nمشاهدة'),
-      ],
-    );
-  }
-}
-
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.state});
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.state});
   final AppState state;
 
   @override
   Widget build(BuildContext context) {
-    final bool live = state.isConnected;
-    final bool syncing = state.isLoading;
-    final bool bad = state.backendMode == BackendMode.offline;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: live
-                ? AppColors.accent.withValues(alpha: 0.5)
-                : bad
-                    ? Colors.red.withValues(alpha: 0.4)
-                    : AppColors.stroke),
-      ),
+    final bool live = state.backendChip == 'مباشر';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
       child: Row(
-        children: [
-          if (syncing)
-            SizedBox(
-              width: 26,
-              height: 26,
-              child: CircularProgressIndicator(
-                  color: AppColors.accent, strokeWidth: 2.4),
-            )
-          else
-            Icon(
-              live
-                  ? Icons.verified_rounded
-                  : bad
-                      ? Icons.cloud_off_rounded
-                      : Icons.explore_rounded,
-              color: live
-                  ? AppColors.accent
-                  : bad
-                      ? Colors.redAccent
-                      : AppColors.muted,
-              size: 28,
+        children: <Widget>[
+          Container(
+            width: 64,
+            height: 64,
+            padding: const EdgeInsets.all(2.5),
+            decoration: const BoxDecoration(
+                gradient: AppColors.brandGrad, shape: BoxShape.circle),
+            child: Container(
+              decoration: BoxDecoration(
+                  color: AppColors.surface, shape: BoxShape.circle),
+              child: const Center(child: AnimaxLogo(size: 32)),
             ),
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  live
-                      ? 'مكتبة المحتوى محدّثة'
-                      : syncing
-                          ? 'جارٍ التحديث…'
-                          : 'غير متصل — نعرض المحتوى المحفوظ',
-                  style: AppText.h3.copyWith(fontSize: 14.5),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  state.backendMessage,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.label.copyWith(fontSize: 10.5),
+              children: <Widget>[
+                const Text('مشاهد أنيماكس',
+                    style: TextStyle(
+                        fontFamily: kFont,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white)),
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceHi,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(Icons.circle,
+                          size: 8,
+                          color: live ? AppColors.brandGreen : AppColors.sub),
+                      const SizedBox(width: 6),
+                      Text(live ? 'متصل · المحتوى محدّث' : state.backendChip,
+                          style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 12.5,
+                              color: AppColors.sub)),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined,
+                color: Colors.white, size: 26),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _HistoryThumb extends StatelessWidget {
+  const _HistoryThumb({required this.row});
+  final HistoryRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        if (row.kind == 'akwam' && row.key.startsWith('akwam:')) {
+          final AkwamItem? it = AkwamApi.itemFromPath(row.key.substring(6),
+              title: row.title, poster: row.poster);
+          if (it != null) {
+            Navigator.pushNamed(context, '/akwam-details', arguments: it);
+            return;
+          }
+        }
+        Navigator.pushNamed(context, '/library');
+      },
+      child: SizedBox(
+        width: 120,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                  width: 120, height: 66, child: NetImage(row.poster)),
+            ),
+            const SizedBox(height: 6),
+            Text(row.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontFamily: kFont, fontSize: 13.5, color: Colors.white)),
+          ],
+        ),
       ),
     );
   }

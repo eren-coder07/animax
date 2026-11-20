@@ -512,7 +512,7 @@ class _QuickActions extends StatelessWidget {
                     alignment: AlignmentDirectional.centerStart,
                     child: Text('حفظ في…',
                         style: TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)))),
@@ -530,7 +530,7 @@ class _QuickActions extends StatelessWidget {
                         s == current ? AppColors.accent : AppColors.muted),
                 title: Text(s.label,
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color: s == current
                             ? AppColors.accent
@@ -543,7 +543,7 @@ class _QuickActions extends StatelessWidget {
                     color: AppColors.danger, size: 20),
                 title: const Text('إزالة من قائمتي',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color: AppColors.danger)),
                 onTap: () {
@@ -580,7 +580,7 @@ class _QuickActions extends StatelessWidget {
           backgroundColor: AppColors.surface,
           title: const Text('قيّم هذا العمل',
               style: TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: AppColors.text)),
@@ -590,7 +590,7 @@ class _QuickActions extends StatelessWidget {
               Text(
                 current == 0 ? 'لم يُقيَّم بعد' : '$current / 10',
                 style: const TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 13,
                     color: AppColors.sub),
               ),
@@ -614,7 +614,7 @@ class _QuickActions extends StatelessWidget {
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('إلغاء',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 12.5,
                       color: AppColors.sub)),
             ),
@@ -624,7 +624,7 @@ class _QuickActions extends StatelessWidget {
               onPressed: () => Navigator.of(ctx).pop(current),
               child: Text('حفظ',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.ink)),
@@ -717,7 +717,7 @@ class _QuickAction extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
                       color: AppColors.sub)),

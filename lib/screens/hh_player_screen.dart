@@ -528,7 +528,7 @@ class _ResolvingCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(state._status,
               style: TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 12.5,
                   color: Colors.white70)),
         ],
@@ -557,7 +557,7 @@ class _ErrorCard extends StatelessWidget {
             const SizedBox(height: 14),
             Text('فشل التشغيل',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),
@@ -565,7 +565,7 @@ class _ErrorCard extends StatelessWidget {
             Text(state._error ?? '',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 12,
                     height: 1.6,
                     color: Colors.white70)),
@@ -590,7 +590,7 @@ class _ErrorCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text('إعادة المحاولة',
                             style: TextStyle(
-                                fontFamily: 'Cairo',
+                                fontFamily: 'Plex',
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white)),
@@ -651,7 +651,7 @@ class _TopBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         color: Colors.white)),
@@ -659,7 +659,7 @@ class _TopBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         color: Colors.white70)),
               ],
@@ -709,7 +709,7 @@ class _TopBar extends StatelessWidget {
                   child: Text(
                       '${s}x${state._speed == s ? '  ✓' : ''}',
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 13,
                           color: Colors.white)),
                 ),
@@ -828,7 +828,7 @@ class _BottomControls extends StatelessWidget {
             children: <Widget>[
               Text(state._fmt(pos),
                   style: const TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 11,
                       color: Colors.white)),
               Expanded(
@@ -867,7 +867,7 @@ class _BottomControls extends StatelessWidget {
               ),
               Text(dur > Duration.zero ? state._fmt(dur) : 'مباشر',
                   style: const TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 11,
                       color: Colors.white)),
             ],
@@ -925,7 +925,7 @@ class _EpNavButton extends StatelessWidget {
           ),
           child: Text(label,
               style: const TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: Colors.white)),

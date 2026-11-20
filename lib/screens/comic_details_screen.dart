@@ -141,7 +141,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                     alignment: AlignmentDirectional.centerStart,
                     child: Text('حفظ في…',
                         style: TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)))),
@@ -160,7 +160,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                     color: s == current ? AppColors.accent : AppColors.muted),
                 title: Text(s.label,
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color:
                             s == current ? AppColors.accent : AppColors.text)),
@@ -297,7 +297,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                               ? 'تابع ${_continueTarget!.chipLabel}'
                               : 'ابدأ القراءة ${_continueTarget!.chipLabel}',
                           style: const TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700),
                         ),
@@ -334,7 +334,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                                 ),
                                 child: Text(t.name,
                                     style: const TextStyle(
-                                        fontFamily: 'Cairo',
+                                        fontFamily: 'Plex',
                                         fontSize: 10.5,
                                         color: AppColors.sub)),
                               ))
@@ -362,7 +362,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         ),
         child: Text(label,
             style: const TextStyle(
-                fontFamily: 'Cairo',
+                fontFamily: 'Plex',
                 fontSize: 10.5,
                 fontWeight: FontWeight.w600,
                 color: AppColors.sub)),
@@ -458,7 +458,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                 onPressed: _loadChapters,
                 child: const Text('إعادة المحاولة',
                     style: TextStyle(
-                        fontFamily: 'Cairo', color: AppColors.text)),
+                        fontFamily: 'Plex', color: AppColors.text)),
               ),
             ],
           ),
@@ -472,7 +472,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
           child: Text(
               'لا توجد فصول بلغة القراءة المختارة بعد — '
               'غيّرها من الإعدادات ← المانغا.',
-              style: TextStyle(fontFamily: 'Cairo', fontSize: 12.5, color: AppColors.muted)),
+              style: TextStyle(fontFamily: 'Plex', fontSize: 12.5, color: AppColors.muted)),
         ),
       );
     }
@@ -501,7 +501,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                       width: 64,
                       child: Text(ch.chipLabel,
                           style: TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color:
@@ -515,7 +515,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontFamily: 'Cairo',
+                                  fontFamily: 'Plex',
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
                                   color: read
@@ -527,7 +527,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                             '${ch.publishedAt.length >= 10 ? ' · ${ch.publishedAt.substring(0, 10)}' : ''}'
                             '${started && !read ? ' · ${p.fraction.toStringAsFixed(0)}%' : ''}',
                             style: const TextStyle(
-                                fontFamily: 'Cairo',
+                                fontFamily: 'Plex',
                                 fontSize: 10.5,
                                 color: AppColors.muted),
                           ),

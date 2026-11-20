@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
@@ -36,6 +37,7 @@ class CalendarTab extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 90),
             children: [
               const SizedBox(height: 16),
+              if (!EmbeddedSection.of(context))
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -91,7 +93,7 @@ class CalendarTab extends StatelessWidget {
                               child: Text(
                                 '${day.day}',
                                 style: TextStyle(
-                                  fontFamily: 'Cairo',
+                                  fontFamily: 'Plex',
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: selected
@@ -133,7 +135,7 @@ class CalendarTab extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 14),
                               child: Text(e.time,
                                   style: const TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: 'Plex',
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.text)),

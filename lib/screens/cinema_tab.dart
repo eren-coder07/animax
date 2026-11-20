@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_theme.dart';
 import '../core/cinema_api.dart';
 import '../widgets/common.dart';
@@ -82,7 +83,7 @@ class _CinemaTabState extends State<CinemaTab>
     super.build(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: PreferredSize(
+      appBar: EmbeddedSection.of(context) ? null : PreferredSize(
         preferredSize: const Size.fromHeight(58),
         child: SafeArea(
           top: true,
@@ -102,7 +103,7 @@ class _CinemaTabState extends State<CinemaTab>
                   ),
                   child: const Text('IMDb',
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 9.5,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1,
@@ -142,7 +143,7 @@ class _CinemaTabState extends State<CinemaTab>
                           size: 18, color: AppColors.text),
                       label: const Text('إعادة المحاولة',
                           style: TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 12.5,
                               color: AppColors.text)),
                     ),
@@ -227,7 +228,7 @@ class _Row extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             child: Text('لا شيء هنا حاليًا.',
                 style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 12.5, color: AppColors.sub)),
+                    fontFamily: 'Plex', fontSize: 12.5, color: AppColors.sub)),
           )
         else
           SizedBox(
@@ -298,7 +299,7 @@ class _Card extends StatelessWidget {
                               const SizedBox(width: 2),
                               Text(item.imdbRating.toStringAsFixed(1),
                                   style: const TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: 'Plex',
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white)),
@@ -318,7 +319,7 @@ class _Card extends StatelessWidget {
                         ),
                         child: Text(item.isSeries ? 'مسلسل' : 'فيلم',
                             style: TextStyle(
-                                fontFamily: 'Cairo',
+                                fontFamily: 'Plex',
                                 fontSize: 7.5,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.8,
@@ -441,7 +442,7 @@ class _CinemaSearchScreenState extends State<CinemaSearchScreen> {
                   ? const Center(
                       child: Text('اكتب حرفين على الأقل للبحث.',
                           style: TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 13,
                               color: AppColors.sub)))
                   : GridView.builder(

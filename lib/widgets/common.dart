@@ -77,10 +77,10 @@ class FieldBox extends StatelessWidget {
       obscureText: obscure,
       keyboardType: keyboardType,
       onChanged: onChanged,
-      style: const TextStyle(fontFamily: 'Cairo', fontSize: 13.5, color: AppColors.text),
+      style: const TextStyle(fontFamily: 'Plex', fontSize: 13.5, color: AppColors.text),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.muted),
+        hintStyle: const TextStyle(fontFamily: 'Plex', fontSize: 13, color: AppColors.muted),
         prefixIcon: Icon(icon, size: 20, color: AppColors.muted),
         suffixIcon: suffix,
         filled: true,

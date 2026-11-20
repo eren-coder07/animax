@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
+import '../core/library_store.dart';
 import '../widgets/player_gestures.dart';
 import '../widgets/download_button.dart';
 import 'akwam_tab.dart';
@@ -257,6 +258,19 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (_speed != 1.0) controller.setPlaybackSpeed(_speed);
     await controller.play();
     _setKeepScreenOn(true);
+    // Watch history: powers "continue watching" on Home and the Me page.
+    if (_item.path.isNotEmpty) {
+      LibraryStore.I.pushHistory(
+        key: 'akwam:${_item.path}',
+        title: _item.title,
+        poster: _item.poster,
+        kind: 'akwam',
+        sub: '${_episode?.number ?? 0}',
+        label: _episode == null
+            ? (_item.year.isEmpty ? 'فيلم' : _item.year)
+            : 'الحلقة ${_episode!.number}',
+      );
+    }
     _positionTicker = Timer.periodic(const Duration(milliseconds: 400), (_) {
       if (mounted) setState(() {});
     });
@@ -486,7 +500,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                           ? '  ·  ${_sources[i].size}'
                           : ''),
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.text),
@@ -622,7 +636,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                     color: Colors.white),
@@ -705,7 +719,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
               children: <Widget>[
                 Text(_fmt(position),
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         color: Colors.white70)),
                 Expanded(
@@ -735,7 +749,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 ),
                 Text(_fmt(duration),
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         color: Colors.white70)),
               ],
@@ -747,7 +761,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                   child: Text(
                     'الجودة ${_sources.isNotEmpty ? _sources[_sourceIndex].quality : ''}',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         color: AkwamColors.teal),
@@ -769,7 +783,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                   color: AppColors.surface,
                   icon: Text('${_speed.toStringAsFixed(1)}×',
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                           color: Colors.white)),
@@ -779,7 +793,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                         value: s,
                         child: Text('${s.toStringAsFixed(2)}×',
                             style: TextStyle(
-                                fontFamily: 'Cairo',
+                                fontFamily: 'Plex',
                                 fontSize: 12.5,
                                 color: AppColors.text)),
                       ),
@@ -822,7 +836,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
               Text(_status,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 12,
                       color: Colors.white70)),
             ],
@@ -851,7 +865,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
             Text(_error ?? '',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 12.5,
                     height: 1.45,
                     color: Colors.white70)),
@@ -867,7 +881,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                     },
                     child: Text('اختر الجودة',
                         style: TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                             color: AkwamColors.teal)),
@@ -879,7 +893,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                   },
                   child: Text('إعادة المحاولة',
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: Colors.white)),

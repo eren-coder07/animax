@@ -14,7 +14,7 @@ class AccentTheme {
   final Color ink;
 
   static const AccentTheme green = AccentTheme('green', 'أخضر نيون',
-      Color(0xFF04C14A), Color(0xFF02752E), Color(0xFF06130A));
+      Color(0xFF2EE58B), Color(0xFF1FC8EE), Color(0xFF06130A));
   static const AccentTheme red = AccentTheme('red', 'أحمر سينمائي',
       Color(0xFFE50914), Color(0xFF8E0A0F), Color(0xFFFFFFFF));
   static const AccentTheme purple = AccentTheme('purple', 'بنفسجي',

@@ -80,9 +80,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
               labelColor: AppColors.accent,
               unselectedLabelColor: AppColors.muted,
               labelStyle:
-                  const TextStyle(fontFamily: 'Cairo', fontSize: 12.5, fontWeight: FontWeight.w700),
+                  const TextStyle(fontFamily: 'Plex', fontSize: 12.5, fontWeight: FontWeight.w700),
               unselectedLabelStyle: const TextStyle(
-                  fontFamily: 'Cairo', fontSize: 12.5, fontWeight: FontWeight.w500),
+                  fontFamily: 'Plex', fontSize: 12.5, fontWeight: FontWeight.w500),
               dividerColor: AppColors.stroke,
               tabs: const [
                 Tab(text: 'الأسئلة الشائعة'),

@@ -35,7 +35,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           labelColor: AppColors.text,
           unselectedLabelColor: AppColors.muted,
           labelStyle:
-              const TextStyle(fontFamily: 'Cairo', fontSize: 12.5, fontWeight: FontWeight.w600),
+              const TextStyle(fontFamily: 'Plex', fontSize: 12.5, fontWeight: FontWeight.w600),
           tabs: const <Tab>[
             Tab(text: 'قائمتي'),
             Tab(text: 'السجل'),
@@ -132,7 +132,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
                               color: AppColors.accent),
@@ -147,7 +147,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.text)),
@@ -159,7 +159,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   const SizedBox(width: 2),
                   Text('${e.rating}/10',
                       style: const TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 10,
                           color: AppColors.muted)),
                 ],
@@ -222,14 +222,14 @@ class _LibraryScreenState extends State<LibraryScreen>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontFamily: 'Cairo',
+                                fontFamily: 'Plex',
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.text)),
                         const SizedBox(height: 3),
                         Text('${r.label} · ${_ago(r.at)}',
                             style: const TextStyle(
-                                fontFamily: 'Cairo',
+                                fontFamily: 'Plex',
                                 fontSize: 10.5,
                                 color: AppColors.muted)),
                       ],
@@ -237,7 +237,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   ),
                   Text(_kindLabel(r.kind),
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 9.5,
                           fontWeight: FontWeight.w700,
                           color: AppColors.accent)),
@@ -301,7 +301,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                     const SizedBox(height: 8),
                     Text('واصل المشاهدة!',
                         style: const TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)),
@@ -311,7 +311,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                             ? 'هذا أكثر من يوم كامل من المشاهدة.'
                             : 'إحصاءاتك تنمو مع كل حلقة.',
                         style: const TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 10.5,
                             color: AppColors.muted)),
                   ],
@@ -340,14 +340,14 @@ class _LibraryScreenState extends State<LibraryScreen>
             const SizedBox(height: 10),
             Text(value,
                 style: const TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: AppColors.text)),
             const SizedBox(height: 4),
             Text(label,
                 style: const TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 10.5,
                     height: 1.3,
                     color: AppColors.muted)),

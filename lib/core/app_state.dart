@@ -435,10 +435,19 @@ class AppState extends ChangeNotifier {
   // Shell
   // =========================================================================
 
-  /// Akwam (Arabic movies & series) is the app's home screen.
-  static const int homeTab = 3;
+  /// Bottom tabs: 0 الرئيسية · 1 التحميلات · 2 حسابي.
+  static const int homeTab = 0;
 
   int navIndex = homeTab;
+
+  /// Selected category on Home (0 = Akwam feed).
+  int homeCategory = 0;
+
+  void setCategory(int index) {
+    homeCategory = index;
+    navIndex = homeTab;
+    notifyListeners();
+  }
 
   void setTab(int index) {
     navIndex = index;

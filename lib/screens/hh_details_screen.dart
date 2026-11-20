@@ -160,7 +160,7 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                           ),
                           child: Text('هنتاي +18',
                               style: TextStyle(
-                                  fontFamily: 'Cairo',
+                                  fontFamily: 'Plex',
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.8,
@@ -296,7 +296,7 @@ class _PlayButton extends StatelessWidget {
               const SizedBox(width: 6),
               Text('تشغيل',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Colors.white)),

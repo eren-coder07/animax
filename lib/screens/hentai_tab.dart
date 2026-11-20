@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/hh_api.dart';
@@ -70,7 +71,7 @@ class _HentaiTabState extends State<HentaiTab>
     await SharedPreferences.getInstance()
         .then((SharedPreferences p) => p.setBool(_kAgeOk, false));
     if (!mounted) return;
-    AppState.I.setTab(AppState.homeTab);
+    AppState.I.setCategory(0);
   }
 
   Future<void> _loadAll() async {
@@ -198,7 +199,7 @@ class _AgeGate extends StatelessWidget {
                     ),
                     child: Text('RTA · +18 فقط',
                         style: TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
@@ -249,6 +250,7 @@ class _Home extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 36),
           children: [
             // ---------- Header ----------
+            if (!EmbeddedSection.of(context))
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
               child: Row(
@@ -268,7 +270,7 @@ class _Home extends StatelessWidget {
                           ),
                           child: Text('+18',
                               style: TextStyle(
-                                  fontFamily: 'Cairo',
+                                  fontFamily: 'Plex',
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
                                   color: HhColors.red)),
@@ -410,7 +412,7 @@ class _PrimaryActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
           child: Text(label,
               style: TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 14.5,
                   fontWeight: FontWeight.w700,
                   color: Colors.white)),
@@ -443,7 +445,7 @@ class HhChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
           child: Text(label,
               style: TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: onTap == null ? AppColors.sub : Colors.white)),
@@ -516,7 +518,7 @@ class _Hero extends StatelessWidget {
                           ),
                           child: Text('الأكثر رواجًا #1',
                               style: TextStyle(
-                                  fontFamily: 'Cairo',
+                                  fontFamily: 'Plex',
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.8,
@@ -563,7 +565,7 @@ class _Hero extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text('شاهد',
                                     style: TextStyle(
-                                        fontFamily: 'Cairo',
+                                        fontFamily: 'Plex',
                                         fontSize: 12.5,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.white)),
@@ -690,7 +692,7 @@ class HhSeriesCard extends StatelessWidget {
                             ),
                             child: Text('+18',
                                 style: TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: 'Plex',
                                     fontSize: 8,
                                     fontWeight: FontWeight.w800,
                                     color: HhColors.red)),
@@ -714,7 +716,7 @@ class HhSeriesCard extends StatelessWidget {
                                   const SizedBox(width: 2),
                                   Text(series.rating.toStringAsFixed(1),
                                       style: TextStyle(
-                                          fontFamily: 'Cairo',
+                                          fontFamily: 'Plex',
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white)),
@@ -761,7 +763,7 @@ class _Letter extends StatelessWidget {
       child: Text(
         series.title.isNotEmpty ? series.title[0].toUpperCase() : '?',
         style: TextStyle(
-            fontFamily: 'Cairo',
+            fontFamily: 'Plex',
             fontSize: 40,
             fontWeight: FontWeight.w800,
             color: HhColors.red),

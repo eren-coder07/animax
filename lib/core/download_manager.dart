@@ -512,6 +512,15 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
+  /// Free bytes on shared storage (-1 when unknown).
+  Future<int> freeSpace() async {
+    try {
+      return await _channel.invokeMethod<int>('dlFreeSpace') ?? -1;
+    } catch (_) {
+      return -1;
+    }
+  }
+
   /// Opens the finished file with the system viewer/player chooser.
   Future<bool> open(DownloadItem it) async {
     if (it.resultUri.isEmpty) return false;

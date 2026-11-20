@@ -107,7 +107,7 @@ class NotificationsScreen extends StatelessWidget {
                             ),
                             child: Text('التحديثات',
                                 style: TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: 'Plex',
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.accent)),

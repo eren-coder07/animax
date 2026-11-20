@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
@@ -76,6 +77,7 @@ class _HomeTabState extends State<HomeTab> {
             padding: const EdgeInsets.only(bottom: 90),
             children: [
               const SizedBox(height: 16),
+              if (!EmbeddedSection.of(context))
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -145,7 +147,7 @@ class _HomeTabState extends State<HomeTab> {
                                           child: Text(
                                             '${i + 1}',
                                             style: TextStyle(
-                                              fontFamily: 'Cairo',
+                                              fontFamily: 'Plex',
                                               fontSize: 84,
                                               fontWeight: FontWeight.w800,
                                               color: Colors.white,
@@ -412,7 +414,7 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                               child: Text(e.status?.label ?? '',
                                   style: TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: 'Plex',
                                       fontSize: 8.5,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.accent)),
@@ -508,7 +510,7 @@ class _HeroCarousel extends StatelessWidget {
                                     const SizedBox(width: 3),
                                     Text(a.score.toStringAsFixed(1),
                                         style: const TextStyle(
-                                            fontFamily: 'Cairo',
+                                            fontFamily: 'Plex',
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.w700,
                                             color: Colors.white)),
@@ -516,7 +518,7 @@ class _HeroCarousel extends StatelessWidget {
                                   ],
                                   Text(a.year,
                                       style: const TextStyle(
-                                          fontFamily: 'Cairo',
+                                          fontFamily: 'Plex',
                                           fontSize: 11,
                                           color: Colors.white70)),
                                 ],
@@ -526,7 +528,7 @@ class _HeroCarousel extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: 'Plex',
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800,
                                       color: Colors.white)),
@@ -536,7 +538,7 @@ class _HeroCarousel extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: 'Plex',
                                     fontSize: 11,
                                     color: Colors.white60),
                               ),
@@ -664,7 +666,7 @@ class _BackendChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(mode,
               style: TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 9.5,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,

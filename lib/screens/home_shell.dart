@@ -4,20 +4,21 @@ import '../core/app_prefs.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
-import '../core/library_store.dart';
+import '../widgets/animax_logo.dart';
+import '../widgets/mb_ui.dart';
 import 'akwam_tab.dart';
 import 'calendar_tab.dart';
 import 'cartoon_tab.dart';
 import 'cinema_tab.dart';
 import 'comic_tab.dart';
+import 'downloads_screen.dart';
+import 'global_search_screen.dart';
 import 'hentai_tab.dart';
 import 'home_tab.dart';
 import 'profile_tab.dart';
 
-/// Root navigation shell — 8 sections. The bottom bar shows Home, Cinema,
-/// Akwam, More and Profile; Calendar, Cartoons, Comics and 18+ open from the
-/// "More" sheet. Also hosts the once-per-version
-/// What's-new dialog shown shortly after entering.
+/// Root shell: 3-tab bottom bar — الرئيسية · التحميلات · حسابي.
+/// Home holds a search pill and category tabs (Akwam feed first).
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -38,7 +39,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '2.0.0';
+    const String version = '2.1.0';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -53,161 +54,66 @@ class _HomeShellState extends State<HomeShell> {
     return ListenableBuilder(
       listenable: Listenable.merge(<Listenable>[state, AppPrefs.I]),
       builder: (BuildContext context, _) {
-        final Color accent = AppColors.accent;
         return Scaffold(
+          backgroundColor: AppColors.bg,
+          extendBody: true,
           body: IndexedStack(
-            index: state.navIndex,
-            children: const [
-              HomeTab(),
-              CalendarTab(),
-              CinemaTab(),
-              AkwamTab(),
-              CartoonTab(),
-              ComicTab(),
-              HentaiTab(),
+            index: state.navIndex.clamp(0, 2),
+            children: const <Widget>[
+              HomeScreen(),
+              DownloadsScreen(asTab: true),
               ProfileTab(),
             ],
           ),
-          bottomNavigationBar: _BottomNav(state: state, accent: accent),
+          bottomNavigationBar: _BottomBar(state: state),
         );
       },
     );
   }
 }
 
-/// One navigable section. [index] is its slot in the shell's IndexedStack
-/// (kept stable so `AppState.setTab(i)` callers keep working).
-typedef _Section = ({
-  int index,
-  IconData icon,
-  String label,
-  String blurb,
-  Color? tint,
-});
+// -----------------------------------------------------------------------------
+// Bottom bar
+// -----------------------------------------------------------------------------
 
-/// Sections pinned to the bottom bar (order = left → right, with the
-/// "More" button inserted before Profile).
-const List<_Section> _primary = <_Section>[
-  (
-    index: 3,
-    icon: Icons.home_rounded,
-    label: 'الرئيسية',
-    blurb: '',
-    tint: Color(0xFF18A2B8)
-  ),
-  (
-    index: 2,
-    icon: Icons.theaters_rounded,
-    label: 'سينما',
-    blurb: '',
-    tint: Color(0xFFE50914)
-  ),
-  (
-    index: 0,
-    icon: Icons.animation_rounded,
-    label: 'أنمي',
-    blurb: '',
-    tint: null
-  ),
-];
-
-const _Section _profile = (
-  index: 7,
-  icon: Icons.person_rounded,
-  label: 'حسابي',
-  blurb: '',
-  tint: null
-);
-
-/// Sections reachable from the "More" sheet.
-const List<_Section> _more = <_Section>[
-  (
-    index: 1,
-    icon: Icons.calendar_month_rounded,
-    label: 'التقويم',
-    blurb: 'جدول العرض',
-    tint: Color(0xFF7C8CFF)
-  ),
-  (
-    index: 4,
-    icon: Icons.animation_rounded,
-    label: 'كرتون',
-    blurb: 'مسلسلات كرتون',
-    tint: Color(0xFFFFB020)
-  ),
-  (
-    index: 5,
-    icon: Icons.menu_book_rounded,
-    label: 'مانغا',
-    blurb: 'قارئ المانغا',
-    tint: Color(0xFF3DD6A0)
-  ),
-  (
-    index: 6,
-    icon: Icons.eighteen_up_rating_rounded,
-    label: '+18',
-    blurb: 'للبالغين فقط',
-    tint: Color(0xFFFF5A8A)
-  ),
-];
-
-/// Compact 5-slot bottom bar: Home · Cinema · Akwam · More · Profile.
-/// When a "More" section is open, the More slot takes on its icon + name.
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({required this.state, required this.accent});
-
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({required this.state});
   final AppState state;
-  final Color accent;
-
-  /// History-based "new episode" hint for the Calendar section.
-  static bool get _calendarBadge =>
-      AppPrefs.I.navBadges && LibraryStore.I.history.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
-    final int current = state.navIndex;
-    _Section? activeMore;
-    for (final _Section s in _more) {
-      if (s.index == current) activeMore = s;
-    }
-    final List<Widget> items = <Widget>[
-      for (final _Section s in _primary)
-        _NavItem(
-          icon: s.icon,
-          label: s.label,
-          active: current == s.index,
-          color: s.tint ?? accent,
-          onTap: () => state.setTab(s.index),
-        ),
-      _NavItem(
-        icon: activeMore?.icon ?? Icons.grid_view_rounded,
-        label: activeMore?.label ?? 'المزيد',
-        active: activeMore != null,
-        color: activeMore?.tint ?? accent,
-        badge: activeMore == null && _calendarBadge,
-        onTap: () => _MoreSheet.show(context, state, accent),
-      ),
-      _NavItem(
-        icon: _profile.icon,
-        label: _profile.label,
-        active: current == _profile.index,
-        color: accent,
-        onTap: () => state.setTab(_profile.index),
-      ),
+    const List<(IconData, IconData, String)> items = <(IconData, IconData, String)>[
+      (Icons.home_outlined, Icons.home_rounded, 'الرئيسية'),
+      (Icons.download_outlined, Icons.download_rounded, 'التحميلات'),
+      (Icons.person_outline_rounded, Icons.person_rounded, 'حسابي'),
     ];
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        border: Border(top: BorderSide(color: AppColors.stroke)),
+      decoration: const BoxDecoration(
+        color: Color(0xF2191A1F),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
-          child: Row(
-            children: <Widget>[
-              for (final Widget w in items) Expanded(child: w),
-            ],
+        child: SizedBox(
+          height: 62,
+          child: ListenableBuilder(
+            listenable: DownloadManager.I,
+            builder: (BuildContext context, _) => Row(
+              children: <Widget>[
+                for (int i = 0; i < items.length; i++)
+                  Expanded(
+                    child: _NavItem(
+                      icon: items[i].$1,
+                      activeIcon: items[i].$2,
+                      label: items[i].$3,
+                      active: state.navIndex == i,
+                      dot: (i == 1 && DownloadManager.I.activeCount > 0) ||
+                          (i == 2 && state.notices.isNotEmpty),
+                      onTap: () => state.setTab(i),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -215,346 +121,255 @@ class _BottomNav extends StatelessWidget {
   }
 }
 
-/// A bottom-bar slot: pill highlight behind the icon when active.
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.icon,
+    required this.activeIcon,
     required this.label,
     required this.active,
-    required this.color,
     required this.onTap,
-    this.badge = false,
+    this.dot = false,
   });
-
   final IconData icon;
+  final IconData activeIcon;
   final String label;
   final bool active;
-  final Color color;
+  final bool dot;
   final VoidCallback onTap;
-  final bool badge;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: active,
-      label: label,
-      child: InkResponse(
-        onTap: onTap,
-        radius: 32,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              width: 56,
-              height: 30,
-              decoration: BoxDecoration(
-                color: active
-                    ? color.withValues(alpha: 0.16)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              alignment: Alignment.center,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: <Widget>[
-                  Icon(icon,
-                      size: 23, color: active ? color : AppColors.muted),
-                  if (badge)
-                    Positioned(
-                      top: -1,
-                      right: -3,
-                      child: Container(
-                        width: 7,
-                        height: 7,
+    Widget ic = Icon(active ? activeIcon : icon,
+        size: 27, color: active ? Colors.white : AppColors.sub);
+    if (active) {
+      ic = ShaderMask(
+        shaderCallback: (Rect r) => AppColors.brandGrad.createShader(r),
+        blendMode: BlendMode.srcIn,
+        child: ic,
+      );
+    }
+    return InkResponse(
+      onTap: onTap,
+      radius: 36,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Stack(
+            clipBehavior: Clip.none,
+            children: <Widget>[
+              ic,
+              if (dot)
+                const PositionedDirectional(
+                  top: -1,
+                  end: -3,
+                  child: SizedBox(
+                    width: 8,
+                    height: 8,
+                    child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: AppColors.danger,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.bg, width: 1.2),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 11,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                color: active ? color : AppColors.muted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Bottom sheet listing the sections that don't fit on the bar.
-class _MoreSheet extends StatelessWidget {
-  const _MoreSheet({required this.state, required this.accent});
-
-  final AppState state;
-  final Color accent;
-
-  static Future<void> show(
-      BuildContext context, AppState state, Color accent) {
-    return showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => _MoreSheet(state: state, accent: accent),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const Padding(
-              padding: EdgeInsets.only(left: 4, bottom: 12),
-              child: Text('أقسام أخرى',
-                  style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.text)),
-            ),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 2.1,
-              children: <Widget>[
-                for (final _Section s in _more) _tile(context, s),
-              ],
-            ),
-            const Padding(
-              padding: EdgeInsets.only(left: 4, top: 18, bottom: 12),
-              child: Text('محتواك',
-                  style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.text)),
-            ),
-            ListenableBuilder(
-              listenable: DownloadManager.I,
-              builder: (BuildContext context, _) {
-                final int n = DownloadManager.I.activeCount;
-                return GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 2.1,
-                  children: <Widget>[
-                    _routeTile(
-                      context,
-                      icon: Icons.download_rounded,
-                      label: 'التحميلات',
-                      blurb: n > 0 ? '$n قيد التحميل' : 'محفوظ بدون إنترنت',
-                      tint: accent,
-                      route: '/downloads',
-                    ),
-                    _routeTile(
-                      context,
-                      icon: Icons.video_library_rounded,
-                      label: 'مكتبتي',
-                      blurb: 'القائمة · السجل',
-                      tint: const Color(0xFF5AB4FF),
-                      route: '/library',
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _routeTile(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String blurb,
-    required Color tint,
-    required String route,
-  }) {
-    return Material(
-      color: AppColors.surfaceHi,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          final NavigatorState nav = Navigator.of(context);
-          nav.pop();
-          nav.pushNamed(route);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.stroke),
-          ),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: tint.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: tint, size: 22),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.text)),
-                    Text(blurb,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 10.5,
-                            color: AppColors.sub)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _tile(BuildContext context, _Section s) {
-    final Color c = s.tint ?? accent;
-    final bool active = state.navIndex == s.index;
-    final bool badge = s.index == 1 && _BottomNav._calendarBadge;
-    return Material(
-      color: active ? c.withValues(alpha: 0.14) : AppColors.surfaceHi,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.of(context).pop();
-          state.setTab(s.index);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: active ? c.withValues(alpha: 0.6) : AppColors.stroke),
-          ),
-          child: Row(
-            children: <Widget>[
-              Stack(
-                clipBehavior: Clip.none,
-                children: <Widget>[
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: c.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(s.icon, color: c, size: 22),
+                            color: AppColors.badge, shape: BoxShape.circle)),
                   ),
-                  if (badge)
-                    Positioned(
-                      top: -2,
-                      right: -2,
+                ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(label,
+              style: TextStyle(
+                  fontFamily: kFont,
+                  fontSize: 12,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: active ? Colors.white : AppColors.sub)),
+        ],
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Home: search pill + category tabs
+// -----------------------------------------------------------------------------
+
+/// One Home category tab.
+typedef _Category = ({String label, bool adult, Widget Function() build});
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  static final List<_Category> _cats = <_Category>[
+    (label: 'الرائج', adult: false, build: () => const AkwamTab()),
+    (label: 'أفلام', adult: false, build: () => const AkwamGrid(feed: AkwamFeed.movies)),
+    (label: 'مسلسلات', adult: false, build: () => const AkwamGrid(feed: AkwamFeed.series)),
+    (label: 'برامج', adult: false, build: () => const AkwamGrid(feed: AkwamFeed.shows)),
+    (label: 'أجنبي', adult: false, build: () => const CinemaTab()),
+    (label: 'أنمي', adult: false, build: () => const HomeTab()),
+    (label: 'كرتون', adult: false, build: () => const CartoonTab()),
+    (label: 'مانغا', adult: false, build: () => const ComicTab()),
+    (label: 'التقويم', adult: false, build: () => const CalendarTab()),
+    (label: 'للكبار', adult: true, build: () => const HentaiTab()),
+  ];
+
+  /// Built lazily on first visit, then kept alive.
+  final Map<int, Widget> _built = <int, Widget>{};
+
+  static const List<String> _hints = <String>[
+    'الهيبة', 'ولاد رزق 3', 'One Piece', 'باب الحارة', 'Breaking Bad',
+  ];
+  int _hint = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _hint = DateTime.now().second % _hints.length;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppState state = AppState.I;
+    final int cat = state.homeCategory.clamp(0, _cats.length - 1);
+    _built.putIfAbsent(cat, () => _cats[cat].build());
+    return ColoredBox(
+      color: AppColors.bg,
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: <Widget>[
+            // ---- Logo + search pill ----
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: Row(
+                children: <Widget>[
+                  const AnimaxLogo(size: 34),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const GlobalSearchScreen())),
                       child: Container(
-                        width: 9,
-                        height: 9,
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.danger,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: AppColors.surfaceHi, width: 1.5),
+                          color: AppColors.surfaceHi,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            const Icon(Icons.search_rounded,
+                                color: Colors.white, size: 22),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(_hints[_hint],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontFamily: kFont,
+                                      fontSize: 15,
+                                      color: Color(0xFFD5D6DA))),
+                            ),
+                            const Text('بحث',
+                                style: TextStyle(
+                                    fontFamily: kFont,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.brandGreen)),
+                          ],
                         ),
                       ),
                     ),
+                  ),
                 ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(s.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.text)),
-                    Text(s.blurb,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 10.5,
-                            color: AppColors.sub)),
-                  ],
+            ),
+            // ---- Category tabs ----
+            SizedBox(
+              height: 42,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                itemCount: _cats.length,
+                itemBuilder: (BuildContext c, int i) {
+                  final bool on = i == cat;
+                  return GestureDetector(
+                    onTap: () => state.setCategory(i),
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 9),
+                      child: Row(
+                        children: <Widget>[
+                          Text(_cats[i].label,
+                              style: TextStyle(
+                                  fontFamily: kFont,
+                                  fontSize: on ? 17 : 15.5,
+                                  fontWeight:
+                                      on ? FontWeight.w700 : FontWeight.w500,
+                                  color: on ? Colors.white : AppColors.sub)),
+                          if (_cats[i].adult) ...<Widget>[
+                            const SizedBox(width: 3),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 3, vertical: 0),
+                              decoration: BoxDecoration(
+                                color: AppColors.badge,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text('18',
+                                  style: TextStyle(
+                                      fontFamily: kFont,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            // ---- Section body ----
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: EmbeddedSection(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 70),
+                    child: IndexedStack(
+                      index: cat,
+                      children: <Widget>[
+                        for (int i = 0; i < _cats.length; i++)
+                          _built[i] ?? const SizedBox.shrink(),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// "What's new in v1.9.1" — shown once per version after entering.
+/// "What's new" dialog — shown once per version after entering.
 class WhatsNewDialog extends StatelessWidget {
   const WhatsNewDialog({super.key, required this.version});
 
   final String version;
 
   static const List<String> highlights = <String>[
-    'أكوام أصبح الصفحة الرئيسية — أفلام ومسلسلات عربية وأجنبية',
-    'التطبيق بالكامل باللغة العربية مع واجهة من اليمين لليسار',
-    'تحميل الحلقات والأفلام كملفات MP4 والمانغا كملفات PDF',
-    'أزرار التحميل في صفحات التفاصيل وتحميل كل الحلقات دفعة واحدة',
-    'تشغيل أسرع وإصلاح مشاكل التشغيل',
+    'تصميم جديد بالكامل: بحث موحّد، أقسام في الأعلى وصفوف ملصقات',
+    'شريط سفلي جديد: الرئيسية · التحميلات · حسابي',
+    'صفحة تفاصيل جديدة مع أزرار سريعة وزر تحميل عائم',
+    'خط عربي جديد أوضح وأجمل (IBM Plex Sans Arabic)',
+    'تحميل الأفلام والحلقات كـ MP4 والمانغا كـ PDF',
   ];
 
   @override
@@ -569,7 +384,7 @@ class WhatsNewDialog extends StatelessWidget {
           const SizedBox(width: 10),
           Text('الجديد في الإصدار $version',
               style: const TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 16.5,
                   fontWeight: FontWeight.w800,
                   color: AppColors.text)),
@@ -590,7 +405,7 @@ class WhatsNewDialog extends StatelessWidget {
                   Expanded(
                     child: Text(h,
                         style: const TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 12,
                             height: 1.45,
                             color: AppColors.sub)),
@@ -605,7 +420,7 @@ class WhatsNewDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: Text('هيا بنا',
               style: TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppColors.accent)),

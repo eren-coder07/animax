@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_theme.dart';
 import '../core/manga_api.dart';
 import '../widgets/manga_card.dart';
@@ -116,13 +117,13 @@ class _ComicTabState extends State<ComicTab>
                   autofocus: true,
                   onChanged: _onSearchChanged,
                   style: const TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 13.5,
                       color: AppColors.text),
                   decoration: InputDecoration(
                     hintText: 'ابحث عن مانغا…',
                     hintStyle: const TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13,
                         color: AppColors.muted),
                     prefixIcon: const Icon(Icons.search_rounded,
@@ -153,7 +154,7 @@ class _ComicTabState extends State<ComicTab>
                 },
                 child: Text('إلغاء',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 12.5,
                         color: AppColors.accent)),
               ),
@@ -213,6 +214,7 @@ class _ComicTabState extends State<ComicTab>
       child: ListView(
         physics: const BouncingScrollPhysics(),
         children: <Widget>[
+          if (!EmbeddedSection.of(context))
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
             child: Row(
@@ -278,7 +280,7 @@ class _ComicTabState extends State<ComicTab>
               side: const BorderSide(color: AppColors.stroke),
               label: Text(wanted[tags[i].name] ?? tags[i].name,
                   style: const TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 11.5,
                       color: AppColors.text)),
               onPressed: () => Navigator.of(context).push(SlideFadeRoute<void>(

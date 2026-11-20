@@ -453,7 +453,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
               padding: EdgeInsets.fromLTRB(20, 18, 20, 6),
               child: Text('سيرفرات البث',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.text)),
@@ -464,7 +464,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                 'اختر سيرفرًا إذا توقّف التشغيل. ينتقل المشغّل '
                 'تلقائيًا إلى سيرفر آخر عند الفشل.',
                 style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 11.5, color: AppColors.sub),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.sub),
               ),
             ),
             for (int i = 0; i < cinemaProviders.length; i++)
@@ -479,13 +479,13 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                 ),
                 title: Text(cinemaProviders[i].name,
                     style: const TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         color: AppColors.text)),
                 subtitle: Text(cinemaProviders[i].home,
                     style: const TextStyle(
-                        fontFamily: 'Cairo', fontSize: 11, color: AppColors.muted)),
+                        fontFamily: 'Plex', fontSize: 11, color: AppColors.muted)),
                 trailing: i == _providerIdx
                     ? Icon(Icons.check_rounded, color: AppColors.accent)
                     : null,
@@ -519,7 +519,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                 alignment: AlignmentDirectional.centerStart,
                 child: Text('الحلقات',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppColors.text)),
@@ -537,7 +537,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                     dense: true,
                     leading: Text(e.label,
                         style: TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
                             color: current
@@ -548,7 +548,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 13,
                             fontWeight: current
                                 ? FontWeight.w700
@@ -604,7 +604,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 13.5,
                               fontWeight: FontWeight.w600,
                               color: Colors.white)),
@@ -620,7 +620,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                         onPressed: _openServerSheet,
                         child: Text(_provider.name.split('·').last.trim(),
                             style: const TextStyle(
-                                fontFamily: 'Cairo',
+                                fontFamily: 'Plex',
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white)),
@@ -662,7 +662,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                               : 'جارٍ تبديل السيرفر…',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 11.5,
                               color: Colors.white),
                         ),
@@ -690,7 +690,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                       const SizedBox(height: 12),
                       const Text('فشلت جميع السيرفرات',
                           style: TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
                               color: AppColors.text)),
@@ -702,7 +702,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                             : 'رسالة آخر سيرفر: «$_probeText».',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                            fontFamily: 'Cairo',
+                            fontFamily: 'Plex',
                             fontSize: 12,
                             height: 1.5,
                             color: AppColors.sub),
@@ -717,7 +717,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                                 size: 18, color: AppColors.text),
                             label: const Text('إعادة المحاولة للكل',
                                 style: TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: 'Plex',
                                     fontSize: 12.5,
                                     color: AppColors.text)),
                           ),
@@ -734,7 +734,7 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
                                 size: 18, color: AppColors.sub),
                             label: const Text('اختر سيرفرًا',
                                 style: TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: 'Plex',
                                     fontSize: 12.5,
                                     color: AppColors.sub)),
                           ),
@@ -792,19 +792,19 @@ class _NextEpisodeDialogState extends State<_NextEpisodeDialog> {
       backgroundColor: AppColors.surface,
       title: const Text('التالي',
           style: TextStyle(
-              fontFamily: 'Cairo',
+              fontFamily: 'Plex',
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppColors.text)),
       content: Text('${widget.title} — يبدأ خلال $_left ث',
           style: const TextStyle(
-              fontFamily: 'Cairo', fontSize: 13, color: AppColors.sub)),
+              fontFamily: 'Plex', fontSize: 13, color: AppColors.sub)),
       actions: <Widget>[
         TextButton(
           onPressed: widget.onCancel,
           child: const Text('إلغاء',
               style: TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 12.5,
                   color: AppColors.sub)),
         ),
@@ -813,7 +813,7 @@ class _NextEpisodeDialogState extends State<_NextEpisodeDialog> {
           onPressed: widget.onPlay,
           child: Text('شغّل الآن',
               style: TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.ink)),

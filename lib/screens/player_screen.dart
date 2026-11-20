@@ -631,7 +631,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               padding: EdgeInsets.all(16),
               child: Text('مؤقت النوم',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: AppColors.text)),
@@ -648,7 +648,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     size: 20),
                 title: Text(m == 0 ? 'إيقاف' : '$m دقيقة',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color: _sleepMinutes == m
                             ? AppColors.accent
@@ -1066,7 +1066,7 @@ class _TopGradientBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         color: Colors.white)),
@@ -1074,7 +1074,7 @@ class _TopGradientBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         color: Colors.white70)),
               ],
@@ -1209,7 +1209,7 @@ class _BottomControls extends StatelessWidget {
             children: [
               Text(_fmt(pos),
                   style: const TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 10.5,
                       color: Colors.white)),
               Expanded(
@@ -1244,7 +1244,7 @@ class _BottomControls extends StatelessWidget {
               ),
               Text(_fmt(dur),
                   style: const TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 10.5,
                       color: Colors.white)),
             ],
@@ -1337,7 +1337,7 @@ class _OverlayMenuButton<T> extends StatelessWidget {
           height: 38,
           child: Text(entries[i].$1,
               style: const TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: AppColors.text)),
@@ -1352,7 +1352,7 @@ class _OverlayMenuButton<T> extends StatelessWidget {
             const SizedBox(width: 5),
             Text(label,
                 style: const TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),
@@ -1380,7 +1380,7 @@ class _OverlayLabel extends StatelessWidget {
           const SizedBox(width: 5),
           Text(label,
               style: const TextStyle(
-                  fontFamily: 'Cairo',
+                  fontFamily: 'Plex',
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: Colors.white)),

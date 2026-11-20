@@ -402,6 +402,14 @@ class AkwamApi {
 
   // ----- helpers -----
 
+  /// Rebuilds an item from a stored page path (watch history, downloads).
+  static AkwamItem? itemFromPath(String path,
+      {String title = '', String poster = ''}) {
+    final AkwamItem? it = _itemFromHref(path, title);
+    if (it != null) it.poster = poster;
+    return it;
+  }
+
   static AkwamItem? _itemFromHref(String href, String fallbackTitle) {
     if (href.isEmpty) return null;
     final RegExpMatch? m = RegExp(

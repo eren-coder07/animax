@@ -278,7 +278,7 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                           size: 18, color: AppColors.text),
                       label: const Text('إعادة المحاولة',
                           style: TextStyle(
-                              fontFamily: 'Cairo',
+                              fontFamily: 'Plex',
                               fontSize: 12.5,
                               color: AppColors.text)),
                     ),
@@ -341,7 +341,7 @@ class _EpisodeList extends StatelessWidget {
                   selected: active,
                   onSelected: (_) => onSeason(s),
                   labelStyle: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: active ? AppColors.ink : AppColors.text),
@@ -462,7 +462,7 @@ class _Chip extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(
-              fontFamily: 'Cairo',
+              fontFamily: 'Plex',
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.4,

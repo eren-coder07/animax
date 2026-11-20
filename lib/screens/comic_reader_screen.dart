@@ -179,7 +179,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
             children: <Widget>[
               const Text('إعدادات القارئ',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.text)),
@@ -194,14 +194,14 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                 },
                 title: const Text('وضع الصفحات (اسحب جانبيًا)',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color: AppColors.text)),
                 subtitle: Text(prefs.readerMode == 'paged'
                     ? 'صفحات أفقية'
                     : 'تمرير عمودي',
                     style: const TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 11,
                         color: AppColors.muted)),
               ),
@@ -216,7 +216,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                   },
                   title: const Text('من اليمين لليسار (أسلوب المانغا)',
                       style: TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 13.5,
                           color: AppColors.text)),
                 ),
@@ -231,19 +231,19 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                 },
                 title: const Text('صور موفّرة للبيانات',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color: AppColors.text)),
                 subtitle: const Text('صفحات مضغوطة أصغر',
                     style: TextStyle(
-                        fontFamily: 'Cairo',
+                        fontFamily: 'Plex',
                         fontSize: 11,
                         color: AppColors.muted)),
               ),
               const SizedBox(height: 6),
               const Text('الخلفية',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 12,
                       color: AppColors.muted)),
               const SizedBox(height: 8),
@@ -317,7 +317,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                             Text('تعذّر تحميل الصفحات — $_pageError',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: 'Plex',
                                     fontSize: 12,
                                     color: AppColors.sub)),
                             const SizedBox(height: 12),
@@ -326,7 +326,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                                   resume: true),
                               child: const Text('إعادة المحاولة',
                                   style: TextStyle(
-                                      fontFamily: 'Cairo',
+                                      fontFamily: 'Plex',
                                       color: AppColors.text)),
                             ),
                           ],
@@ -336,7 +336,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                         ? const Center(
                             child: Text('هذا الفصل لا يحتوي على صفحات.',
                                 style: TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: 'Plex',
                                     fontSize: 13,
                                     color: AppColors.sub)))
                         : PageView.builder(
@@ -379,13 +379,13 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  fontFamily: 'Cairo',
+                                  fontFamily: 'Plex',
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white)),
                           Text(_chapter.chipLabel,
                               style: const TextStyle(
-                                  fontFamily: 'Cairo',
+                                  fontFamily: 'Plex',
                                   fontSize: 10.5,
                                   color: Colors.white60)),
                         ],
@@ -454,7 +454,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                     Text(
                       _pages.isEmpty ? '' : '${_pageIndex + 1}/${_pages.length}',
                       style: const TextStyle(
-                          fontFamily: 'Cairo',
+                          fontFamily: 'Plex',
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
                           color: Colors.white),
@@ -512,7 +512,7 @@ class _PageImage extends StatelessWidget {
                             const SizedBox(height: 10),
                             Text(label,
                                 style: const TextStyle(
-                                    fontFamily: 'Cairo',
+                                    fontFamily: 'Plex',
                                     fontSize: 11,
                                     color: Colors.white54)),
                           ],

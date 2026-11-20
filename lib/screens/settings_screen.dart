@@ -39,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
             child: Text('لون التمييز',
                 style: const TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 12.5,
                     color: AppColors.sub)),
           ),
@@ -81,13 +81,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool v) => p.set('amoled', v),
             title: const Text('الوضع الأسود AMOLED',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: const Text('خلفيات سوداء بالكامل — توفّر البطارية في '
                 'شاشات OLED',
                 style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
@@ -95,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool v) => p.set('navBadges', v),
             title: const Text('شارة الحلقات الجديدة على التقويم',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
           ),
@@ -114,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool v) => p.set('autoPlayNext', v),
             title: const Text('تشغيل الحلقة التالية تلقائيًا',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
           ),
@@ -124,18 +124,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool v) => p.set('autoSkipIntro', v),
             title: const Text('تخطّي المقدمة تلقائيًا',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: const Text('يتخطى الثواني الأولى تلقائيًا',
                 style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             title: const Text('مدة المقدمة',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: Slider(
@@ -150,7 +150,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             trailing: Text('${p.skipIntroSeconds} ث',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                     color: AppColors.accent)),
@@ -161,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool v) => p.set('pauseOnBackground', v),
             title: const Text('إيقاف مؤقت عند الخروج من التطبيق',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
           ),
@@ -196,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool v) => p.set('readerRtl', v),
             title: const Text('صفحات من اليمين لليسار (أسلوب المانغا)',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
           ),
@@ -206,12 +206,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool v) => p.set('readerDataSaver', v),
             title: const Text('توفير بيانات القارئ',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: const Text('يحمّل صورًا مضغوطة أصغر للصفحات',
                 style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
@@ -219,12 +219,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (bool v) => p.set('dataSaver', v),
             title: const Text('توفير البيانات العام',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: const Text('يفضّل جودة أقل على الشبكات المحدودة',
                 style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
 
           _section('البيانات'),
@@ -234,12 +234,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 size: 21, color: AppColors.accent),
             title: const Text('تصدير المكتبة',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: const Text('ينسخ نسخة احتياطية JSON إلى الحافظة',
                 style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
             onTap: () async {
               final String json = jsonEncode(LibraryStore.I.exportJson());
               await Clipboard.setData(ClipboardData(text: json));
@@ -255,12 +255,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 size: 21, color: AppColors.accent),
             title: const Text('استيراد المكتبة',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: const Text('الصق نسخة احتياطية JSON من الحافظة',
                 style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
             onTap: () async {
               final ClipboardData? data =
                   await Clipboard.getData(Clipboard.kTextPlain);
@@ -294,7 +294,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 size: 21, color: AppColors.danger),
             title: const Text('مسح سجل المشاهدة',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             onTap: () {
@@ -319,7 +319,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     size: 21, color: AppColors.accent),
             title: const Text('التحقق من التحديثات',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: Text(
@@ -327,7 +327,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? 'يقارن هذا الإصدار بآخر إصدار منشور'
                     : _updateMessage,
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 11.5,
                     color: _updateMessage.startsWith('يتوفر تحديث')
                         ? AppColors.accent
@@ -340,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 size: 21, color: AppColors.accent),
             title: const Text('مركز المساعدة',
                 style: TextStyle(
-                    fontFamily: 'Cairo',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             trailing: const Icon(Icons.chevron_right_rounded,
@@ -352,7 +352,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Center(
               child: Text('أنيماكس الإصدار 2.0.0 · صُنع بحب للمشاهدين العرب',
                   style: TextStyle(
-                      fontFamily: 'Cairo',
+                      fontFamily: 'Plex',
                       fontSize: 11,
                       color: AppColors.muted)),
             ),
@@ -366,7 +366,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
         child: Text(title.toUpperCase(),
             style: TextStyle(
-                fontFamily: 'Cairo',
+                fontFamily: 'Plex',
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
@@ -383,13 +383,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       title: Text(label,
           style: const TextStyle(
-              fontFamily: 'Cairo', fontSize: 14, color: AppColors.text)),
+              fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
       trailing: DropdownButton<String>(
         value: current,
         underline: const SizedBox.shrink(),
         dropdownColor: AppColors.surface,
         style: TextStyle(
-            fontFamily: 'Cairo',
+            fontFamily: 'Plex',
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
             color: AppColors.accent),

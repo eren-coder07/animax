@@ -45,7 +45,7 @@ class MangaCard extends StatelessWidget {
                           child: Text(
                             manga.title.isNotEmpty ? manga.title[0] : '?',
                             style: TextStyle(
-                                fontFamily: 'Cairo',
+                                fontFamily: 'Plex',
                                 fontSize: 36,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.accent),
@@ -71,7 +71,7 @@ class MangaCard extends StatelessWidget {
                                 const SizedBox(width: 3),
                                 Text(manga.followedLabel,
                                     style: const TextStyle(
-                                        fontFamily: 'Cairo',
+                                        fontFamily: 'Plex',
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white)),

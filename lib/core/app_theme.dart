@@ -12,10 +12,10 @@ import 'app_prefs.dart';
 class AppColors {
   AppColors._();
 
-  // Default (Neo Green) tokens.
-  static const Color _bgD = Color(0xFF0B0F0D);
-  static const Color _surfaceD = Color(0xFF141917);
-  static const Color _surfaceHiD = Color(0xFF1D2420);
+  // Default tokens — near-black canvas, neutral dark-gray cards.
+  static const Color _bgD = Color(0xFF0F1014);
+  static const Color _surfaceD = Color(0xFF1C1D22);
+  static const Color _surfaceHiD = Color(0xFF26272E);
 
   static bool get _amoled => AppPrefs.I.amoled;
 
@@ -25,7 +25,26 @@ class AppColors {
   static Color get surfaceHi =>
       _amoled ? const Color(0xFF151515) : _surfaceHiD;
 
-  static const Color stroke = Color(0xFF242C27);
+  static const Color stroke = Color(0xFF2A2B31);
+
+  /// Signature cyan → green gradient (primary buttons, active nav icon).
+  static const LinearGradient brandGrad = LinearGradient(
+    colors: <Color>[Color(0xFF1FC8EE), Color(0xFF2EE58B)],
+    begin: AlignmentDirectional.centerStart,
+    end: AlignmentDirectional.centerEnd,
+  );
+
+  /// Muted teal → green gradient (resource / episode bars).
+  static const LinearGradient softGrad = LinearGradient(
+    colors: <Color>[Color(0xFF173A4A), Color(0xFF1C4A33)],
+    begin: AlignmentDirectional.centerStart,
+    end: AlignmentDirectional.centerEnd,
+  );
+
+  static const Color brandCyan = Color(0xFF1FC8EE);
+  static const Color brandGreen = Color(0xFF2EE58B);
+  static const Color star = Color(0xFFFFC21A);
+  static const Color badge = Color(0xFFE5343C);
 
   // ---- Dynamic accent ------------------------------------------------------
   static AccentTheme get _a => AppPrefs.I.accent;
@@ -43,8 +62,8 @@ class AppColors {
 
   // ---- Fixed text / signal colors ------------------------------------------
   static const Color text = Color(0xFFFFFFFF);
-  static const Color sub = Color(0xFFA9B1AB);
-  static const Color muted = Color(0xFF6B736D);
+  static const Color sub = Color(0xFFA3A5AD);
+  static const Color muted = Color(0xFF6E7079);
   static const Color danger = Color(0xFFFF5A5A);
   static const Color amber = Color(0xFFFFB020);
 
@@ -53,28 +72,28 @@ class AppColors {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     stops: [0.0, 0.55, 1.0],
-    colors: [Colors.transparent, Color(0x660B0F0D), Color(0xFF0B0F0D)],
+    colors: [Colors.transparent, Color(0x660F1014), Color(0xFF0F1014)],
   );
 }
 
-/// Typography shortcuts (Cairo — Arabic + Latin).
+/// Typography shortcuts (IBM Plex Sans Arabic — Arabic + Latin).
 class AppText {
   AppText._();
 
   static const TextStyle h1 = TextStyle(
-      fontFamily: 'Cairo', fontSize: 26, fontWeight: FontWeight.w800, height: 1.25);
+      fontFamily: 'Plex', fontSize: 26, fontWeight: FontWeight.w800, height: 1.25);
   static const TextStyle h2 = TextStyle(
-      fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w700, height: 1.3);
+      fontFamily: 'Plex', fontSize: 20, fontWeight: FontWeight.w700, height: 1.3);
   static const TextStyle h3 = TextStyle(
-      fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w700, height: 1.35);
+      fontFamily: 'Plex', fontSize: 16, fontWeight: FontWeight.w700, height: 1.35);
   static const TextStyle body = TextStyle(
-      fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w400, height: 1.6, color: AppColors.sub);
+      fontFamily: 'Plex', fontSize: 13, fontWeight: FontWeight.w400, height: 1.6, color: AppColors.sub);
   static const TextStyle bodyBold = TextStyle(
-      fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w600, height: 1.55);
+      fontFamily: 'Plex', fontSize: 13, fontWeight: FontWeight.w600, height: 1.55);
   static const TextStyle label = TextStyle(
-      fontFamily: 'Cairo', fontSize: 11.5, fontWeight: FontWeight.w500, color: AppColors.muted);
+      fontFamily: 'Plex', fontSize: 11.5, fontWeight: FontWeight.w500, color: AppColors.muted);
   static const TextStyle button = TextStyle(
-      fontFamily: 'Cairo', fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text);
+      fontFamily: 'Plex', fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.text);
 }
 
 class AppTheme {
@@ -88,7 +107,7 @@ class AppTheme {
     final ThemeData base = ThemeData(
       brightness: Brightness.dark,
       useMaterial3: true,
-      fontFamily: 'Cairo',
+      fontFamily: 'Plex',
       scaffoldBackgroundColor: AppColors.bg,
       colorScheme: ColorScheme.dark(
         primary: a,
@@ -100,7 +119,7 @@ class AppTheme {
     );
     return base.copyWith(
       textTheme: base.textTheme.apply(
-        fontFamily: 'Cairo',
+        fontFamily: 'Plex',
         bodyColor: AppColors.text,
         displayColor: AppColors.text,
       ),
@@ -111,7 +130,7 @@ class AppTheme {
         centerTitle: true,
         iconTheme: IconThemeData(color: AppColors.text),
         titleTextStyle: TextStyle(
-            fontFamily: 'Cairo', fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
+            fontFamily: 'Plex', fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
       ),
       dividerTheme: const DividerThemeData(color: AppColors.stroke, thickness: 1, space: 1),
       switchTheme: SwitchThemeData(
@@ -128,7 +147,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceHi,
-        contentTextStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.text),
+        contentTextStyle: const TextStyle(fontFamily: 'Plex', fontSize: 13, color: AppColors.text),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
