@@ -573,16 +573,28 @@ class DownloadManager extends ChangeNotifier {
     try {
       if (next.kind == DownloadKind.video && next.source != 'url' &&
           next.url.isEmpty) {
-        try {
-          await _resolve(next);
-        } on DownloadException {
-          rethrow;
-        } on _Cancelled {
-          rethrow;
-        } catch (e) {
-          throw DownloadException(e.toString().isEmpty
-              ? 'تعذّر تجهيز رابط التحميل — حاول لاحقًا.'
-              : e.toString());
+        // Source pages can be slow or briefly fail: retry with backoff
+        // before reporting an error to the user.
+        Object? lastErr;
+        for (int attempt = 0; attempt < 4; attempt++) {
+          _checkCancel();
+          try {
+            await _resolve(next);
+            lastErr = null;
+            break;
+          } on _Cancelled {
+            rethrow;
+          } catch (e) {
+            lastErr = e;
+            await Future<void>.delayed(Duration(seconds: 2 + attempt * 3));
+          }
+        }
+        if (lastErr != null) {
+          throw lastErr is DownloadException
+              ? lastErr
+              : DownloadException(lastErr.toString().isEmpty
+                  ? 'تعذّر تجهيز رابط التحميل — حاول لاحقًا.'
+                  : 'تعذّر تجهيز رابط التحميل: $lastErr');
         }
         _changed(persist: true);
       }
@@ -668,9 +680,61 @@ class DownloadManager extends ChangeNotifier {
 
   // ----- progressive (MP4 & co.) -----
 
+  /// Android: the file is fetched by the platform's HTTP stack (the one
+  /// ExoPlayer uses), which honours network_security_config — required for
+  /// CDNs with incomplete TLS chains such as Akwam's. Dart only polls.
+  Future<void> _runProgressiveNative(DownloadItem it, File part) async {
+    final String fid = it.id;
+    await _channel.invokeMethod<bool>('dlFetch', <String, dynamic>{
+      'id': fid,
+      'url': it.url,
+      'headers': _headers(it),
+      'path': part.path,
+    });
+    String contentType = '';
+    while (true) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (_cancelRunning) {
+        await _channel.invokeMethod<bool>(
+            'dlFetchCancel', <String, String>{'id': fid});
+        throw _Cancelled();
+      }
+      final Map<dynamic, dynamic>? st = await _channel
+          .invokeMethod<Map<dynamic, dynamic>>(
+              'dlFetchStatus', <String, String>{'id': fid});
+      if (st == null) {
+        throw DownloadException('توقف التحميل — أعد المحاولة.');
+      }
+      it.received = (st['received'] as num?)?.toInt() ?? 0;
+      it.total = (st['total'] as num?)?.toInt() ?? 0;
+      it.progress = it.total > 0 ? it.received / it.total : 0;
+      notifyListeners();
+      _save();
+      final Object? err = st['error'];
+      if (err != null) {
+        final String e = err.toString();
+        if (e.startsWith('HTTP 4')) {
+          throw DownloadException(
+              'رفض المصدر التحميل ($e) — افتح الصفحة مجددًا وأعد المحاولة.');
+        }
+        throw DownloadException('تعذّر تحميل الملف — تحقّق من اتصالك وأعد المحاولة.');
+      }
+      if (st['done'] == true) {
+        contentType = (st['contentType'] ?? '').toString();
+        break;
+      }
+    }
+    final String ext = _extFor(contentType, it.url);
+    await _publish(it, part, '${it.fileBase}.$ext', _mimeFor(ext), 'Videos');
+  }
+
   Future<void> _runProgressive(DownloadItem it) async {
     final Directory dir = await _workDir(it.id);
     final File part = File('${dir.path}/file.part');
+    if (Platform.isAndroid) {
+      await _runProgressiveNative(it, part);
+      return;
+    }
     int have = part.existsSync() ? part.lengthSync() : 0;
     String contentType = '';
     int attempt = 0;

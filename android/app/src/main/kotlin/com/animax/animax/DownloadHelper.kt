@@ -14,7 +14,11 @@ import android.os.Environment
 import android.provider.MediaStore
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.ByteBuffer
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Native helpers for the Dart DownloadManager:
@@ -25,6 +29,102 @@ import java.nio.ByteBuffer
  *  - [open] / [delete]: act on the published content:// URI.
  */
 object DownloadHelper {
+
+    // ---------------------------------------------------------------------
+    // Native progressive download (HttpURLConnection = the same network stack
+    // ExoPlayer uses, so it honours network_security_config — e.g. the
+    // bundled intermediate for Akwam's CDN with its incomplete TLS chain).
+    // Dart starts a fetch, then polls [fetchStatus].
+    // ---------------------------------------------------------------------
+
+    class FetchState {
+        @Volatile var received = 0L
+        @Volatile var total = 0L
+        @Volatile var done = false
+        @Volatile var error: String? = null
+        @Volatile var cancelled = false
+        @Volatile var contentType = ""
+    }
+
+    private val fetches = ConcurrentHashMap<String, FetchState>()
+
+    fun startFetch(id: String, url: String, headers: Map<String, String>, path: String) {
+        val st = FetchState()
+        fetches[id] = st
+        Thread {
+            var attempt = 0
+            val file = File(path)
+            file.parentFile?.mkdirs()
+            while (!st.cancelled && !st.done && st.error == null) {
+                var conn: HttpURLConnection? = null
+                try {
+                    val have = if (file.exists()) file.length() else 0L
+                    conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                        connectTimeout = 30000
+                        readTimeout = 60000
+                        instanceFollowRedirects = true
+                        headers.forEach { (k, v) -> setRequestProperty(k, v) }
+                        if (have > 0) setRequestProperty("Range", "bytes=$have-")
+                    }
+                    val code = conn.responseCode
+                    if (code == 416 && have > 0) { st.received = have; st.total = have; st.done = true; break }
+                    if (code != 200 && code != 206) {
+                        st.error = "HTTP $code"
+                        break
+                    }
+                    st.contentType = conn.contentType ?: ""
+                    val append = code == 206 && have > 0
+                    val len = conn.contentLengthLong
+                    st.total = if (len > 0) (if (append) have + len else len) else 0L
+                    var got = if (append) have else 0L
+                    st.received = got
+                    conn.inputStream.use { input ->
+                        FileOutputStream(file, append).use { out ->
+                            val buf = ByteArray(1 shl 16)
+                            while (true) {
+                                if (st.cancelled) return@use
+                                val n = input.read(buf)
+                                if (n < 0) break
+                                out.write(buf, 0, n)
+                                got += n
+                                st.received = got
+                            }
+                        }
+                    }
+                    if (st.cancelled) break
+                    if (st.total == 0L || got >= st.total) { st.total = got; st.done = true; break }
+                    // Connection dropped early: loop resumes with a Range request.
+                } catch (e: Exception) {
+                    attempt++
+                    if (attempt > 6 || st.cancelled) {
+                        st.error = e.javaClass.simpleName + ": " + (e.message ?: "")
+                        break
+                    }
+                    try { Thread.sleep(1500L * attempt) } catch (_: InterruptedException) {}
+                } finally {
+                    try { conn?.disconnect() } catch (_: Exception) {}
+                }
+            }
+        }.start()
+    }
+
+    fun fetchStatus(id: String): Map<String, Any?>? {
+        val st = fetches[id] ?: return null
+        val m = mapOf(
+            "received" to st.received,
+            "total" to st.total,
+            "done" to st.done,
+            "error" to st.error,
+            "contentType" to st.contentType,
+        )
+        if (st.done || st.error != null || st.cancelled) fetches.remove(id)
+        return m
+    }
+
+    fun cancelFetch(id: String) {
+        fetches[id]?.cancelled = true
+        fetches.remove(id)
+    }
 
     /** Returns true when [output] was written with at least one track. */
     fun mux(inputs: List<String>, output: String): Boolean {

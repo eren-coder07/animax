@@ -155,6 +155,21 @@ class MainActivity : FlutterActivity() {
                             )
                         }
                     }
+                    "dlFetch" -> {
+                        val id = call.argument<String>("id") ?: ""
+                        val url = call.argument<String>("url") ?: ""
+                        val path = call.argument<String>("path") ?: ""
+                        val headers = call.argument<Map<String, String>>("headers") ?: emptyMap()
+                        DownloadHelper.startFetch(id, url, headers, path)
+                        result.success(true)
+                    }
+                    "dlFetchStatus" -> {
+                        result.success(DownloadHelper.fetchStatus(call.argument<String>("id") ?: ""))
+                    }
+                    "dlFetchCancel" -> {
+                        DownloadHelper.cancelFetch(call.argument<String>("id") ?: "")
+                        result.success(true)
+                    }
                     "dlFreeSpace" -> {
                         try {
                             val st = android.os.StatFs(

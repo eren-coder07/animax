@@ -7,9 +7,7 @@ import '../core/download_manager.dart';
 import '../widgets/animax_logo.dart';
 import '../widgets/mb_ui.dart';
 import 'akwam_tab.dart';
-import 'calendar_tab.dart';
 import 'cartoon_tab.dart';
-import 'cinema_tab.dart';
 import 'comic_tab.dart';
 import 'downloads_screen.dart';
 import 'global_search_screen.dart';
@@ -39,7 +37,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '2.1.0';
+    const String version = '2.2.0';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -205,12 +203,10 @@ class _HomeScreenState extends State<HomeScreen> {
     (label: 'أفلام', adult: false, build: () => const AkwamGrid(feed: AkwamFeed.movies)),
     (label: 'مسلسلات', adult: false, build: () => const AkwamGrid(feed: AkwamFeed.series)),
     (label: 'برامج', adult: false, build: () => const AkwamGrid(feed: AkwamFeed.shows)),
-    (label: 'أجنبي', adult: false, build: () => const CinemaTab()),
     (label: 'أنمي', adult: false, build: () => const HomeTab()),
     (label: 'كرتون', adult: false, build: () => const CartoonTab()),
     (label: 'مانغا', adult: false, build: () => const ComicTab()),
-    (label: 'التقويم', adult: false, build: () => const CalendarTab()),
-    (label: 'للكبار', adult: true, build: () => const HentaiTab()),
+    (label: '+18', adult: false, build: () => const HentaiTab()),
   ];
 
   /// Built lazily on first visit, then kept alive.
@@ -229,6 +225,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // HomeScreen is a const child of the shell, so it must listen to the
+    // app state itself — otherwise category taps never rebuild it.
+    return ListenableBuilder(
+      listenable: AppState.I,
+      builder: (BuildContext context, _) => _buildHome(context),
+    );
+  }
+
+  Widget _buildHome(BuildContext context) {
     final AppState state = AppState.I;
     final int cat = state.homeCategory.clamp(0, _cats.length - 1);
     _built.putIfAbsent(cat, () => _cats[cat].build());
@@ -289,6 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(
               height: 42,
               child: ListView.builder(
+                key: const Key('categoryBar'),
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 itemCount: _cats.length,
@@ -365,11 +371,11 @@ class WhatsNewDialog extends StatelessWidget {
   final String version;
 
   static const List<String> highlights = <String>[
-    'تصميم جديد بالكامل: بحث موحّد، أقسام في الأعلى وصفوف ملصقات',
-    'شريط سفلي جديد: الرئيسية · التحميلات · حسابي',
-    'صفحة تفاصيل جديدة مع أزرار سريعة وزر تحميل عائم',
-    'خط عربي جديد أوضح وأجمل في كل الشاشات',
-    'تحميل الأفلام والحلقات كـ MP4 والمانغا كـ PDF',
+    'شريط الأقسام في الأعلى يعمل الآن بشكل صحيح',
+    'إصلاح التحميل: الأفلام والحلقات تُحفظ في مجلد التحميلات',
+    'رسالة «جارٍ التحميل» تختفي تلقائيًا',
+    'الأقسام: أكوام · أنمي · كرتون · مانغا · +18',
+    'تحسينات في كل الشاشات',
   ];
 
   @override

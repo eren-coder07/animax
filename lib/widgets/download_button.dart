@@ -107,6 +107,10 @@ void showDownloadQueuedSnack(BuildContext context) {
   m.showSnackBar(SnackBar(
     content: const Text('جارٍ التحميل — سيُحفظ في Download/Animax عند الانتهاء'),
     behavior: SnackBarBehavior.floating,
+    // A SnackBar with an action persists by default in recent Flutter —
+    // this one is informational and must go away on its own.
+    persist: false,
+    duration: const Duration(seconds: 3),
     action: SnackBarAction(
       label: 'عرض',
       onPressed: () => Navigator.of(context).pushNamed('/downloads'),

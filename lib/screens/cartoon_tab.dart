@@ -41,10 +41,10 @@ class _CartoonTabState extends State<CartoonTab>
 
   void _reload() {
     final CartoonApi api = CartoonApi.I;
-    _trending = api.trending();
-    _popularSeries = api.popularSeries();
-    _topMovies = api.topMovies();
-    _bestRated = api.bestRated();
+    _trending = api.trending()..ignore(); // rows below the fold build lazily
+    _popularSeries = api.popularSeries()..ignore();
+    _topMovies = api.topMovies()..ignore();
+    _bestRated = api.bestRated()..ignore();
   }
 
   @override

@@ -6,14 +6,12 @@ import '../core/akwam_api.dart';
 import '../core/api_service.dart';
 import '../core/app_data.dart';
 import '../core/app_theme.dart';
-import '../core/cinema_api.dart';
 import '../core/manga_api.dart';
 import '../widgets/mb_ui.dart';
 import 'akwam_tab.dart';
-import 'cinema_details_screen.dart';
 
-/// One search across every source: Akwam (Arabic) first, then movies &
-/// series, anime and manga — each as a poster row.
+/// One search across every source: Akwam first, then anime and manga —
+/// each as a poster row.
 class GlobalSearchScreen extends StatefulWidget {
   const GlobalSearchScreen({super.key});
 
@@ -28,7 +26,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   int _gen = 0;
 
   List<AkwamItem>? _akwam;
-  List<CinemaItem>? _cinema;
   List<Anime>? _anime;
   List<MangaItem>? _manga;
 
@@ -55,7 +52,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     final int gen = ++_gen;
     setState(() {
       _query = q;
-      _akwam = _cinema = null;
+      _akwam = null;
       _anime = null;
       _manga = null;
     });
@@ -72,7 +69,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
 
     await Future.wait(<Future<void>>[
       run<AkwamItem>(AkwamApi.I.search(q), (List<AkwamItem> r) => _akwam = r),
-      run<CinemaItem>(CinemaApi.I.search(q), (List<CinemaItem> r) => _cinema = r),
       run<Anime>(ApiService.I.search(q), (List<Anime> r) => _anime = r),
       run<MangaItem>(MangaApi.I.search(q, limit: 18),
           (List<MangaItem> r) => _manga = r),
@@ -192,10 +188,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
 
   Widget _results() {
     final bool allDone =
-        _akwam != null && _cinema != null && _anime != null && _manga != null;
+        _akwam != null && _anime != null && _manga != null;
     final bool none = allDone &&
         _akwam!.isEmpty &&
-        _cinema!.isEmpty &&
         _anime!.isEmpty &&
         _manga!.isEmpty;
     if (none) {
@@ -210,25 +205,11 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       children: <Widget>[
         if (_akwam == null || _akwam!.isNotEmpty)
           PosterRow<AkwamItem>(
-            title: 'أفلام ومسلسلات عربية',
+            title: 'أكوام — أفلام ومسلسلات',
             items: _akwam ?? const <AkwamItem>[],
             loading: _akwam == null,
             itemBuilder: (BuildContext c, AkwamItem it, double w) =>
                 AkwamCard(item: it, width: w),
-          ),
-        if (_cinema == null || _cinema!.isNotEmpty)
-          PosterRow<CinemaItem>(
-            title: 'أفلام ومسلسلات أجنبية',
-            items: _cinema ?? const <CinemaItem>[],
-            loading: _cinema == null,
-            itemBuilder: (BuildContext c, CinemaItem it, double w) => PosterTile(
-              title: it.name,
-              image: it.poster,
-              width: w,
-              rating: it.imdbRating,
-              onTap: () => Navigator.of(c).push(MaterialPageRoute<void>(
-                  builder: (_) => CinemaDetailsScreen(item: it))),
-            ),
           ),
         if (_anime == null || _anime!.isNotEmpty)
           PosterRow<Anime>(

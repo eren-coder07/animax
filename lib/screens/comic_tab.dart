@@ -43,11 +43,14 @@ class _ComicTabState extends State<ComicTab>
 
   void _reload() {
     final MangaApi api = MangaApi.I;
-    _popular = api.popular(limit: 18);
-    _latest = api.latest(limit: 18);
-    _newest = api.newest(limit: 18);
-    _top = api.topRated(limit: 18);
-    _tags = api.tags();
+    // Rows below the fold are built lazily; mark the futures handled so a
+    // network failure never surfaces as an unhandled error (each row's
+    // FutureBuilder still receives and shows it).
+    _popular = api.popular(limit: 18)..ignore();
+    _latest = api.latest(limit: 18)..ignore();
+    _newest = api.newest(limit: 18)..ignore();
+    _top = api.topRated(limit: 18)..ignore();
+    _tags = api.tags()..ignore();
   }
 
   @override
