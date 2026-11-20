@@ -13,25 +13,15 @@ import 'hentai_tab.dart';
 import 'home_tab.dart';
 import 'profile_tab.dart';
 
-/// Root navigation shell — 8 sections: Home, Calendar, Cinema, Akwam,
-/// Cartoons, Comics, 18+ and Profile. Also hosts the once-per-version
+/// Root navigation shell — 8 sections. The bottom bar shows Home, Cinema,
+/// Akwam, More and Profile; Calendar, Cartoons, Comics and 18+ open from the
+/// "More" sheet. Also hosts the once-per-version
 /// What's-new dialog shown shortly after entering.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
   @override
   State<HomeShell> createState() => _HomeShellState();
-
-  static const List<({IconData icon, String label})> _tabs = [
-    (icon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.calendar_month_rounded, label: 'Calendar'),
-    (icon: Icons.theaters_rounded, label: 'Cinema'),
-    (icon: Icons.local_movies_rounded, label: 'Akwam'),
-    (icon: Icons.animation_rounded, label: 'Cartoons'),
-    (icon: Icons.menu_book_rounded, label: 'Comics'),
-    (icon: Icons.eighteen_up_rating_rounded, label: '18+'),
-    (icon: Icons.person_rounded, label: 'Profile'),
-  ];
 }
 
 class _HomeShellState extends State<HomeShell> {
@@ -84,16 +74,120 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-/// The 7-tab bottom navigation with the new-episode badge dot.
+/// One navigable section. [index] is its slot in the shell's IndexedStack
+/// (kept stable so `AppState.setTab(i)` callers keep working).
+typedef _Section = ({
+  int index,
+  IconData icon,
+  String label,
+  String blurb,
+  Color? tint,
+});
+
+/// Sections pinned to the bottom bar (order = left → right, with the
+/// "More" button inserted before Profile).
+const List<_Section> _primary = <_Section>[
+  (index: 0, icon: Icons.home_rounded, label: 'Home', blurb: '', tint: null),
+  (
+    index: 2,
+    icon: Icons.theaters_rounded,
+    label: 'Cinema',
+    blurb: '',
+    tint: Color(0xFFE50914)
+  ),
+  (
+    index: 3,
+    icon: Icons.movie_filter_rounded,
+    label: 'Akwam',
+    blurb: '',
+    tint: Color(0xFF18A2B8)
+  ),
+];
+
+const _Section _profile = (
+  index: 7,
+  icon: Icons.person_rounded,
+  label: 'Profile',
+  blurb: '',
+  tint: null
+);
+
+/// Sections reachable from the "More" sheet.
+const List<_Section> _more = <_Section>[
+  (
+    index: 1,
+    icon: Icons.calendar_month_rounded,
+    label: 'Calendar',
+    blurb: 'Airing schedule',
+    tint: Color(0xFF7C8CFF)
+  ),
+  (
+    index: 4,
+    icon: Icons.animation_rounded,
+    label: 'Cartoons',
+    blurb: 'Animated shows',
+    tint: Color(0xFFFFB020)
+  ),
+  (
+    index: 5,
+    icon: Icons.menu_book_rounded,
+    label: 'Comics',
+    blurb: 'Manga reader',
+    tint: Color(0xFF3DD6A0)
+  ),
+  (
+    index: 6,
+    icon: Icons.eighteen_up_rating_rounded,
+    label: '18+',
+    blurb: 'Adults only',
+    tint: Color(0xFFFF5A8A)
+  ),
+];
+
+/// Compact 5-slot bottom bar: Home · Cinema · Akwam · More · Profile.
+/// When a "More" section is open, the More slot takes on its icon + name.
 class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.state, required this.accent});
 
   final AppState state;
   final Color accent;
 
+  /// History-based "new episode" hint for the Calendar section.
+  static bool get _calendarBadge =>
+      AppPrefs.I.navBadges && LibraryStore.I.history.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
-    final List<({IconData icon, String label})> tabs = HomeShell._tabs;
+    final int current = state.navIndex;
+    _Section? activeMore;
+    for (final _Section s in _more) {
+      if (s.index == current) activeMore = s;
+    }
+    final List<Widget> items = <Widget>[
+      for (final _Section s in _primary)
+        _NavItem(
+          icon: s.icon,
+          label: s.label,
+          active: current == s.index,
+          color: s.tint ?? accent,
+          onTap: () => state.setTab(s.index),
+        ),
+      _NavItem(
+        icon: activeMore?.icon ?? Icons.grid_view_rounded,
+        label: activeMore?.label ?? 'More',
+        active: activeMore != null,
+        color: activeMore?.tint ?? accent,
+        badge: activeMore == null && _calendarBadge,
+        onTap: () => _MoreSheet.show(context, state, accent),
+      ),
+      _NavItem(
+        icon: _profile.icon,
+        label: _profile.label,
+        active: current == _profile.index,
+        color: accent,
+        onTap: () => state.setTab(_profile.index),
+      ),
+    ];
     return Container(
       decoration: BoxDecoration(
         color: AppColors.bg,
@@ -102,70 +196,236 @@ class _BottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
           child: Row(
-            children: List<Widget>.generate(tabs.length, (int i) {
-              final bool active = state.navIndex == i;
-              final bool isCinemaTab = i == 2;
-              final bool isAkwamTab = i == 3;
-              final Color activeColor = isCinemaTab
-                  ? const Color(0xFFE50914)
-                  : isAkwamTab
-                      ? const Color(0xFF18A2B8)
-                      : accent;
-              return Expanded(
-                child: InkWell(
-                  onTap: () => state.setTab(i),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _tabIcon(tabs[i].icon, i, active, activeColor),
-                      const SizedBox(height: 4),
-                      Text(
-                        tabs[i].label,
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 9.5,
-                          fontWeight:
-                              active ? FontWeight.w700 : FontWeight.w500,
-                          color: active ? activeColor : AppColors.muted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+            children: <Widget>[
+              for (final Widget w in items) Expanded(child: w),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _tabIcon(IconData icon, int i, bool active, Color activeColor) {
-    final Widget ic =
-        Icon(icon, size: 22, color: active ? activeColor : AppColors.muted);
-    if (i == 1 && AppPrefs.I.navBadges && LibraryStore.I.history.isNotEmpty) {
-      return Stack(
-        clipBehavior: Clip.none,
-        children: <Widget>[
-          ic,
-          Positioned(
-            top: -1,
-            right: -3,
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                  color: AppColors.danger, shape: BoxShape.circle),
+/// A bottom-bar slot: pill highlight behind the icon when active.
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.color,
+    required this.onTap,
+    this.badge = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final Color color;
+  final VoidCallback onTap;
+  final bool badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: active,
+      label: label,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 32,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: 56,
+              height: 30,
+              decoration: BoxDecoration(
+                color: active
+                    ? color.withValues(alpha: 0.16)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              alignment: Alignment.center,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  Icon(icon,
+                      size: 23, color: active ? color : AppColors.muted),
+                  if (badge)
+                    Positioned(
+                      top: -1,
+                      right: -3,
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: AppColors.danger,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.bg, width: 1.2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 11,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                color: active ? color : AppColors.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet listing the sections that don't fit on the bar.
+class _MoreSheet extends StatelessWidget {
+  const _MoreSheet({required this.state, required this.accent});
+
+  final AppState state;
+  final Color accent;
+
+  static Future<void> show(
+      BuildContext context, AppState state, Color accent) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => _MoreSheet(state: state, accent: accent),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 12),
+              child: Text('More sections',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.text)),
+            ),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2.1,
+              children: <Widget>[
+                for (final _Section s in _more) _tile(context, s),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tile(BuildContext context, _Section s) {
+    final Color c = s.tint ?? accent;
+    final bool active = state.navIndex == s.index;
+    final bool badge = s.index == 1 && _BottomNav._calendarBadge;
+    return Material(
+      color: active ? c.withValues(alpha: 0.14) : AppColors.surfaceHi,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.of(context).pop();
+          state.setTab(s.index);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: active ? c.withValues(alpha: 0.6) : AppColors.stroke),
           ),
-        ],
-      );
-    }
-    return ic;
+          child: Row(
+            children: <Widget>[
+              Stack(
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: c.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(s.icon, color: c, size: 22),
+                  ),
+                  if (badge)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: AppColors.danger,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: AppColors.surfaceHi, width: 1.5),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(s.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text)),
+                    Text(s.blurb,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 10.5,
+                            color: AppColors.sub)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
