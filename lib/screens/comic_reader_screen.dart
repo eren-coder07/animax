@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
+import '../widgets/download_button.dart';
 import '../core/library_store.dart';
 import '../core/manga_api.dart';
 
@@ -387,6 +389,17 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                                   fontSize: 10.5,
                                   color: Colors.white60)),
                         ],
+                      ),
+                    ),
+                    DownloadIconButton(
+                      chapterId: _chapter.id,
+                      size: 21,
+                      onStart: () => DownloadManager.I.addComicChapter(
+                        title: widget.manga.title,
+                        chapterLabel:
+                            '${_chapter.chipLabel} · ${_chapter.displayTitle}',
+                        chapterId: _chapter.id,
+                        poster: widget.manga.cover,
                       ),
                     ),
                     IconButton(

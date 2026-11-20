@@ -6,7 +6,9 @@ import 'package:video_player/video_player.dart';
 
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../widgets/player_gestures.dart';
+import '../widgets/download_button.dart';
 import 'akwam_tab.dart';
 
 /// Native (ExoPlayer) player for the Akwam section.
@@ -31,6 +33,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   int _sourceIndex = 0;
 
   VideoPlayerController? _player;
+
+  /// Direct stream URL of the quality being played (for downloads).
+  String _streamUrl = '';
   bool _resolving = true;
   String? _error;
   String _status = '';
@@ -207,7 +212,10 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     }
 
     if (!mounted) return;
-    setState(() => _status = '');
+    setState(() {
+      _status = '';
+      _streamUrl = url;
+    });
     final bool isHls = url.contains('.m3u8');
     final VideoPlayerController controller = VideoPlayerController.networkUrl(
       Uri.parse(url),
@@ -508,6 +516,26 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
 
   // ----- Build -----
 
+  /// Queues the current title/episode at the quality being played.
+  Future<void> _download() async {
+    if (_streamUrl.isEmpty) return;
+    final String quality =
+        _sources.isEmpty ? '' : _sources[_sourceIndex].quality;
+    await DownloadManager.I.addVideo(
+      title: _item.title,
+      subtitle: <String>[
+        if (_episode != null) 'Episode ${_episode!.number}',
+        if (quality.isNotEmpty) quality,
+      ].join(' · '),
+      poster: _item.poster,
+      url: _streamUrl,
+      headers: <String, String>{
+        'User-Agent': AkwamApi.ua,
+        'Referer': '${AkwamApi.base}/',
+      },
+    );
+  }
+
   String get _title {
     final String base = _item.title;
     return _episode == null ? base : '$base · E${_episode!.number}';
@@ -599,6 +627,12 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                     fontWeight: FontWeight.w600,
                     color: Colors.white),
               ),
+            ),
+            DownloadIconButton(
+              url: _streamUrl,
+              enabled: _streamUrl.isNotEmpty,
+              onStart: _download,
+              size: 21,
             ),
             IconButton(
               icon: Icon(

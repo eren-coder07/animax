@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
+import '../widgets/download_button.dart';
 import '../core/library_store.dart';
 import '../core/manga_api.dart';
 import '../widgets/shimmer.dart';
@@ -363,15 +365,62 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                 color: AppColors.sub)),
       );
 
+  Future<void> _downloadChapter(MangaChapter ch) async {
+    await DownloadManager.I.addComicChapter(
+      title: item.title,
+      chapterLabel: '${ch.chipLabel} · ${ch.displayTitle}',
+      chapterId: ch.id,
+      poster: item.cover,
+    );
+  }
+
+  /// Queues every available chapter (oldest first) as separate PDFs.
+  Future<void> _downloadAll() async {
+    final List<MangaChapter> list = _chapters.reversed
+        .where((MangaChapter c) => !c.isUnavailable)
+        .toList();
+    if (list.isEmpty) return;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext d) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Download all chapters?'),
+        content: Text('${list.length} chapters will be saved as PDFs in '
+            'Download/Animax/Comics.'),
+        actions: <Widget>[
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('Download')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    for (final MangaChapter ch in list) {
+      await _downloadChapter(ch);
+    }
+    if (mounted) showDownloadQueuedSnack(context);
+  }
+
   Widget _buildChapterHeader() {
     return Row(
       children: <Widget>[
         Text('Chapters',
             style: AppText.h3.copyWith(fontSize: 17)),
         const Spacer(),
-        if (_chapters.isNotEmpty)
+        if (_chapters.isNotEmpty) ...<Widget>[
           Text('${_chapters.length} available',
               style: AppText.label),
+          IconButton(
+            tooltip: 'Download all',
+            visualDensity: VisualDensity.compact,
+            icon: Icon(Icons.download_for_offline_rounded,
+                color: AppColors.accent, size: 22),
+            onPressed: _downloadAll,
+          ),
+        ],
       ],
     );
   }
@@ -482,6 +531,13 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                         ],
                       ),
                     ),
+                    if (!ch.isUnavailable)
+                      DownloadIconButton(
+                        chapterId: ch.id,
+                        color: AppColors.sub,
+                        size: 20,
+                        onStart: () => _downloadChapter(ch),
+                      ),
                     if (read)
                       Icon(Icons.check_circle_rounded,
                           size: 18, color: AppColors.accent)

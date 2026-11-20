@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_prefs.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/library_store.dart';
 import 'akwam_tab.dart';
 import 'calendar_tab.dart';
@@ -340,7 +341,114 @@ class _MoreSheet extends StatelessWidget {
                 for (final _Section s in _more) _tile(context, s),
               ],
             ),
+            const Padding(
+              padding: EdgeInsets.only(left: 4, top: 18, bottom: 12),
+              child: Text('Your stuff',
+                  style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.text)),
+            ),
+            ListenableBuilder(
+              listenable: DownloadManager.I,
+              builder: (BuildContext context, _) {
+                final int n = DownloadManager.I.activeCount;
+                return GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2.1,
+                  children: <Widget>[
+                    _routeTile(
+                      context,
+                      icon: Icons.download_rounded,
+                      label: 'Downloads',
+                      blurb: n > 0 ? '$n in progress' : 'Saved offline',
+                      tint: accent,
+                      route: '/downloads',
+                    ),
+                    _routeTile(
+                      context,
+                      icon: Icons.video_library_rounded,
+                      label: 'My Library',
+                      blurb: 'List · history',
+                      tint: const Color(0xFF5AB4FF),
+                      route: '/library',
+                    ),
+                  ],
+                );
+              },
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _routeTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String blurb,
+    required Color tint,
+    required String route,
+  }) {
+    return Material(
+      color: AppColors.surfaceHi,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          final NavigatorState nav = Navigator.of(context);
+          nav.pop();
+          nav.pushNamed(route);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.stroke),
+          ),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: tint.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: tint, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text)),
+                    Text(blurb,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 10.5,
+                            color: AppColors.sub)),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/app_prefs.dart';
 import 'core/app_theme.dart';
+import 'core/download_manager.dart';
 import 'core/manga_api.dart';
 import 'screens/akwam_details_screen.dart';
 import 'screens/akwam_player_screen.dart';
@@ -13,6 +14,7 @@ import 'screens/comic_details_screen.dart';
 import 'screens/comic_reader_screen.dart';
 import 'screens/comic_tab.dart';
 import 'screens/details_screen.dart';
+import 'screens/downloads_screen.dart';
 import 'screens/help_center_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/hh_catalog_screen.dart';
@@ -28,6 +30,9 @@ import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Restores the download queue and resumes anything left unfinished.
+  DownloadManager.I.load();
   runApp(const AnimaxApp());
 }
 
@@ -56,6 +61,7 @@ class AnimaxApp extends StatelessWidget {
           '/help': (_) => const HelpCenterScreen(),
           '/settings': (_) => const SettingsScreen(),
           '/library': (_) => const LibraryScreen(),
+          '/downloads': (_) => const DownloadsScreen(),
           '/calendar': (_) => const CalendarTab(),
           '/comics': (_) => const ComicTab(),
           '/comic-catalog': (_) => const ComicCatalogScreen(

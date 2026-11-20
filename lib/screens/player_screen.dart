@@ -8,10 +8,12 @@ import '../core/api_service.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/hls_quality.dart';
 import '../core/stream_resolver.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
+import '../widgets/download_button.dart';
 import '../widgets/player_gestures.dart';
 import '../core/app_prefs.dart';
 import '../core/library_store.dart';
@@ -430,6 +432,23 @@ class _PlayerScreenState extends State<PlayerScreen>
     try {
       await c?.dispose();
     } catch (_) {}
+  }
+
+  /// Queues the episode at the quality currently playing.
+  Future<void> _download() async {
+    final ResolvedStream? rs = _stream;
+    if (rs == null) return;
+    await DownloadManager.I.addVideo(
+      title: _anime.title,
+      subtitle: 'Episode ${_episode?.number ?? 1}',
+      poster: _anime.poster,
+      url: rs.url,
+      headers: <String, String>{
+        'User-Agent': _browserUa,
+        if (rs.referer.isNotEmpty) 'Referer': rs.referer,
+      },
+      isHls: rs.isHls,
+    );
   }
 
   Future<void> _switchQuality(String url) async {
@@ -1249,6 +1268,11 @@ class _BottomControls extends StatelessWidget {
                 const _OverlayLabel(
                     icon: Icons.high_quality_rounded, label: 'AUTO'),
               const Spacer(),
+              DownloadIconButton(
+                url: stream?.url ?? '',
+                enabled: stream != null,
+                onStart: state._download,
+              ),
               _OverlayMenuButton<double>(
                 icon: Icons.speed_rounded,
                 label: '${_speedLabel(state._speed)}x',

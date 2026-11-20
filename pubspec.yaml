@@ -15,6 +15,10 @@ dependencies:
   video_player: ^2.9.2
   cronet_http: ^1.10.1
   webview_flutter: ^4.10.0
+  path_provider: ^2.1.6
+  pdf: ^3.13.1
+  pointycastle: ^4.0.0
+  image: ^4.13.1
 
 dev_dependencies:
   flutter_test:

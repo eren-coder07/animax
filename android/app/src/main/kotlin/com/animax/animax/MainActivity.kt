@@ -1,6 +1,11 @@
 package com.animax.animax
 
+import android.Manifest
 import android.app.PictureInPictureParams
+import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
+import android.os.PowerManager
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.ConnectivityManager
@@ -14,6 +19,10 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private var pendingStorageResult: MethodChannel.Result? = null
+    private var wakeLock: PowerManager.WakeLock? = null
+    private val main = Handler(Looper.getMainLooper())
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "animax/app")
@@ -96,9 +105,94 @@ class MainActivity : FlutterActivity() {
                             result.error("net_error", e.message, null)
                         }
                     }
+                    // ---- Downloads (see DownloadHelper / download_manager.dart) ----
+                    "dlMux" -> {
+                        val inputs = call.argument<List<String>>("inputs") ?: emptyList()
+                        val output = call.argument<String>("output") ?: ""
+                        Thread {
+                            val ok = DownloadHelper.mux(inputs, output)
+                            main.post { result.success(ok) }
+                        }.start()
+                    }
+                    "dlPublish" -> {
+                        val path = call.argument<String>("path") ?: ""
+                        val name = call.argument<String>("name") ?: "animax"
+                        val mime = call.argument<String>("mime") ?: "application/octet-stream"
+                        val folder = call.argument<String>("folder") ?: "Files"
+                        Thread {
+                            DownloadHelper.publish(applicationContext, path, name, mime, folder) { map, err ->
+                                main.post {
+                                    if (map != null) result.success(map)
+                                    else result.error("publish_failed", err, null)
+                                }
+                            }
+                        }.start()
+                    }
+                    "dlOpen" -> {
+                        val uri = call.argument<String>("uri") ?: ""
+                        val mime = call.argument<String>("mime") ?: ""
+                        result.success(DownloadHelper.open(this, uri, mime))
+                    }
+                    "dlDelete" -> {
+                        val uri = call.argument<String>("uri") ?: ""
+                        result.success(DownloadHelper.delete(applicationContext, uri))
+                    }
+                    "dlEnsureStorage" -> {
+                        // Only Android 9 and older need a permission to write
+                        // into the public Download folder.
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
+                            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            result.success(true)
+                        } else if (pendingStorageResult != null) {
+                            result.success(false)
+                        } else {
+                            pendingStorageResult = result
+                            requestPermissions(
+                                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 4711
+                            )
+                        }
+                    }
+                    "dlKeepAlive" -> {
+                        // Partial wake lock so a running download survives the
+                        // screen turning off.
+                        val on = call.argument<Boolean>("on") ?: false
+                        try {
+                            if (on) {
+                                if (wakeLock == null) {
+                                    val pm = getSystemService(POWER_SERVICE) as PowerManager
+                                    wakeLock = pm.newWakeLock(
+                                        PowerManager.PARTIAL_WAKE_LOCK, "animax:download"
+                                    ).apply { setReferenceCounted(false) }
+                                }
+                                wakeLock?.acquire(3 * 60 * 60 * 1000L)
+                            } else {
+                                wakeLock?.let { if (it.isHeld) it.release() }
+                            }
+                        } catch (_: Exception) {}
+                        result.success(true)
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 4711) {
+            val granted = grantResults.isNotEmpty() &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED
+            pendingStorageResult?.success(granted)
+            pendingStorageResult = null
+        }
+    }
+
+    override fun onDestroy() {
+        wakeLock?.let { if (it.isHeld) it.release() }
+        super.onDestroy()
     }
 
     override fun onPictureInPictureModeChanged(active: Boolean, config: Configuration) {

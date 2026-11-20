@@ -5,10 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/hh_api.dart';
 import '../core/hls_quality.dart';
 import '../core/stream_resolver.dart' show ResolvedStream;
 import '../widgets/player_gestures.dart';
+import '../widgets/download_button.dart';
 import 'hentai_tab.dart';
 
 /// Native (ExoPlayer) player for the +18 section.
@@ -220,6 +222,25 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     try {
       await c?.dispose();
     } catch (_) {}
+  }
+
+  /// Queues the current episode (full HLS master: best quality + audio).
+  Future<void> _download() async {
+    final HhStream? st = _stream;
+    if (st == null) return;
+    await DownloadManager.I.addVideo(
+      title: _series.title,
+      subtitle: 'Episode $_episode',
+      poster: st.poster,
+      url: st.url,
+      headers: <String, String>{
+        'User-Agent':
+            'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 '
+                '(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+        'Referer': '${HentaiApi.frontBase}/',
+      },
+      isHls: st.isHls,
+    );
   }
 
   /// Runtime listener: catches mid-playback failures and auto-advances on
@@ -643,6 +664,11 @@ class _TopBar extends StatelessWidget {
                         color: Colors.white70)),
               ],
             ),
+          ),
+          DownloadIconButton(
+            url: state._stream?.url ?? '',
+            enabled: state._stream != null,
+            onStart: state._download,
           ),
           IconButton(
             icon: Icon(

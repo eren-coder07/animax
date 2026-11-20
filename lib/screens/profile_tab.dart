@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_state.dart';
+import '../core/download_manager.dart';
 import '../core/app_theme.dart';
 import '../core/library_store.dart';
 import '../widgets/common.dart';
@@ -62,6 +63,36 @@ class ProfileTab extends StatelessWidget {
                       icon: Icons.video_library_rounded,
                       label: 'My Library (List · History · Stats)',
                       onTap: () => Navigator.pushNamed(context, '/library'),
+                    ),
+                    const Divider(indent: 54),
+                    ListenableBuilder(
+                      listenable: DownloadManager.I,
+                      builder: (BuildContext context, _) {
+                        final int n = DownloadManager.I.activeCount;
+                        return MenuRow(
+                          icon: Icons.download_rounded,
+                          label: 'Downloads',
+                          trailing: n == 0
+                              ? null
+                              : Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 9, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text('$n',
+                                      style: TextStyle(
+                                          fontFamily: 'Poppins',
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.accent)),
+                                ),
+                          onTap: () =>
+                              Navigator.pushNamed(context, '/downloads'),
+                        );
+                      },
                     ),
                     const Divider(indent: 54),
                     MenuRow(
