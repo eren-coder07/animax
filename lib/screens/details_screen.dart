@@ -592,8 +592,8 @@ class _QuickActions extends StatelessWidget {
                 icon: Icons.ios_share_rounded,
                 label: 'Share',
                 onTap: () async {
-                  final String text = 'Watching ${anime.title} on Animax — '
-                      'a free anime app: https://github.com/eren-coder07/animax';
+                  final String text =
+                      'Watching ${anime.title} on Animax — a free anime app';
                   await Clipboard.setData(ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

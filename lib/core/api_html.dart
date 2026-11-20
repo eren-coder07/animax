@@ -258,7 +258,7 @@ extension AnimeWatchId on Anime {
   String? get watchId => watchIdOf(slug ?? id);
 
   /// Watch-page URL for episode [ep] (defaults to the show page).
-  String watchUrl({String base = 'https://aniwaves.ru', int? ep}) {
+  String watchUrl({String base = 'https://aniwaves.tv', int? ep}) {
     final String s = slug ?? id;
     return ep == null ? '$base/watch/$s' : '$base/watch/$s/ep-$ep';
   }

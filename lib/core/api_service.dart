@@ -351,7 +351,7 @@ class ApiService {
   //
   // The captured Aniwaves API keeps sign-in behind a session cookie + CSRF
   // form flow, so these helpers target generic JSON auth endpoints. When the
-  // backend has none (like aniwaves.ru), login() throws and the UI falls
+  // backend has none (like aniwaves.tv), login() throws and the UI falls
   // back to the local profile.
 
   /// Attempts login against candidate auth paths.

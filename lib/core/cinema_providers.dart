@@ -129,6 +129,8 @@ const List<String> cinemaAllowedHosts = <String>[
   'vidfast.vc',
   '2embed.cc',
   'multiembed.mov',
+  'streamingnow.mov', // multiembed.mov now 302s the main frame here
+  'vidsrc.buzz', // 2embed.cc player iframe
   'embed.su',
   'vidora.su',
   'vidjoy.pro',

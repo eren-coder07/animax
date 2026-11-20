@@ -6,8 +6,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   flutter build apk --release --dart-define=ANIMAX_API_BASE=https://host
 const String kDefaultApiBaseOverride = String.fromEnvironment('ANIMAX_API_BASE');
 
-/// Default backend captured in the user's HAR (`upload/myapi`).
-const String kDefaultApiBase = 'https://aniwaves.ru';
+/// Default backend (Aniwaves). The site moved from aniwaves.ru to
+/// aniwaves.tv (2026-11): the old host only answers with a 301 now.
+const String kDefaultApiBase = 'https://aniwaves.tv';
+
+/// Retired backend hosts; configs saved with one are moved to
+/// [kDefaultApiBase] on load.
+const List<String> kLegacyApiHosts = <String>['aniwaves.ru'];
 
 /// Token baked in at build time (optional):
 ///   --dart-define=ANIMAX_API_TOKEN=eyJhbGciOi...
@@ -58,7 +63,7 @@ class ApiConfig {
     return value;
   }
 
-  /// e.g. `https://aniwaves.ru`.
+  /// e.g. `https://aniwaves.tv`.
   String baseUrl;
 
   /// Optional. Sent as `Authorization: Bearer <authToken>` on every request.
@@ -157,8 +162,19 @@ class ApiConfig {
 
   static const String _storageKey = 'animax_api_config_v2';
 
+  /// Saved configs that still point at a retired host → current default.
+  /// Null → the constructor falls back to the default base.
+  static String? _migrateBase(String saved) {
+    if (saved.trim().isEmpty) return null;
+    final String host = Uri.tryParse(saved.trim())?.host ?? '';
+    for (final String legacy in kLegacyApiHosts) {
+      if (host == legacy || host.endsWith('.$legacy')) return null;
+    }
+    return saved;
+  }
+
   factory ApiConfig.fromJson(Map<String, dynamic> j) => ApiConfig(
-        baseUrl: (j['baseUrl'] ?? '') as String,
+        baseUrl: _migrateBase((j['baseUrl'] ?? '') as String),
         authToken: (j['authToken'] ?? '') as String,
         apiKeyHeader: (j['apiKeyHeader'] ?? '') as String,
         apiKeyValue: (j['apiKeyValue'] ?? '') as String,

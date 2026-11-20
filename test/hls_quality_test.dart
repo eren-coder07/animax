@@ -39,6 +39,21 @@ https://cdn.example.com/hls/index-v1-a1.m3u8?t=abc&s=1
           isEmpty);
     });
 
+    test('detects masters whose variants need separate audio renditions', () {
+      // Live shape (octopusmanifest CDN, 2026-11-20): variants are
+      // video-only, audio comes from snd/a.m3u8.
+      const String split = '''#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-MEDIA:URI="snd/a.m3u8",TYPE=AUDIO,GROUP-ID="audio",LANGUAGE="en",NAME="English",DEFAULT=YES,AUTOSELECT=YES
+#EXT-X-STREAM-INF:BANDWIDTH=2077570,RESOLUTION=1280x720,CODECS="avc1.4d4028,mp4a.40.2",AUDIO="audio"
+7sop/v.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360,CODECS="avc1.4d4028,mp4a.40.2",AUDIO="audio"
+3cop/v.m3u8
+''';
+      expect(HlsQuality.hasSeparateRenditions(split), isTrue);
+      expect(HlsQuality.hasSeparateRenditions(master), isFalse);
+    });
+
     test('pick prefers the highest variant within the bandwidth budget', () {
       final List<HlsVariant> vs = <HlsVariant>[
         HlsVariant(bandwidth: 500000, uri: Uri.parse('https://x/0.m3u8')),

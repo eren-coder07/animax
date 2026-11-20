@@ -350,7 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
-              child: Text('Animax v1.9.1 (12) · built for the love of anime',
+              child: Text('Animax v1.9.2 (13) · built for the love of anime',
                   style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 11,
@@ -415,11 +415,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final http.Response res = await createHttpClient()
           .get(Uri.parse('https://api.github.com/repos/eren-coder07/animax/releases/latest'))
           .timeout(const Duration(seconds: 15));
+      // A private repository answers 404 to unauthenticated API calls.
+      if (res.statusCode == 404) {
+        if (mounted) {
+          setState(() {
+            _checkingUpdate = false;
+            _updateMessage = 'Update check unavailable for this build.';
+          });
+        }
+        return;
+      }
       if (res.statusCode != 200) throw StateError('HTTP ${res.statusCode}');
       final String tag =
           ((jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['tag_name'] ?? '')
               .toString();
-      final String current = 'v1.9.1';
+      final String current = 'v1.9.2';
       final bool newer = _isNewer(tag, current);
       if (mounted) {
         setState(() {

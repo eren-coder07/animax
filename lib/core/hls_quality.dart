@@ -117,6 +117,17 @@ class HlsQuality {
     return out;
   }
 
+  /// True when the master's variants pull audio/subtitles from separate
+  /// `#EXT-X-MEDIA` renditions (e.g. `AUDIO="audio"` → `snd/a.m3u8`), so a
+  /// single variant URL is NOT a self-contained stream.
+  static bool hasSeparateRenditions(String body) {
+    if (RegExp(r'#EXT-X-MEDIA:[^\r\n]*TYPE=AUDIO[^\r\n]*URI=')
+        .hasMatch(body)) {
+      return true;
+    }
+    return RegExp(r'#EXT-X-STREAM-INF:[^\r\n]*AUDIO="').hasMatch(body);
+  }
+
   static void _addAttr(Map<String, String> map, String chunk) {
     final int eq = chunk.indexOf('=');
     if (eq <= 0) return;
@@ -215,6 +226,10 @@ class HlsQuality {
       if (res.statusCode != 200) return rs;
       final String body = utf8.decode(res.bodyBytes, allowMalformed: true);
       if (!body.contains('#EXT-X-STREAM-INF')) return rs; // media playlist
+      // Variants that reference separate audio renditions are video-only
+      // playlists: opening one directly plays silent (or fails to prepare).
+      // Keep the master so ExoPlayer joins video + audio itself.
+      if (hasSeparateRenditions(body)) return rs;
       final List<HlsVariant> variants = parseMaster(body, base);
       if (variants.isEmpty) return rs;
       // Probe throughput against a real media segment: take the highest
