@@ -29,6 +29,15 @@ android {
         versionName = flutter.versionName
     }
 
+    // Compress native libraries inside the APK: the universal APK carries
+    // three ABIs (Flutter engine + Cronet each), and compressed it stays
+    // small enough to share over chat apps (Telegram bots cap at 50 MB).
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
