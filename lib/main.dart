@@ -19,6 +19,7 @@ import 'screens/comic_reader_screen.dart';
 import 'screens/comic_tab.dart';
 import 'screens/details_screen.dart';
 import 'screens/downloads_screen.dart';
+import 'screens/global_search_screen.dart';
 import 'screens/help_center_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/hh_catalog_screen.dart';
@@ -81,6 +82,7 @@ class AnimaxApp extends StatelessWidget {
           '/settings': (_) => const SettingsScreen(),
           '/library': (_) => const LibraryScreen(),
           '/downloads': (_) => const DownloadsScreen(),
+          '/search-all': (_) => const GlobalSearchScreen(),
           '/calendar': (_) => const CalendarTab(),
           '/comics': (_) => const ComicTab(),
           '/comic-catalog': (_) => const ComicCatalogScreen(
