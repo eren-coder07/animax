@@ -429,7 +429,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final String tag =
           ((jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['tag_name'] ?? '')
               .toString();
-      final String current = 'v2.0.0';
+      final String current = 'v2.1.0';
       final bool newer = _isNewer(tag, current);
       if (mounted) {
         setState(() {

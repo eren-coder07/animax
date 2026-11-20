@@ -276,145 +276,25 @@ class _CinemaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-          child: Text(title, style: AppText.h2),
-        ),
-        SizedBox(
-          height: 220,
-          child: FutureBuilder<List<CinemaItem>>(
-            future: future,
-            builder: (BuildContext context,
-                AsyncSnapshot<List<CinemaItem>> snap) {
-              if (snap.connectionState != ConnectionState.done) {
-                return Center(
-                    child: SizedBox(
-                        width: 26,
-                        height: 26,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.2, color: AppColors.accent)));
-              }
-              if (snap.hasError || (snap.data?.isEmpty ?? true)) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    snap.hasError
-                        ? 'تعذّر التحميل — ${snap.error}'
-                        : 'لا شيء هنا حاليًا.',
-                    style: AppText.label,
-                  ),
-                );
-              }
-              return ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: snap.data!.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (BuildContext c, int i) {
-                  final CinemaItem it = snap.data![i];
-                  return _CartoonCard(item: it, onTap: () => onOpen(it));
-                },
-              );
-            },
+    return FutureBuilder<List<CinemaItem>>(
+      future: future,
+      builder: (BuildContext context, AsyncSnapshot<List<CinemaItem>> snap) {
+        final bool loading = snap.connectionState != ConnectionState.done;
+        final List<CinemaItem> list = snap.data ?? const <CinemaItem>[];
+        if (!loading && list.isEmpty) return const SizedBox.shrink();
+        return PosterRow<CinemaItem>(
+          title: title,
+          items: list,
+          loading: loading,
+          itemBuilder: (BuildContext c, CinemaItem it, double w) => PosterTile(
+            title: it.name,
+            image: it.poster,
+            width: w,
+            rating: it.imdbRating,
+            onTap: () => onOpen(it),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Poster card for cinema/cartoon items (reuses the app's NeonButton style
-/// palette through [PosterLikeBox]).
-class _CartoonCard extends StatelessWidget {
-  const _CartoonCard({required this.item, required this.onTap});
-
-  final CinemaItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 132,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox.expand(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      if (item.poster.startsWith('http'))
-                        Image.network(
-                          item.poster,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (BuildContext context, Widget child,
-                                  ImageChunkEvent? progress) =>
-                              progress == null
-                                  ? child
-                                  : ColoredBox(
-                                      color: AppColors.surface),
-                          errorBuilder: (_, _, _) =>
-                              ColoredBox(color: AppColors.surfaceHi),
-                        )
-                      else
-                        ColoredBox(color: AppColors.surfaceHi),
-                      if (item.imdbRating > 0)
-                        Positioned(
-                          top: 6,
-                          left: 6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                const Icon(Icons.star_rounded,
-                                    size: 11, color: Color(0xFFFFC94D)),
-                                const SizedBox(width: 2),
-                                Text(
-                                  item.imdbRating.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                      fontFamily: 'Plex',
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 7),
-            Text(item.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppText.bodyBold.copyWith(
-                    fontSize: 12, color: AppColors.text)),
-            Text(
-              '${item.isSeries ? 'Series' : 'فيلم'}'
-              '${item.releaseInfo.isEmpty ? '' : ' · ${item.releaseInfo}'}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.label.copyWith(fontSize: 10),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -204,46 +204,18 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<CinemaItem>? list = items;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-          child: Text(title, style: AppText.h2),
-        ),
-        if (list == null)
-          const SizedBox(
-            height: 170,
-            child: Center(
-              child: SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                    color: CinemaColors.gold, strokeWidth: 2),
-              ),
-            ),
-          )
-        else if (list.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Text('لا شيء هنا حاليًا.',
-                style: TextStyle(
-                    fontFamily: 'Plex', fontSize: 12.5, color: AppColors.sub)),
-          )
-        else
-          SizedBox(
-            height: 232,
-            child: ListView.separated(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: list.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (BuildContext _, int i) =>
-                  _Card(item: list[i], onOpen: onOpen),
-            ),
-          ),
-      ],
+    if (list != null && list.isEmpty) return const SizedBox.shrink();
+    return PosterRow<CinemaItem>(
+      title: title,
+      items: list ?? const <CinemaItem>[],
+      loading: list == null,
+      itemBuilder: (BuildContext c, CinemaItem it, double w) => PosterTile(
+        title: it.name,
+        image: it.poster,
+        width: w,
+        rating: it.imdbRating,
+        onTap: () => onOpen(it),
+      ),
     );
   }
 }

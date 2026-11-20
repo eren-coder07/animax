@@ -30,15 +30,15 @@ class AppColors {
   /// Signature cyan → green gradient (primary buttons, active nav icon).
   static const LinearGradient brandGrad = LinearGradient(
     colors: <Color>[Color(0xFF1FC8EE), Color(0xFF2EE58B)],
-    begin: AlignmentDirectional.centerStart,
-    end: AlignmentDirectional.centerEnd,
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
   );
 
   /// Muted teal → green gradient (resource / episode bars).
   static const LinearGradient softGrad = LinearGradient(
     colors: <Color>[Color(0xFF173A4A), Color(0xFF1C4A33)],
-    begin: AlignmentDirectional.centerStart,
-    end: AlignmentDirectional.centerEnd,
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
   );
 
   static const Color brandCyan = Color(0xFF1FC8EE);

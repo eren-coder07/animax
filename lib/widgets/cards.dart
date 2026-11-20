@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'mb_ui.dart';
 import '../core/app_data.dart';
 import '../core/app_theme.dart';
 import 'buttons.dart';
@@ -39,7 +40,7 @@ class PosterCard extends StatelessWidget {
                 tag: 'poster-${anime.id}',
                 child: PosterImage(
                   anime: anime,
-                  radius: 14,
+                  radius: 6,
                   child: Stack(
                     children: [
                       if (showScore)
@@ -164,18 +165,6 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-      child: Row(
-        children: [
-          Expanded(child: Text(title, style: AppText.h2)),
-          GestureDetector(
-            onTap: onSeeAll,
-            child: Text('عرض الكل',
-                style: AppText.bodyBold.copyWith(color: AppColors.accent, fontSize: 12.5)),
-          ),
-        ],
-      ),
-    );
+    return RowHeader(title, onAll: onSeeAll);
   }
 }

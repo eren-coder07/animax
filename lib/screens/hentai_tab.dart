@@ -600,37 +600,17 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 26),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-          child: Row(
-            children: [
-              Expanded(child: Text(title, style: AppText.h2)),
-              if (seeAll != null)
-                GestureDetector(
-                  onTap: seeAll,
-                  child: Text('عرض الكل',
-                      style: AppText.bodyBold
-                          .copyWith(color: HhColors.red, fontSize: 12.5)),
-                ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 236,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (BuildContext context, int i) =>
-                HhSeriesCard(series: items[i]),
-          ),
-        ),
-      ],
+    return PosterRow<HhSeries>(
+      title: title,
+      items: items,
+      onAll: seeAll,
+      itemBuilder: (BuildContext c, HhSeries s, double w) => PosterTile(
+        title: s.title,
+        image: s.thumb,
+        width: w,
+        rating: s.rating,
+        onTap: () => Navigator.pushNamed(c, '/hh-details', arguments: s),
+      ),
     );
   }
 }

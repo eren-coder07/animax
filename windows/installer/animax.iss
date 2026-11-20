@@ -4,7 +4,7 @@
 ;   ISCC.exe /DAppVersion=1.9.2 windows\installer\animax.iss
 
 #ifndef AppVersion
-  #define AppVersion "2.0.0"
+  #define AppVersion "2.1.0"
 #endif
 
 [Setup]
