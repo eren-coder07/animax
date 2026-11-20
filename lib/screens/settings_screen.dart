@@ -350,7 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
-              child: Text('أنيماكس الإصدار 2.0.0 · صُنع بحب للمشاهدين العرب',
+              child: Text('أنيماكس الإصدار 2.1.0 · صُنع بحب للمشاهدين العرب',
                   style: TextStyle(
                       fontFamily: 'Plex',
                       fontSize: 11,
