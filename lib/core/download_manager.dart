@@ -388,6 +388,7 @@ class DownloadManager extends ChangeNotifier {
         if (u.isEmpty) continue;
         try {
           if (u.startsWith('content://')) {
+            // Android MediaStore entry.
             await _channel.invokeMethod<bool>('dlDelete', <String, String>{'uri': u});
           } else {
             final File f = File(u);
@@ -401,6 +402,16 @@ class DownloadManager extends ChangeNotifier {
   /// Opens the finished file with the system viewer/player chooser.
   Future<bool> open(DownloadItem it) async {
     if (it.resultUri.isEmpty) return false;
+    if (Platform.isWindows) {
+      try {
+        // Default app for the file type (Movies & TV, VLC, Edge for PDF…).
+        await Process.start('cmd', <String>['/c', 'start', '', it.resultUri],
+            runInShell: false);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
     try {
       return await _channel.invokeMethod<bool>('dlOpen', <String, String>{
             'uri': it.resultUri,
@@ -876,6 +887,33 @@ class DownloadManager extends ChangeNotifier {
   Future<void> _publish(DownloadItem it, File file, String name, String mime,
       String folder) async {
     it.mime = mime;
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      Directory? dl;
+      try {
+        dl = await getDownloadsDirectory();
+      } catch (_) {}
+      if (dl != null) {
+        final Directory dir = Directory('${dl.path}/Animax/$folder');
+        if (!dir.existsSync()) dir.createSync(recursive: true);
+        File dest = File('${dir.path}/$name');
+        int n = 1;
+        while (dest.existsSync()) {
+          final int dot = name.lastIndexOf('.');
+          final String stem = dot > 0 ? name.substring(0, dot) : name;
+          final String ext = dot > 0 ? name.substring(dot) : '';
+          dest = File('${dir.path}/$stem ($n)$ext');
+          n++;
+        }
+        try {
+          await file.rename(dest.path);
+        } catch (_) {
+          await file.copy(dest.path); // different volume
+        }
+        it.resultUri = dest.path;
+        it.resultLocation = dest.path;
+        return;
+      }
+    }
     try {
       final Map<dynamic, dynamic>? r =
           await _channel.invokeMethod<Map<dynamic, dynamic>>('dlPublish',

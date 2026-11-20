@@ -1,4 +1,7 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
+import 'package:video_player_media_kit/video_player_media_kit.dart';
 
 import 'core/app_prefs.dart';
 import 'core/app_theme.dart';
@@ -31,6 +34,11 @@ import 'screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // video_player has no Windows backend: route it through media_kit (mpv)
+  // there. Android keeps ExoPlayer untouched.
+  if (Platform.isWindows) {
+    VideoPlayerMediaKit.ensureInitialized(windows: true);
+  }
   // Restores the download queue and resumes anything left unfinished.
   DownloadManager.I.load();
   runApp(const AnimaxApp());
