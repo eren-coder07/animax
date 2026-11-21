@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'nearby_screen.dart';
+
 import '../core/akwam_api.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
@@ -120,6 +122,12 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),
+          ),
+          IconButton(
+            key: const Key('nearbyReceive'),
+            tooltip: 'استلام من جهاز قريب (بدون إنترنت)',
+            icon: const Icon(Icons.radar_rounded, color: AppColors.brandGreen),
+            onPressed: () => openNearbyReceive(context),
           ),
           if (anyDone)
             Material(
@@ -584,6 +592,8 @@ class _DoneRow extends StatelessWidget {
                   await m.shareFile(item);
                 } else if (v == 'open') {
                   await _open(context);
+                } else if (v == 'nearby') {
+                  if (context.mounted) await openNearbySend(context, item);
                 } else if (v == 'forget') {
                   await m.remove(item);
                 } else if (v == 'delete') {
@@ -592,6 +602,8 @@ class _DoneRow extends StatelessWidget {
               },
               itemBuilder: (_) => const <PopupMenuEntry<String>>[
                 PopupMenuItem<String>(value: 'share', child: Text('مشاركة الملف')),
+                PopupMenuItem<String>(
+                    value: 'nearby', child: Text('إرسال لجهاز قريب (بدون إنترنت)')),
                 PopupMenuItem<String>(value: 'open', child: Text('فتح بتطبيق آخر')),
                 PopupMenuItem<String>(
                     value: 'forget', child: Text('إزالة من القائمة')),

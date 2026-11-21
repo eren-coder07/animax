@@ -678,6 +678,40 @@ class DownloadManager extends ChangeNotifier {
     return it;
   }
 
+  /// Registers a file received from a nearby phone (already saved by the
+  /// native side) as a finished download.
+  Future<DownloadItem> addReceivedFile({
+    required String title,
+    String subtitle = '',
+    String poster = '',
+    required String uri,
+    String location = '',
+    String mime = 'video/mp4',
+    int size = 0,
+  }) async {
+    await load();
+    final DownloadItem it = DownloadItem(
+      id: 'nearby_${_newId()}',
+      kind: mime == 'application/pdf' || mime.startsWith('image/')
+          ? DownloadKind.comic
+          : DownloadKind.video,
+      title: title,
+      subtitle: subtitle.isEmpty ? 'مستلم من جهاز قريب' : subtitle,
+      poster: poster,
+      url: 'nearby:$uri',
+      status: DownloadStatus.done,
+      progress: 1,
+    );
+    it.resultUri = uri;
+    it.resultLocation = location;
+    it.mime = mime;
+    it.received = size;
+    it.total = size;
+    _items.insert(0, it);
+    _changed(persist: true);
+    return it;
+  }
+
   /// Saves an image (a manga panel clip) to `Download/Animax/Clips` and
   /// returns the finished item (for sharing).
   Future<DownloadItem> saveImageFile(
