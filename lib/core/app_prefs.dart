@@ -60,6 +60,10 @@ class AppPrefs extends ChangeNotifier {
   bool autoPlayNext = true;
   bool autoSkipIntro = false;
   bool bingeMode = false; // marathon: countdown auto-next + skip intros
+  bool timedComments = true; // comments pinned to moments float over video
+  bool spoilerShield = true; // blur clips/comments past your progress
+  bool audioOnly = false; // players: sound only (smallest stream, background)
+  int dataBudgetMb = 0; // monthly mobile-data budget, 0 = off
   int skipIntroSeconds = 85;
   bool pauseOnBackground = true;
   String cinemaProvider = ''; // '' = auto (first working provider)
@@ -93,6 +97,10 @@ class AppPrefs extends ChangeNotifier {
       autoPlayNext = sp.getBool('pref.autoPlayNext') ?? autoPlayNext;
       autoSkipIntro = sp.getBool('pref.autoSkipIntro') ?? autoSkipIntro;
       bingeMode = sp.getBool('pref.bingeMode') ?? bingeMode;
+      timedComments = sp.getBool('pref.timedComments') ?? timedComments;
+      spoilerShield = sp.getBool('pref.spoilerShield') ?? spoilerShield;
+      audioOnly = sp.getBool('pref.audioOnly') ?? audioOnly;
+      dataBudgetMb = sp.getInt('pref.dataBudgetMb') ?? dataBudgetMb;
       skipIntroSeconds = sp.getInt('pref.skipIntroSec') ?? skipIntroSeconds;
       pauseOnBackground = sp.getBool('pref.pauseOnBg') ?? pauseOnBackground;
       cinemaProvider = sp.getString('pref.cinemaProvider') ?? '';
@@ -143,6 +151,22 @@ class AppPrefs extends ChangeNotifier {
       case 'bingeMode':
         bingeMode = value as bool;
         sp?.setBool('pref.bingeMode', bingeMode);
+        break;
+      case 'timedComments':
+        timedComments = value as bool;
+        sp?.setBool('pref.timedComments', timedComments);
+        break;
+      case 'spoilerShield':
+        spoilerShield = value as bool;
+        sp?.setBool('pref.spoilerShield', spoilerShield);
+        break;
+      case 'audioOnly':
+        audioOnly = value as bool;
+        sp?.setBool('pref.audioOnly', audioOnly);
+        break;
+      case 'dataBudgetMb':
+        dataBudgetMb = value as int;
+        sp?.setInt('pref.dataBudgetMb', dataBudgetMb);
         break;
       case 'autoSkipIntro':
         autoSkipIntro = value as bool;

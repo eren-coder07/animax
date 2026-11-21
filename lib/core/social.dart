@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'cloud.dart';
+import 'moments.dart';
 
 /// Social layer on the Realtime Database (all under `/animax`):
 ///
@@ -104,7 +105,8 @@ class Social {
   /// [threadPath]: `comments` (items) or `clipComments` (clips).
   /// [counterPath]: `items/{k}` or `clips/{id}`.
   static Future<Comment> addComment(
-      String threadPath, String key, String counterPath, String text) async {
+      String threadPath, String key, String counterPath, String text,
+      {bool spoiler = false}) async {
     _needLogin();
     final String t = text.trim();
     if (t.isEmpty) throw CloudException('اكتب تعليقًا أولًا.');
@@ -116,12 +118,19 @@ class Social {
       'text': t,
       'at': serverTime,
       'likes': 0,
+      if (spoiler) 'spoiler': true,
     });
     await CloudDb.I.update(<String, dynamic>{'$counterPath/comments': inc()});
     _counts.remove(key);
     BingoStore.I.record(BingoGoal.comment);
     return Comment(
-        id: id, uid: _uid, name: _name, text: t, at: DateTime.now(), likes: 0);
+        id: id,
+        uid: _uid,
+        name: _name,
+        text: t,
+        at: DateTime.now(),
+        likes: 0,
+        spoiler: spoiler);
   }
 
   static Future<void> deleteComment(
@@ -193,8 +202,11 @@ class Social {
 
   static Future<String> createClip(VideoClip c) async {
     _needLogin();
+    final String ek = c.ek.isNotEmpty ? c.ek : Moments.episodeKey(c.source, c.ref);
     final String id = await CloudDb.I.push('clips', <String, dynamic>{
       ...c.toJson(),
+      if (ek.isNotEmpty) 'ek': ek,
+      if (c.replyTo.isNotEmpty) 'replies': 0,
       'uid': _uid,
       'name': _name,
       'at': serverTime,
@@ -203,7 +215,13 @@ class Social {
       'reposts': 0,
       'views': 0,
     });
-    await CloudDb.I.update(<String, dynamic>{'users/$_uid/clips': inc()});
+    await CloudDb.I.update(<String, dynamic>{
+      'users/$_uid/clips': inc(),
+      if (ek.isNotEmpty) 'moments/${CloudDb.key(ek)}/$id': c.startMs ~/ 1000,
+      if (c.replyTo.isNotEmpty) 'clipReplies/${c.replyTo}/$id': true,
+      if (c.replyTo.isNotEmpty) 'clips/${c.replyTo}/replies': inc(),
+    });
+    if (ek.isNotEmpty) Moments.forget(ek);
     BingoStore.I.record(BingoGoal.clip);
     return id;
   }
@@ -270,10 +288,39 @@ class Social {
   static Future<void> deleteClip(VideoClip c) async {
     _needLogin();
     if (c.uid != _uid) return;
+    final String ek = c.ek.isNotEmpty ? c.ek : Moments.episodeKey(c.source, c.ref);
+    await CloudDb.I.update(<String, dynamic>{
+      if (ek.isNotEmpty) 'moments/${CloudDb.key(ek)}/${c.id}': null,
+      if (c.replyTo.isNotEmpty) 'clipReplies/${c.replyTo}/${c.id}': null,
+      if (c.replyTo.isNotEmpty) 'clips/${c.replyTo}/replies': inc(-1),
+    }).catchError((Object _) {});
     await CloudDb.I.update(<String, dynamic>{
       'clips/${c.id}': null,
       'users/$_uid/clips': inc(-1),
     });
+  }
+
+  /// Clips posted as replies to [parentId] (newest first).
+  static Future<List<VideoClip>> repliesOf(String parentId) async {
+    final dynamic ids = await CloudDb.I.get('clipReplies/$parentId');
+    if (ids is! Map || ids.isEmpty) return const <VideoClip>[];
+    final List<dynamic> rows = await Future.wait(<Future<dynamic>>[
+      for (final dynamic id in ids.keys.take(60)) CloudDb.I.get('clips/$id'),
+    ]);
+    final List<VideoClip> out = <VideoClip>[];
+    int i = 0;
+    for (final dynamic id in ids.keys.take(60)) {
+      final dynamic r = rows[i++];
+      if (r is Map) out.add(VideoClip.fromJson(id.toString(), r));
+    }
+    out.sort((VideoClip a, VideoClip b) => (b.at ?? DateTime(0)).compareTo(a.at ?? DateTime(0)));
+    return out;
+  }
+
+  static Future<VideoClip?> clipById(String id) async {
+    if (id.isEmpty) return null;
+    final dynamic r = await CloudDb.I.get('clips/$id');
+    return r is Map ? VideoClip.fromJson(id, r) : null;
   }
 
   /// Item view counts for poster badges (one request, cached 2 min).
@@ -323,6 +370,7 @@ class Comment {
     required this.text,
     required this.at,
     required this.likes,
+    this.spoiler = false,
   });
   final String id;
   final String uid;
@@ -330,6 +378,9 @@ class Comment {
   final String text;
   final DateTime at;
   final int likes;
+
+  /// Marked by its author as containing spoilers (shown blurred).
+  final bool spoiler;
 
   static Comment fromJson(String id, Map<dynamic, dynamic> j) => Comment(
         id: id,
@@ -339,6 +390,7 @@ class Comment {
         at: DateTime.fromMillisecondsSinceEpoch(
             (j['at'] as num?)?.toInt() ?? 0),
         likes: ((j['likes'] as num?)?.toInt() ?? 0).clamp(0, 1 << 31),
+        spoiler: j['spoiler'] == true,
       );
 }
 
@@ -397,6 +449,9 @@ class VideoClip {
     this.comments = 0,
     this.reposts = 0,
     this.views = 0,
+    this.ek = '',
+    this.replyTo = '',
+    this.replies = 0,
   });
 
   final String id;
@@ -404,12 +459,21 @@ class VideoClip {
   final String name;
   final String title;
 
+  /// Episode key ([Moments.episodeKey]) — empty for manga panels.
+  final String ek;
+
+  /// Id of the clip this one answers (reply chains), or empty.
+  final String replyTo;
+  final int replies;
+
   /// e.g. "الحلقة 4 · 12:30"
   final String label;
   final String poster;
   final String kind;
 
-  /// `akwam` (ref.path = watch page) · `anime` (watchId, ep) · `hh` (slug, ep)
+  /// `akwam` (ref.path = watch page, ref.item = movie/series page, ref.ep)
+  /// · `anime` (watchId, ep, slug) · `hh` (slug, ep)
+  /// · `manga` (mangaId, chapterId, page, x, y, w, h — a cropped panel)
   final String source;
   final Map<String, String> ref;
   final int startMs;
@@ -422,6 +486,24 @@ class VideoClip {
 
   static const int maxMs = 10000;
 
+  bool get isPanel => source == 'manga';
+
+  /// Episode number of the clip (0 = a movie / unknown).
+  int get episode {
+    final int? e = int.tryParse(ref['ep'] ?? '');
+    if (e != null) return e;
+    final RegExpMatch? m = RegExp(r'الحلقة\s+(\d+)').firstMatch(label);
+    return m == null ? 0 : int.parse(m.group(1)!);
+  }
+
+  VideoClip copyWith({String? replyTo}) => VideoClip(
+        id: id, uid: uid, name: name, title: title, label: label,
+        poster: poster, kind: kind, source: source, ref: ref,
+        startMs: startMs, endMs: endMs, at: at, likes: likes,
+        comments: comments, reposts: reposts, views: views, ek: ek,
+        replyTo: replyTo ?? this.replyTo, replies: replies,
+      );
+
   Map<String, dynamic> toJson() => <String, dynamic>{
         'title': title,
         'label': label,
@@ -431,6 +513,7 @@ class VideoClip {
         'ref': ref,
         'startMs': startMs,
         'endMs': endMs,
+        if (replyTo.isNotEmpty) 'replyTo': replyTo,
       };
 
   static VideoClip fromJson(String id, Map<dynamic, dynamic> j) {
@@ -455,6 +538,9 @@ class VideoClip {
       comments: n('comments'),
       reposts: n('reposts'),
       views: n('views'),
+      ek: (j['ek'] ?? '').toString(),
+      replyTo: (j['replyTo'] ?? '').toString(),
+      replies: n('replies'),
     );
   }
 }
