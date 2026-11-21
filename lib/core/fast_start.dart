@@ -61,9 +61,11 @@ class FastStart {
     required double from,
     double? to,
     double length = 120,
+    List<List<double>> alignTo = const <List<double>>[],
   }) async {
     final Mp4Index ix = await index(url, headers);
-    final WindowPlan plan = await ix.plan(from: from, to: to, length: length);
+    final WindowPlan plan =
+        await ix.plan(from: from, to: to, length: length, alignTo: alignTo);
     final Uint8List head = ix.buildHead(plan);
     final Uri uri = await FastStartServer.I.publish(
       VirtualMp4(
@@ -80,6 +82,7 @@ class FastStart {
       total: ix.durationSec,
       isLast: plan.isLast,
       indexBytes: head.length,
+      endKeyTime: plan.endKeyTime,
     );
   }
 }
@@ -93,7 +96,12 @@ class FastWindow {
     required this.total,
     required this.isLast,
     required this.indexBytes,
+    this.endKeyTime = 0,
   });
+
+  /// Decode-time of the window's closing keyframe (compare with
+  /// [Mp4Index.keyframeTimes], e.g. for quality switches).
+  final double endKeyTime;
 
   /// Local URL of the virtual MP4.
   final Uri uri;
@@ -463,6 +471,10 @@ class WindowPlan {
   final bool isLast;
   int regionStart = 0;
   int regionEnd = 0;
+
+  /// Decode-time position (s) of the keyframe ending the window — the same
+  /// time base as [Mp4Index.keyframeTimes].
+  double endKeyTime = 0;
 }
 
 class Mp4Index {
@@ -477,6 +489,33 @@ class Mp4Index {
   double get durationSec {
     final _Track v = _video;
     return (v.durationTs - v.editMediaTime) / v.timescale;
+  }
+
+  /// Video sample (frame) sizes for samples [from, from+count) — a few KB of
+  /// the index; used as a cheap fingerprint of the picture (intro detection).
+  Future<List<int>> videoFrameSizes(int from, int count) async {
+    final _Track v = _video;
+    final int n = math.max(0, math.min(count, v.sampleCount - from));
+    if (n == 0) return const <int>[];
+    if (v.stszUniform != 0) return List<int>.filled(n, v.stszUniform);
+    final ByteData d = await v.stsz!.slice(from, n);
+    return <int>[for (int i = 0; i < n; i++) d.getUint32(i * 4)];
+  }
+
+  /// Seconds per video frame (from the first stts run).
+  double get frameSeconds {
+    final _Track v = _video;
+    return v.stts.isEmpty ? 1 / 24 : v.stts.first[1] / v.timescale;
+  }
+
+  /// Presentation times (s) of every keyframe.
+  List<double> get keyframeTimes {
+    final _Track v = _video;
+    final List<int>? ss = v.stss;
+    if (ss == null) return const <double>[];
+    return <double>[
+      for (final int k in ss) (v.dts(k - 1) - v.editMediaTime) / v.timescale
+    ];
   }
 
   _Track get _video =>
@@ -648,10 +687,15 @@ class Mp4Index {
 
   /// Plans a window: keyframe-aligned start at/before [from]; ends at [to]
   /// (exact, for clips) or at the first keyframe after from+[length].
+  ///
+  /// [alignTo]: keyframe times of other renditions (qualities). The window
+  /// then ends on a keyframe they all share, so the next window may come
+  /// from any of them without a gap (adaptive quality for plain MP4).
   Future<WindowPlan> plan({
     required double from,
     double? to,
     double length = 120,
+    List<List<double>> alignTo = const <List<double>>[],
   }) async {
     final _Track v = _video;
     from = from.clamp(0, math.max(0, durationSec - 0.5)).toDouble();
@@ -669,6 +713,7 @@ class Mp4Index {
         ((from + length) * v.timescale).round() + v.editMediaTime,
       );
       k1 = v.syncAtOrAfter(target + 1);
+      if (alignTo.isNotEmpty) k1 = _sharedKeyframeFrom(v, k1, alignTo);
       // Never leave a tiny tail window.
       final double tail = (v.dts(v.sampleCount) - v.dts(k1)) / v.timescale;
       if (tail < 30) k1 = v.sampleCount;
@@ -724,7 +769,7 @@ class Mp4Index {
       startSec,
       endSec,
       k1 >= v.sampleCount,
-    );
+    )..endKeyTime = (v.dts(k1) - v.editMediaTime) / v.timescale;
     int lo = 1 << 62, hi = 0;
     for (final _TrackPlan p in plans) {
       for (int i = 0; i < p.offsets.length; i++) {
@@ -736,6 +781,41 @@ class Mp4Index {
       ..regionStart = lo
       ..regionEnd = hi;
     return w;
+  }
+
+  /// First keyframe at/after [k] (within 90 s) whose presentation time is a
+  /// keyframe in every list of [others] (±1.5 frames); else [k].
+  int _sharedKeyframeFrom(_Track v, int k, List<List<double>> others) {
+    final List<int>? ss = v.stss;
+    if (ss == null) return k;
+    final double frame = v.stts.isEmpty ? 0.04 : v.stts.first[1] / v.timescale;
+    final double limit = (v.dts(k) - v.editMediaTime) / v.timescale + 90;
+    for (final int s1 in ss) {
+      final int cand = s1 - 1;
+      if (cand < k) continue;
+      final double t = (v.dts(cand) - v.editMediaTime) / v.timescale;
+      if (t > limit) break;
+      if (others.every((List<double> o) => hasKeyframeNear(o, t, frame * 1.5))) {
+        return cand;
+      }
+    }
+    return k;
+  }
+
+  /// Binary search in a sorted keyframe list.
+  static bool hasKeyframeNear(List<double> sorted, double t, double tol) {
+    int lo = 0, hi = sorted.length - 1;
+    while (lo <= hi) {
+      final int mid = (lo + hi) >> 1;
+      final double x = sorted[mid];
+      if ((x - t).abs() <= tol) return true;
+      if (x < t) {
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return false;
   }
 
   // ---------------------------------------------------------------- writing
@@ -1020,10 +1100,11 @@ class FastStartServer {
         final HttpClientRequest up = await _up.getUrl(Uri.parse(f.reader.url));
         f.reader.headers.forEach(up.headers.set);
         up.headers.set(HttpHeaders.rangeHeader, 'bytes=$from-$to');
+        final Stopwatch sw = Stopwatch()..start();
         final HttpClientResponse ur = await up.close();
         Stream<List<int>> body = ur;
         if (throttleBps > 0) body = _throttle(ur, throttleBps);
-        await res.addStream(body);
+        await res.addStream(_measure(body, sw));
       }
       await res.close();
     } catch (_) {
@@ -1031,6 +1112,23 @@ class FastStartServer {
         await res.close();
       } catch (_) {}
     }
+  }
+
+  /// Feeds the line speed of the first ~1.5 MB of each media response to
+  /// [NetQuality] (the player is filling its buffer then, so the rate is
+  /// the network's, not playback's).
+  static Stream<List<int>> _measure(Stream<List<int>> src, Stopwatch sw) async* {
+    int got = 0;
+    bool done = false;
+    await for (final List<int> c in src) {
+      got += c.length;
+      if (!done && got >= 1536 * 1024) {
+        done = true;
+        NetQuality.record(got, sw.elapsedMilliseconds);
+      }
+      yield c;
+    }
+    if (!done) NetQuality.record(got, sw.elapsedMilliseconds);
   }
 
   static Stream<List<int>> _throttle(Stream<List<int>> src, int bps) async* {

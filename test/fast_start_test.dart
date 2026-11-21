@@ -155,4 +155,21 @@ void main() {
       expect(NetQuality.pickHeight(<int>[720, 480, 360], -1), 360);
     });
   });
+
+  test('adaptive quality: windows end on a keyframe shared by both renditions', () async {
+    final HttpServer a = await serve(mp4);
+    final HttpServer b = await serve(File('test/fixtures/faststart_sample_b.mp4').readAsBytesSync());
+    final String ua = 'http://127.0.0.1:${a.port}/a.mp4', ub = 'http://127.0.0.1:${b.port}/b.mp4';
+    final List<double> keysB = (await FastStart.index(ub, const <String, String>{})).keyframeTimes;
+    // Rendition A has a keyframe every 2 s, B every 3 s → shared every 6 s.
+    final FastWindow w1 = await FastStart.open(ua, const <String, String>{},
+        from: 1, length: 3, alignTo: <List<double>>[keysB]);
+    expect(Mp4Index.hasKeyframeNear(keysB, w1.endKeyTime, 0.06), isTrue);
+    expect(w1.end, closeTo(6, 0.1)); // display time of the shared keyframe
+    // The next window from B starts exactly where A's ends.
+    final FastWindow w2 = await FastStart.open(ub, const <String, String>{}, from: w1.end, length: 6);
+    expect(w2.offset, closeTo(w1.end, 0.05));
+    await a.close(force: true);
+    await b.close(force: true);
+  });
 }

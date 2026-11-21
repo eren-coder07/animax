@@ -17,6 +17,7 @@ import '../core/audio_mode.dart';
 import '../core/data_budget.dart';
 import '../core/moments.dart';
 import '../core/fast_start.dart';
+import '../core/intro_detect.dart';
 import '../widgets/player_social.dart';
 import '../widgets/player_gestures.dart';
 import '../widgets/download_button.dart';
@@ -62,6 +63,17 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   FastWindow? _nextWin;
   bool _preparingNext = false;
   bool _swapping = false;
+
+  /// Adaptive quality: keyframe times of every quality (height → times).
+  final Map<int, List<double>> _altKeys = <int, List<double>>{};
+  String _altKeysFor = '';
+  int _nextSourceIndex = -1;
+  String _nextUrl = '';
+
+  /// Intro of the current episode (detected from index fingerprints).
+  IntroRange? _intro;
+  String _introFor = '';
+  bool _introSkipped = false;
 
   /// Episode whose successor was already queued for offline viewing.
   String _autoQueuedFor = '';
@@ -290,6 +302,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
         // Navigation simply stays unavailable.
       }
     }
+    unawaited(_detectIntro());
+    unawaited(_loadAltKeys());
   }
 
   /// Quality to start with: the user's fixed choice, else the best one the
@@ -517,7 +531,10 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       }
       _watchStalls();
       _maybeQueueNext();
+      _maybeAutoSkipIntro();
     });
+    unawaited(_detectIntro());
+    unawaited(_loadAltKeys());
     _bumpControls();
     setState(() {
       _resolving = false;
@@ -544,9 +561,27 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (w == null || w.isLast || _preparingNext || _next != null) return;
     _preparingNext = true;
     try {
-      final FastWindow nw =
-          await FastStart.open(_streamUrl, _headers, from: w.end, length: 300);
+      // Adaptive quality: the next window may come from another quality
+      // when it has a keyframe exactly at this window's end.
+      int idx = _abrPick(w);
+      String url = idx == _sourceIndex ? _streamUrl : await _urlFor(idx);
+      final int h = _heightOf(_sources[idx].quality);
+      FastWindow nw = await FastStart.open(url, _headers,
+          from: w.end,
+          length: 180,
+          alignTo: <List<double>>[
+            for (final MapEntry<int, List<double>> e in _altKeys.entries)
+              if (e.key != h) e.value
+          ]);
+      if (idx != _sourceIndex && (nw.offset - w.end).abs() > 0.1) {
+        // Not seamless after all → stay on the current quality.
+        idx = _sourceIndex;
+        url = _streamUrl;
+        nw = await FastStart.open(url, _headers, from: w.end, length: 180);
+      }
       if (!mounted || _win != w) return;
+      _nextSourceIndex = idx;
+      _nextUrl = url;
       final VideoPlayerController c = VideoPlayerController.networkUrl(
         nw.uri,
         formatHint: VideoFormat.other,
@@ -589,13 +624,25 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
         return;
       }
       final VideoPlayerController? old = _player;
+      final bool switched = _nextSourceIndex >= 0 && _nextSourceIndex != _sourceIndex;
       setState(() {
         _player = n;
         _win = _nextWin;
         _next = null;
         _nextWin = null;
         _resolving = false;
+        if (switched) {
+          _sourceIndex = _nextSourceIndex;
+          _streamUrl = _nextUrl;
+        }
       });
+      if (switched && mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+          persist: false,
+          duration: const Duration(seconds: 2),
+          content: Text('الجودة التلقائية: ${_sources[_sourceIndex].quality}'),
+        ));
+      }
       await n.play();
       _lastSeekAt = DateTime.now();
       await old?.dispose();
@@ -622,6 +669,127 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       return;
     }
     await _playSource(_sourceIndex, resumeAt: t, exact: true);
+  }
+
+  /// Loads the keyframe times of every quality (cached indexes) so windows
+  /// can end where all qualities share a keyframe.
+  Future<void> _loadAltKeys() async {
+    if (!_fastStart || _streams.length < 2) return;
+    final String id = _streams.values.join('|');
+    if (_altKeysFor == id) return;
+    _altKeysFor = id;
+    _altKeys.clear();
+    for (final MapEntry<int, String> e in _streams.entries) {
+      try {
+        _altKeys[e.key] = (await FastStart.index(e.value, _headers)).keyframeTimes;
+      } catch (_) {}
+    }
+  }
+
+  /// Quality for the next window: down on stalls, up when the measured
+  /// speed comfortably sustains the next quality. Never when the user fixed
+  /// a quality or a low-data mode is on.
+  int _abrPick(FastWindow w) {
+    if (_altKeys.length < 2 || _sources.length < 2) return _sourceIndex;
+    if (int.tryParse(AppPrefs.I.defaultQuality) != null ||
+        AppPrefs.I.audioOnly ||
+        AppPrefs.I.dataSaver ||
+        DataBudget.I.nearLimit) {
+      return _sourceIndex;
+    }
+    final int cur = _heightOf(_sources[_sourceIndex].quality);
+    final List<int> hs = <int>[
+      for (final AkwamSource s in _sources)
+        if (_altKeys.containsKey(_heightOf(s.quality))) _heightOf(s.quality)
+    ]..sort();
+    if (hs.length < 2) return _sourceIndex;
+    int target = cur;
+    final int stalls = _stallTicks.length;
+    final int kbps = NetQuality.hasFreshMeasure ? NetQuality.measuredKbps : -1;
+    final int i = hs.indexOf(cur);
+    if (stalls >= 5 && i > 0) {
+      target = hs[i - 1];
+    } else if (kbps > 0) {
+      final int fit = NetQuality.pickHeight(hs, kbps);
+      if (fit > cur && stalls == 0 && i + 1 < hs.length) {
+        // Up one step only, and only with real headroom.
+        if (NetQuality.estimatedKbps(hs[i + 1]) * 1.6 <= kbps) target = hs[i + 1];
+      } else if (fit < cur) {
+        target = fit;
+      }
+    }
+    if (target == cur) return _sourceIndex;
+    final List<double>? keys = _altKeys[target];
+    if (keys == null || !Mp4Index.hasKeyframeNear(keys, w.endKeyTime, 0.06)) return _sourceIndex;
+    for (int k = 0; k < _sources.length; k++) {
+      if (_heightOf(_sources[k].quality) == target) return k;
+    }
+    return _sourceIndex;
+  }
+
+  /// Finds this episode's intro by comparing its MP4 index with a
+  /// neighbouring episode's (keyframe rhythm + frame-size fingerprint).
+  Future<void> _detectIntro() async {
+    final AkwamEpisode? ep = _episode;
+    if (ep == null || _episodes.length < 2 || _streams.isEmpty) return;
+    final String id = '${_item.path}#${ep.number}';
+    if (_introFor == id) return;
+    _introFor = id;
+    _intro = null;
+    _introSkipped = false;
+    final int i = _indexOfEpisode(ep);
+    if (i < 0) return;
+    final List<AkwamEpisode> neighbours = <AkwamEpisode>[
+      if (i + 1 < _episodes.length) _episodes[i + 1],
+      if (i > 0) _episodes[i - 1],
+    ];
+    try {
+      final List<String> urls = <String>[];
+      for (final AkwamEpisode nb in neighbours) {
+        final List<AkwamSource> ns = await AkwamApi.I.episodeSources(nb);
+        if (ns.isEmpty) continue;
+        final String u = AkwamApi.pickAkwamStream(
+            await AkwamApi.I.streamsOf(ns.first.watchPath),
+            lowest: true);
+        if (u.isNotEmpty) urls.add(u);
+      }
+      final String mine = AkwamApi.pickAkwamStream(_streams, lowest: true);
+      if (urls.isEmpty || mine.isEmpty) return;
+      final IntroRange? r = await IntroDetector.forEpisode(
+        cacheKey: id,
+        url: mine,
+        neighbourUrls: urls,
+        headers: _headers,
+      );
+      if (!mounted || _introFor != id) return;
+      setState(() => _intro = r);
+    } catch (_) {
+      // No intro button for this episode.
+    }
+  }
+
+  bool get _inIntro {
+    final IntroRange? r = _intro;
+    if (r == null) return false;
+    final double p = _pos.inMilliseconds / 1000;
+    return p >= r.start + 0.5 && p < r.end - 1.5;
+  }
+
+  void _skipIntro() {
+    final IntroRange? r = _intro;
+    if (r == null) return;
+    _introSkipped = true;
+    unawaited(_seekReal(Duration(milliseconds: (r.end * 1000).round())));
+  }
+
+  void _maybeAutoSkipIntro() {
+    if (!AppPrefs.I.autoSkipIntro || _introSkipped || !_inIntro) return;
+    _skipIntro();
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(
+      persist: false,
+      duration: Duration(seconds: 2),
+      content: Text('تم تخطي المقدمة تلقائيًا'),
+    ));
   }
 
   /// Smart downloads: past 80 % of an episode on Wi-Fi, queue the next one
@@ -1061,6 +1229,36 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                   poster: _item.poster, title: _title, onExit: _toggleAudioOnly),
             TimedCommentsLayer(
                 social: _social, controller: _player, offset: _offset),
+            if (_inIntro && !_resolving)
+              Positioned(
+                right: 18,
+                bottom: 120,
+                child: Material(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(8),
+                  child: InkWell(
+                    key: const Key('skipIntro'),
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: _skipIntro,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Icon(Icons.fast_forward_rounded, color: Colors.black, size: 20),
+                          SizedBox(width: 6),
+                          Text('تخطي المقدمة',
+                              style: TextStyle(
+                                  fontFamily: 'Plex',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             AnimatedOpacity(
               opacity: _controlsVisible ? 1 : 0,
               duration: const Duration(milliseconds: 220),
