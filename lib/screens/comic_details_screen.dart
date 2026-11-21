@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/social_bar.dart';
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
+import '../widgets/download_button.dart';
 import '../core/library_store.dart';
 import '../core/manga_api.dart';
 import '../widgets/shimmer.dart';
@@ -63,7 +66,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         _loadingChapters = false;
         _chapterError = e is MangaApiException
             ? e.message
-            : 'Cannot reach MangaDex — check your connection.';
+            : 'تعذّر الوصول إلى MangaDex — تحقّق من اتصالك.';
       });
     }
   }
@@ -85,10 +88,13 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
   void _openReader(MangaChapter chapter) {
     final int index = _chapters.indexOf(chapter);
     Navigator.of(context).push(SlideFadeRoute<void>(
-      page: ComicReaderScreen(
-        manga: item,
-        chapters: _chapters,
-        startIndex: index < 0 ? 0 : index,
+      page: Directionality(
+        textDirection: TextDirection.ltr,
+        child: ComicReaderScreen(
+          manga: item,
+          chapters: _chapters,
+          startIndex: index < 0 ? 0 : index,
+        ),
       ),
     ));
   }
@@ -100,7 +106,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
       lib.removeListEntry(_key);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${item.title} removed from My List')));
+            content: Text('أُزيل ${item.title} من قائمتي')));
       }
     } else {
       lib.setListStatus(
@@ -109,12 +115,12 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         poster: item.cover,
         kind: 'manga',
         status: LibStatus.watching,
-        meta: '${item.year.isEmpty ? 'Manga' : item.year}'
+        meta: '${item.year.isEmpty ? 'مانغا' : item.year}'
             '${item.status.isEmpty ? '' : ' · ${item.status}'}',
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${item.title} saved to My List')));
+            content: Text('حُفظ ${item.title} في قائمتي')));
       }
     }
   }
@@ -133,10 +139,10 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
             const Padding(
                 padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
                 child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Save to…',
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text('حفظ في…',
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Plex',
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)))),
@@ -155,7 +161,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                     color: s == current ? AppColors.accent : AppColors.muted),
                 title: Text(s.label,
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color:
                             s == current ? AppColors.accent : AppColors.text)),
@@ -173,7 +179,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
       poster: item.cover,
       kind: 'manga',
       status: picked,
-      meta: '${item.year.isEmpty ? 'Manga' : item.year}'
+      meta: '${item.year.isEmpty ? 'مانغا' : item.year}'
           '${item.status.isEmpty ? '' : ' · ${item.status}'}',
     );
     if (mounted) setState(() {});
@@ -254,11 +260,11 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                     runSpacing: 6,
                     children: <Widget>[
                       _metaChip(m.status.isEmpty
-                          ? 'Manga'
+                          ? 'مانغا'
                           : m.status[0].toUpperCase() + m.status.substring(1)),
                       if (m.year.isNotEmpty) _metaChip(m.year),
                       if (m.chapterCount > 0)
-                        _metaChip('${m.chapterCount} chapters'),
+                        _metaChip('${m.chapterCount} فصل'),
                       if (m.authors.isNotEmpty) _metaChip(m.authors.first),
                     ],
                   ),
@@ -269,7 +275,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                         Icon(Icons.favorite_rounded,
                             size: 14, color: AppColors.accent),
                         const SizedBox(width: 5),
-                        Text('${m.followedLabel} followers',
+                        Text('${m.followedLabel} متابع',
                             style: AppText.label),
                       ],
                     ),
@@ -289,10 +295,10 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                           LibraryStore.I.progressOf(_key,
                                       _continueTarget!.id) !=
                                   null
-                              ? 'Continue ${_continueTarget!.chipLabel}'
-                              : 'Start reading ${_continueTarget!.chipLabel}',
+                              ? 'تابع ${_continueTarget!.chipLabel}'
+                              : 'ابدأ القراءة ${_continueTarget!.chipLabel}',
                           style: const TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Plex',
                               fontSize: 13.5,
                               fontWeight: FontWeight.w700),
                         ),
@@ -329,13 +335,17 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                                 ),
                                 child: Text(t.name,
                                     style: const TextStyle(
-                                        fontFamily: 'Poppins',
+                                        fontFamily: 'Plex',
                                         fontSize: 10.5,
                                         color: AppColors.sub)),
                               ))
                           .toList(),
                     ),
                   ],
+                  SocialBar(
+                      itemKey: 'manga:${item.id}',
+                      title: item.title,
+                      viewsLabel: 'قراءة'),
                   const SizedBox(height: 20),
                   _buildChapterHeader(),
                 ],
@@ -357,21 +367,68 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         ),
         child: Text(label,
             style: const TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Plex',
                 fontSize: 10.5,
                 fontWeight: FontWeight.w600,
                 color: AppColors.sub)),
       );
 
+  Future<void> _downloadChapter(MangaChapter ch) async {
+    await DownloadManager.I.addComicChapter(
+      title: item.title,
+      chapterLabel: '${ch.chipLabel} · ${ch.displayTitle}',
+      chapterId: ch.id,
+      poster: item.cover,
+    );
+  }
+
+  /// Queues every available chapter (oldest first) as separate PDFs.
+  Future<void> _downloadAll() async {
+    final List<MangaChapter> list = _chapters.reversed
+        .where((MangaChapter c) => !c.isUnavailable)
+        .toList();
+    if (list.isEmpty) return;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext d) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('تحميل جميع الفصول؟'),
+        content: Text('سيتم حفظ ${list.length} فصل كملفات PDF في '
+            'Download/Animax/Comics.'),
+        actions: <Widget>[
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('إلغاء')),
+          TextButton(
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('تحميل')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    for (final MangaChapter ch in list) {
+      await _downloadChapter(ch);
+    }
+    if (mounted) showDownloadQueuedSnack(context);
+  }
+
   Widget _buildChapterHeader() {
     return Row(
       children: <Widget>[
-        Text('Chapters',
+        Text('الفصول',
             style: AppText.h3.copyWith(fontSize: 17)),
         const Spacer(),
-        if (_chapters.isNotEmpty)
-          Text('${_chapters.length} available',
+        if (_chapters.isNotEmpty) ...<Widget>[
+          Text('${_chapters.length} متاح',
               style: AppText.label),
+          IconButton(
+            tooltip: 'تحميل الكل',
+            visualDensity: VisualDensity.compact,
+            icon: Icon(Icons.download_for_offline_rounded,
+                color: AppColors.accent, size: 22),
+            onPressed: _downloadAll,
+          ),
+        ],
       ],
     );
   }
@@ -399,14 +456,14 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: <Widget>[
-              Text('Chapters failed to load — $_chapterError',
+              Text('تعذّر تحميل الفصول — $_chapterError',
                   style: AppText.label),
               const SizedBox(height: 10),
               OutlinedButton(
                 onPressed: _loadChapters,
-                child: const Text('Retry',
+                child: const Text('إعادة المحاولة',
                     style: TextStyle(
-                        fontFamily: 'Poppins', color: AppColors.text)),
+                        fontFamily: 'Plex', color: AppColors.text)),
               ),
             ],
           ),
@@ -418,9 +475,9 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
         child: Padding(
           padding: EdgeInsets.all(20),
           child: Text(
-              'No chapters available in your reader language yet — '
-              'change it in Settings → Comics.',
-              style: TextStyle(fontFamily: 'Poppins', fontSize: 12.5, color: AppColors.muted)),
+              'لا توجد فصول بلغة القراءة المختارة بعد — '
+              'غيّرها من الإعدادات ← المانغا.',
+              style: TextStyle(fontFamily: 'Plex', fontSize: 12.5, color: AppColors.muted)),
         ),
       );
     }
@@ -449,7 +506,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                       width: 64,
                       child: Text(ch.chipLabel,
                           style: TextStyle(
-                              fontFamily: 'Poppins',
+                              fontFamily: 'Plex',
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color:
@@ -463,7 +520,7 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Plex',
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
                                   color: read
@@ -471,17 +528,24 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                                       : AppColors.text)),
                           const SizedBox(height: 3),
                           Text(
-                            '${ch.pages} pages'
+                            '${ch.pages} صفحة'
                             '${ch.publishedAt.length >= 10 ? ' · ${ch.publishedAt.substring(0, 10)}' : ''}'
                             '${started && !read ? ' · ${p.fraction.toStringAsFixed(0)}%' : ''}',
                             style: const TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Plex',
                                 fontSize: 10.5,
                                 color: AppColors.muted),
                           ),
                         ],
                       ),
                     ),
+                    if (!ch.isUnavailable)
+                      DownloadIconButton(
+                        chapterId: ch.id,
+                        color: AppColors.sub,
+                        size: 20,
+                        onStart: () => _downloadChapter(ch),
+                      ),
                     if (read)
                       Icon(Icons.check_circle_rounded,
                           size: 18, color: AppColors.accent)

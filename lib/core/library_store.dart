@@ -16,11 +16,11 @@ extension LibStatusX on LibStatus {
         LibStatus.drop => 'drop',
       };
   String get label => switch (this) {
-        LibStatus.plan => 'Plan to Watch',
-        LibStatus.watching => 'Watching',
-        LibStatus.done => 'Completed',
-        LibStatus.hold => 'On Hold',
-        LibStatus.drop => 'Dropped',
+        LibStatus.plan => 'سأشاهده',
+        LibStatus.watching => 'أشاهده',
+        LibStatus.done => 'مكتمل',
+        LibStatus.hold => 'مؤجّل',
+        LibStatus.drop => 'متوقف',
       };
 }
 
@@ -179,9 +179,16 @@ class LibraryStore extends ChangeNotifier {
   LibraryStore._();
   static final LibraryStore I = LibraryStore._();
 
+  /// A separate instance reading the same storage (tests: "app restart").
+  @visibleForTesting
+  static LibraryStore debugFresh() => LibraryStore._();
+
   final Map<String, LibEntry> _entries = <String, LibEntry>{};
   final Map<String, ProgressEntry> _progress = <String, ProgressEntry>{};
   final List<HistoryRow> _history = <HistoryRow>[];
+
+  /// Removed list entries (key → epoch ms) so a removal syncs too.
+  final Map<String, int> _removed = <String, int>{};
   SharedPreferences? _sp;
   bool _loaded = false;
   final Completer<void> _completer = Completer<void>();
@@ -193,30 +200,48 @@ class LibraryStore extends ChangeNotifier {
     try {
       final SharedPreferences sp = await SharedPreferences.getInstance();
       _sp = sp;
-      final String rawList = sp.getString('lib.entries') ?? '[]';
-      final String rawProg = sp.getString('lib.progress') ?? '{}';
-      final String rawHist = sp.getString('lib.history') ?? '[]';
-      final List<dynamic> list = jsonDecode(rawList) as List<dynamic>;
-      for (final dynamic e in list) {
-        if (e is Map) {
-          final LibEntry entry =
-              LibEntry.fromJson(Map<String, dynamic>.from(e));
-          if (entry.key.isNotEmpty) _entries[entry.key] = entry;
+      // Each section loads on its own: one bad section never wipes the rest.
+      try {
+        final List<dynamic> list =
+            jsonDecode(sp.getString('lib.entries') ?? '[]') as List<dynamic>;
+        for (final dynamic e in list) {
+          if (e is Map) {
+            final LibEntry entry =
+                LibEntry.fromJson(Map<String, dynamic>.from(e));
+            if (entry.key.isNotEmpty) _entries[entry.key] = entry;
+          }
         }
-      }
-      final Map<String, dynamic> prog =
-          jsonDecode(rawProg) as Map<String, dynamic>;
-      prog.forEach((String k, dynamic v) {
-        if (v is Map) {
-          _progress[k] = ProgressEntry.fromJson(Map<String, dynamic>.from(v));
+      } catch (_) {}
+      try {
+        // Saved as a list of rows (older builds read it as a map, which
+        // threw and silently dropped progress *and* history on restart).
+        final dynamic prog = jsonDecode(sp.getString('lib.progress') ?? '[]');
+        final Iterable<dynamic> rows =
+            prog is Map ? prog.values : (prog is List ? prog : const <dynamic>[]);
+        for (final dynamic v in rows) {
+          if (v is Map) {
+            final ProgressEntry p = ProgressEntry.fromJson(Map<String, dynamic>.from(v));
+            if (p.key.isNotEmpty) _progress['${p.key}@${p.sub}'] = p;
+          }
         }
-      });
-      final List<dynamic> hist = jsonDecode(rawHist) as List<dynamic>;
-      for (final dynamic h in hist) {
-        if (h is Map) {
-          _history.add(HistoryRow.fromJson(Map<String, dynamic>.from(h)));
+      } catch (_) {}
+      try {
+        final List<dynamic> hist =
+            jsonDecode(sp.getString('lib.history') ?? '[]') as List<dynamic>;
+        for (final dynamic h in hist) {
+          if (h is Map) {
+            _history.add(HistoryRow.fromJson(Map<String, dynamic>.from(h)));
+          }
         }
-      }
+      } catch (_) {}
+      try {
+        final dynamic rm = jsonDecode(sp.getString('lib.removed') ?? '{}');
+        if (rm is Map) {
+          rm.forEach((dynamic k, dynamic v) {
+            if (v is num) _removed[k.toString()] = v.toInt();
+          });
+        }
+      } catch (_) {}
     } catch (_) {
       // Corrupt storage → start fresh rather than crash.
     }
@@ -253,12 +278,14 @@ class LibraryStore extends ChangeNotifier {
     e.updatedAt = DateTime.now();
     if (meta.isNotEmpty) e.meta = meta;
     _entries[key] = e;
+    _removed.remove(key);
     _persist();
     return e;
   }
 
   void removeListEntry(String key) {
     final LibEntry? e = _entries.remove(key);
+    _removed[key] = DateTime.now().millisecondsSinceEpoch;
     if (e != null) {
       e.status = null;
       _persist();
@@ -278,6 +305,9 @@ class LibraryStore extends ChangeNotifier {
   // -------------------------------------------------------------- progress
 
   ProgressEntry? progressOf(String key, String sub) => _progress['$key@$sub'];
+
+  /// Every stored progress row (spoiler shield).
+  Iterable<ProgressEntry> get allProgress => _progress.values;
 
   ProgressEntry progressForItem(String key) {
     // Latest progress row of any sub for this item.
@@ -402,7 +432,68 @@ class LibraryStore extends ChangeNotifier {
             .toList(growable: false),
         'history':
             _history.map((HistoryRow h) => h.toJson()).toList(growable: false),
+        'removed': Map<String, int>.of(_removed),
       };
+
+  /// Merges a snapshot from another device (cloud sync): the newest change
+  /// of each item wins; removals propagate. Returns true when anything
+  /// changed locally.
+  bool mergeJson(Map<String, dynamic> data) {
+    bool changed = false;
+    final Map<dynamic, dynamic> rm =
+        (data['removed'] as Map<dynamic, dynamic>?) ?? const <dynamic, dynamic>{};
+    rm.forEach((dynamic k, dynamic v) {
+      final String key = k.toString();
+      final int t = (v as num?)?.toInt() ?? 0;
+      final LibEntry? local = _entries[key];
+      if (t > (_removed[key] ?? 0) &&
+          (local == null || t > local.updatedAt.millisecondsSinceEpoch)) {
+        _removed[key] = t;
+        if (_entries.remove(key) != null) changed = true;
+      }
+    });
+    for (final dynamic e in (data['entries'] as List<dynamic>?) ?? const <dynamic>[]) {
+      if (e is! Map) continue;
+      final LibEntry r = LibEntry.fromJson(Map<String, dynamic>.from(e));
+      if (r.key.isEmpty) continue;
+      if ((_removed[r.key] ?? 0) >= r.updatedAt.millisecondsSinceEpoch) continue;
+      final LibEntry? l = _entries[r.key];
+      if (l == null || r.updatedAt.isAfter(l.updatedAt)) {
+        _entries[r.key] = r;
+        changed = true;
+      }
+    }
+    for (final dynamic p in (data['progress'] as List<dynamic>?) ?? const <dynamic>[]) {
+      if (p is! Map) continue;
+      final ProgressEntry r = ProgressEntry.fromJson(Map<String, dynamic>.from(p));
+      if (r.key.isEmpty) continue;
+      final String k = '${r.key}@${r.sub}';
+      final ProgressEntry? l = _progress[k];
+      if (l == null || r.updatedAt.isAfter(l.updatedAt)) {
+        _progress[k] = r;
+        changed = true;
+      }
+    }
+    for (final dynamic h in (data['history'] as List<dynamic>?) ?? const <dynamic>[]) {
+      if (h is! Map) continue;
+      final HistoryRow r = HistoryRow.fromJson(Map<String, dynamic>.from(h));
+      if (r.key.isEmpty) continue;
+      final int i = _history.indexWhere((HistoryRow x) => x.key == r.key && x.sub == r.sub);
+      if (i < 0) {
+        _history.add(r);
+        changed = true;
+      } else if (r.at.isAfter(_history[i].at)) {
+        _history[i] = r;
+        changed = true;
+      }
+    }
+    if (changed) {
+      _history.sort((HistoryRow a, HistoryRow b) => b.at.compareTo(a.at));
+      if (_history.length > 60) _history.removeRange(60, _history.length);
+      _persist();
+    }
+    return changed;
+  }
 
   /// Import a snapshot produced by [exportJson]. Merges by key.
   void importJson(Map<String, dynamic> data) {
@@ -442,6 +533,7 @@ class LibraryStore extends ChangeNotifier {
             .toList()));
     sp.setString('lib.history',
         jsonEncode(_history.map((HistoryRow h) => h.toJson()).toList()));
+    sp.setString('lib.removed', jsonEncode(_removed));
     notifyListeners();
   }
 }

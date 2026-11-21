@@ -99,7 +99,7 @@ class _HhCatalogScreenState extends State<HhCatalogScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        if (_items.isEmpty) _error = 'Cannot reach the source — check your connection.';
+        if (_items.isEmpty) _error = 'تعذّر الوصول إلى المصدر — تحقّق من اتصالك.';
       });
     }
   }
@@ -127,9 +127,9 @@ class _HhCatalogScreenState extends State<HhCatalogScreen> {
                   color: HhColors.redSoft,
                   border: Border.all(color: HhColors.red, width: 1.2),
                 ),
-                child: Text('18+',
+                child: Text('+18',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                         color: HhColors.red)),
@@ -203,7 +203,7 @@ class _ErrorCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: AppText.body.copyWith(fontSize: 13)),
             const SizedBox(height: 16),
-            HhChip(label: 'Retry', onTap: onRetry),
+            HhChip(label: 'إعادة المحاولة', onTap: onRetry),
           ],
         ),
       ),

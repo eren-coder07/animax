@@ -82,7 +82,7 @@ class _HhSearchScreenState extends State<HhSearchScreen> {
       setState(() {
         _loading = false;
         _done = true;
-        if (_results.isEmpty) _error = 'Cannot reach the source — check your connection.';
+        if (_results.isEmpty) _error = 'تعذّر الوصول إلى المصدر — تحقّق من اتصالك.';
       });
     }
   }
@@ -178,7 +178,7 @@ class _SearchField extends StatelessWidget {
       textInputAction: TextInputAction.search,
       style: AppText.bodyBold.copyWith(fontSize: 14),
       decoration: InputDecoration(
-        hintText: 'Search hentai…',
+        hintText: 'ابحث…',
         hintStyle: AppText.body.copyWith(color: AppColors.muted),
         filled: true,
         fillColor: AppColors.surface,
@@ -217,10 +217,10 @@ class _Idle extends StatelessWidget {
             const Icon(Icons.manage_search_rounded,
                 color: AppColors.muted, size: 44),
             const SizedBox(height: 14),
-            Text('Type at least 2 characters',
+            Text('اكتب حرفين على الأقل',
                 style: AppText.body),
             const SizedBox(height: 6),
-            Text('Search by series title or keyword.',
+            Text('ابحث باسم المسلسل أو بكلمة مفتاحية.',
                 style: AppText.label),
           ],
         ),

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/library_store.dart';
 import '../widgets/buttons.dart';
-import '../widgets/cards.dart';
 import '../widgets/common.dart';
 import '../widgets/animax_logo.dart';
 
@@ -60,7 +60,7 @@ class _HomeTabState extends State<HomeTab> {
     final Anime pick =
         state.catalog[DateTime.now().microsecondsSinceEpoch % state.catalog.length];
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Surprise: ${pick.title}')));
+        content: Text('مفاجأة: ${pick.title}')));
     _openAnime(pick);
   }
 
@@ -76,6 +76,7 @@ class _HomeTabState extends State<HomeTab> {
             padding: const EdgeInsets.only(bottom: 90),
             children: [
               const SizedBox(height: 16),
+              if (!EmbeddedSection.of(context))
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -104,129 +105,28 @@ class _HomeTabState extends State<HomeTab> {
                 const SizedBox(height: 24),
                 _buildContinueWatching(),
                 _buildMyList(),
-                SectionHeader(
-                  title: 'Top Hits Anime',
-                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('Top Hits Anime', state.topHits)),
-                ),
-                SizedBox(
-                  height: 306,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: state.topHits.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 16),
-                    itemBuilder: (BuildContext context, int i) {
-                      final Anime anime = state.topHits[i];
-                      return GestureDetector(
-                        onTap: () => _openAnime(anime),
-                        child: SizedBox(
-                          width: 236,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Hero(
-                                  tag: 'poster-${anime.id}',
-                                  child: PosterImage(
-                                    anime: anime,
-                                    radius: 18,
-                                    child: Stack(
-                                      children: [
-                                        Positioned(
-                                          top: 10,
-                                          left: 10,
-                                          child: ScoreBadge(score: anime.score),
-                                        ),
-                                        Positioned(
-                                          bottom: -14,
-                                          left: 14,
-                                          child: Text(
-                                            '${i + 1}',
-                                            style: TextStyle(
-                                              fontFamily: 'Poppins',
-                                              fontSize: 84,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.white,
-                                              height: 1.0,
-                                              shadows: [
-                                                Shadow(
-                                                  color: Colors.black.withValues(alpha: 0.55),
-                                                  blurRadius: 18,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                anime.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.bodyBold.copyWith(fontSize: 13.5),
-                              ),
-                              Text(anime.genres.take(3).join('. '),
-                                  style: AppText.label, maxLines: 1),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 26),
-                SectionHeader(
-                  title: 'New Episode Releases',
-                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('New Episode Releases', state.newEpisodes)),
-                ),
-                SizedBox(
-                  height: 250,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: state.newEpisodes.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 14),
-                    itemBuilder: (BuildContext context, int i) {
-                      final Anime anime = state.newEpisodes[i];
-                      return PosterCard(
-                        anime: anime,
-                        width: 136,
-                        subtitle:
-                            anime.isMovie ? 'Movie • ${anime.duration}' : 'Episode ${anime.episodeCount}',
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 26),
-                SectionHeader(
-                  title: 'Popular This Season',
-                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('Popular This Season', state.catalog)),
-                ),
-                SizedBox(
-                  height: 250,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: state.catalog.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 14),
-                    itemBuilder: (BuildContext context, int i) {
-                      final Anime anime =
-                          state.catalog[(i * 5 + 3) % state.catalog.length];
-                      return PosterCard(anime: anime, width: 136, showPlay: true);
-                    },
-                  ),
-                ),
+                for (final (String title, List<Anime> list) in <(String, List<Anime>)>[
+                  ('أنمي الأكثر مشاهدة', state.topHits),
+                  ('حلقات جديدة', state.newEpisodes),
+                  ('الأشهر هذا الموسم', state.catalog),
+                ])
+                  if (list.isNotEmpty)
+                    PosterRow<Anime>(
+                      title: title,
+                      items: list,
+                      onAll: () => Navigator.pushNamed(context, '/catalog',
+                          arguments: (title, list)),
+                      itemBuilder: (BuildContext c, Anime a, double w) =>
+                          PosterTile(
+                        title: a.title,
+                        image: a.poster,
+                        width: w,
+                        rating: a.score,
+                        badge: a.isMovie ? 'فيلم' : (a.episodeCount > 0 ? 'ح ${a.episodeCount}' : ''),
+                        viewsKey: 'anime:${a.id}',
+                        onTap: () => _openAnime(a),
+                      ),
+                    ),
               ],
             ],
           );
@@ -247,11 +147,11 @@ class _HomeTabState extends State<HomeTab> {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Row(
             children: <Widget>[
-              Text('Continue Watching', style: AppText.h2),
+              Text('تابع المشاهدة', style: AppText.h2),
               const Spacer(),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/library'),
-                child: Text('Library',
+                child: Text('المكتبة',
                     style: AppText.bodyBold.copyWith(
                         color: AppColors.accent, fontSize: 12.5)),
               ),
@@ -359,11 +259,11 @@ class _HomeTabState extends State<HomeTab> {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Row(
             children: <Widget>[
-              Text('My List', style: AppText.h2),
+              Text('قائمتي', style: AppText.h2),
               const Spacer(),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/library'),
-                child: Text('See all',
+                child: Text('عرض الكل',
                     style: AppText.bodyBold.copyWith(
                         color: AppColors.accent, fontSize: 12.5)),
               ),
@@ -412,7 +312,7 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                               child: Text(e.status?.label ?? '',
                                   style: TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Plex',
                                       fontSize: 8.5,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.accent)),
@@ -508,7 +408,7 @@ class _HeroCarousel extends StatelessWidget {
                                     const SizedBox(width: 3),
                                     Text(a.score.toStringAsFixed(1),
                                         style: const TextStyle(
-                                            fontFamily: 'Poppins',
+                                            fontFamily: 'Plex',
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.w700,
                                             color: Colors.white)),
@@ -516,7 +416,7 @@ class _HeroCarousel extends StatelessWidget {
                                   ],
                                   Text(a.year,
                                       style: const TextStyle(
-                                          fontFamily: 'Poppins',
+                                          fontFamily: 'Plex',
                                           fontSize: 11,
                                           color: Colors.white70)),
                                 ],
@@ -526,7 +426,7 @@ class _HeroCarousel extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      fontFamily: 'Poppins',
+                                      fontFamily: 'Plex',
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800,
                                       color: Colors.white)),
@@ -536,7 +436,7 @@ class _HeroCarousel extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                    fontFamily: 'Poppins',
+                                    fontFamily: 'Plex',
                                     fontSize: 11,
                                     color: Colors.white60),
                               ),
@@ -585,13 +485,13 @@ class _SyncBanner extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            offline ? 'Content unavailable' : 'Refreshing…',
+            offline ? 'المحتوى غير متاح' : 'جارٍ التحديث…',
             style: AppText.bodyBold.copyWith(fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
             offline
-                ? 'The content library could not be reached. Check your connection and retry.'
+                ? 'تعذّر الوصول إلى مكتبة المحتوى. تحقّق من اتصالك وأعد المحاولة.'
                 : state.backendMessage,
             textAlign: TextAlign.center,
             style: AppText.label.copyWith(fontSize: 11),
@@ -599,7 +499,7 @@ class _SyncBanner extends StatelessWidget {
           if (offline) ...<Widget>[
             const SizedBox(height: 14),
             GhostChip(
-              label: 'Retry sync',
+              label: 'إعادة المزامنة',
               active: true,
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -619,9 +519,9 @@ class _BackendChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool live = mode == 'LIVE';
-    final bool syncing = mode == 'SYNC…';
-    final bool bad = mode == 'OFFLINE';
+    final bool live = mode == 'مباشر';
+    final bool syncing = mode == 'مزامنة…';
+    final bool bad = mode == 'غير متصل';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
@@ -664,7 +564,7 @@ class _BackendChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(mode,
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Plex',
                   fontSize: 9.5,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,

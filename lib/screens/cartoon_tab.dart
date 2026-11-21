@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_theme.dart';
 import '../core/cartoon_api.dart';
 import '../core/cinema_api.dart';
@@ -40,10 +41,10 @@ class _CartoonTabState extends State<CartoonTab>
 
   void _reload() {
     final CartoonApi api = CartoonApi.I;
-    _trending = api.trending();
-    _popularSeries = api.popularSeries();
-    _topMovies = api.topMovies();
-    _bestRated = api.bestRated();
+    _trending = api.trending()..ignore(); // rows below the fold build lazily
+    _popularSeries = api.popularSeries()..ignore();
+    _topMovies = api.topMovies()..ignore();
+    _bestRated = api.bestRated()..ignore();
   }
 
   @override
@@ -93,64 +94,67 @@ class _CartoonTabState extends State<CartoonTab>
         child: ListView(
           physics: const BouncingScrollPhysics(),
           children: <Widget>[
+            if (!EmbeddedSection.of(context))
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
               child: Row(
                 children: <Widget>[
-                  const Text('Cartoons', style: AppText.h1),
+                  const Text('كرتون', style: AppText.h1),
                   const Spacer(),
                   Icon(Icons.animation_rounded,
                       color: AppColors.accent, size: 24),
                 ],
               ),
             ),
+            if (!EmbeddedSection.of(context))
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
               child: Text(
-                  'Animated movies & series — family favorites and modern '
-                  'classics, streaming with the same multi-server player as '
-                  'Cinema.',
+                  'أفلام ومسلسلات كرتون — مفضّلات العائلة والكلاسيكيات '
+                  'الحديثة، تُعرض بنفس مشغّل السيرفرات المتعددة مثل '
+                  'السينما.',
                   style: AppText.label),
             ),
             // Inline search
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
               child: TextField(
                 controller: _searchCtl,
                 onChanged: _onSearchChanged,
                 style: const TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 13.5,
                     color: AppColors.text),
                 decoration: InputDecoration(
-                  hintText: 'Search cartoons…',
+                  hintText: 'ابحث عن كرتون…',
                   hintStyle: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 13,
                       color: AppColors.muted),
                   prefixIcon: const Icon(Icons.search_rounded,
                       size: 20, color: AppColors.muted),
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: AppColors.surfaceHi,
+                  isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
-                      vertical: 13, horizontal: 16),
+                      vertical: 11, horizontal: 12),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.stroke)),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none),
                   focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          BorderSide(color: AppColors.accent, width: 1.2)),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                          color: AppColors.brandGreen, width: 1.2)),
                 ),
               ),
             ),
             if (_searchResults != null || _searching) ...<Widget>[
               _buildSearchResults(),
             ] else ...<Widget>[
-              _CinemaRow(title: 'Trending cartoons', future: _trending!, onOpen: _openItem),
-              _CinemaRow(title: 'Popular animated series', future: _popularSeries!, onOpen: _openItem),
-              _CinemaRow(title: 'Top animated movies', future: _topMovies!, onOpen: _openItem),
-              _CinemaRow(title: 'Best rated animation', future: _bestRated!, onOpen: _openItem),
+              _CinemaRow(title: 'كرتون رائج', future: _trending!, onOpen: _openItem),
+              _CinemaRow(title: 'مسلسلات كرتون شائعة', future: _popularSeries!, onOpen: _openItem),
+              _CinemaRow(title: 'أفضل أفلام الكرتون', future: _topMovies!, onOpen: _openItem),
+              _CinemaRow(title: 'الأعلى تقييمًا', future: _bestRated!, onOpen: _openItem),
             ],
             const SizedBox(height: 24),
           ],
@@ -165,7 +169,7 @@ class _CartoonTabState extends State<CartoonTab>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(_searching ? 'Searching…' : 'Results',
+          Text(_searching ? 'جارٍ البحث…' : 'النتائج',
               style: AppText.h3),
           const SizedBox(height: 12),
           if (_searching)
@@ -176,7 +180,7 @@ class _CartoonTabState extends State<CartoonTab>
                     child: CircularProgressIndicator(
                         strokeWidth: 2.2, color: AppColors.accent)))
           else if (_searchResults!.isEmpty)
-            Text('No animated titles found for "${_searchCtl.text}".',
+            Text('لا توجد نتائج كرتون لـ «${_searchCtl.text}».',
                 style: AppText.label)
           else
             ...List<Widget>.generate(_searchResults!.length, (int i) {
@@ -233,17 +237,17 @@ class _SearchRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Plex',
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: AppColors.text)),
                     const SizedBox(height: 3),
                     Text(
-                      '${item.isSeries ? 'Series' : 'Movie'}'
+                      '${item.isSeries ? 'مسلسل' : 'فيلم'}'
                       '${item.releaseInfo.isEmpty ? '' : ' · ${item.releaseInfo}'}'
                       '${item.imdbRating > 0 ? ' · ★ ${item.imdbRating.toStringAsFixed(1)}' : ''}',
                       style: const TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Plex',
                           fontSize: 10.5,
                           color: AppColors.muted),
                     ),
@@ -274,145 +278,26 @@ class _CinemaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-          child: Text(title, style: AppText.h2),
-        ),
-        SizedBox(
-          height: 220,
-          child: FutureBuilder<List<CinemaItem>>(
-            future: future,
-            builder: (BuildContext context,
-                AsyncSnapshot<List<CinemaItem>> snap) {
-              if (snap.connectionState != ConnectionState.done) {
-                return Center(
-                    child: SizedBox(
-                        width: 26,
-                        height: 26,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.2, color: AppColors.accent)));
-              }
-              if (snap.hasError || (snap.data?.isEmpty ?? true)) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    snap.hasError
-                        ? 'Could not load — ${snap.error}'
-                        : 'Nothing here right now.',
-                    style: AppText.label,
-                  ),
-                );
-              }
-              return ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: snap.data!.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (BuildContext c, int i) {
-                  final CinemaItem it = snap.data![i];
-                  return _CartoonCard(item: it, onTap: () => onOpen(it));
-                },
-              );
-            },
+    return FutureBuilder<List<CinemaItem>>(
+      future: future,
+      builder: (BuildContext context, AsyncSnapshot<List<CinemaItem>> snap) {
+        final bool loading = snap.connectionState != ConnectionState.done;
+        final List<CinemaItem> list = snap.data ?? const <CinemaItem>[];
+        if (!loading && list.isEmpty) return const SizedBox.shrink();
+        return PosterRow<CinemaItem>(
+          title: title,
+          items: list,
+          loading: loading,
+          itemBuilder: (BuildContext c, CinemaItem it, double w) => PosterTile(
+            title: it.name,
+            image: it.poster,
+            width: w,
+            rating: it.imdbRating,
+            viewsKey: 'cinema:${it.id}',
+            onTap: () => onOpen(it),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Poster card for cinema/cartoon items (reuses the app's NeonButton style
-/// palette through [PosterLikeBox]).
-class _CartoonCard extends StatelessWidget {
-  const _CartoonCard({required this.item, required this.onTap});
-
-  final CinemaItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 132,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox.expand(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      if (item.poster.startsWith('http'))
-                        Image.network(
-                          item.poster,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (BuildContext context, Widget child,
-                                  ImageChunkEvent? progress) =>
-                              progress == null
-                                  ? child
-                                  : ColoredBox(
-                                      color: AppColors.surface),
-                          errorBuilder: (_, _, _) =>
-                              ColoredBox(color: AppColors.surfaceHi),
-                        )
-                      else
-                        ColoredBox(color: AppColors.surfaceHi),
-                      if (item.imdbRating > 0)
-                        Positioned(
-                          top: 6,
-                          left: 6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                const Icon(Icons.star_rounded,
-                                    size: 11, color: Color(0xFFFFC94D)),
-                                const SizedBox(width: 2),
-                                Text(
-                                  item.imdbRating.toStringAsFixed(1),
-                                  style: const TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 7),
-            Text(item.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppText.bodyBold.copyWith(
-                    fontSize: 12, color: AppColors.text)),
-            Text(
-              '${item.isSeries ? 'Series' : 'Movie'}'
-              '${item.releaseInfo.isEmpty ? '' : ' · ${item.releaseInfo}'}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.label.copyWith(fontSize: 10),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

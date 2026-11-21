@@ -57,21 +57,21 @@ class CinemaProvider {
 const List<CinemaProvider> cinemaProviders = <CinemaProvider>[
   CinemaProvider(
     id: 'vidsrc',
-    name: 'Server 1 · VidSrc',
+    name: 'سيرفر 1 · VidSrc',
     home: 'vidsrc.sh',
     movie: 'https://vidsrc.sh/embed/movie/{id}',
     tv: 'https://vidsrc.sh/embed/tv/{id}/{ss}-{ee}',
   ),
   CinemaProvider(
     id: 'vidfast',
-    name: 'Server 2 · VidFast',
+    name: 'سيرفر 2 · VidFast',
     home: 'vidfast.pro',
     movie: 'https://vidfast.pro/movie/{id}',
     tv: 'https://vidfast.pro/tv/{id}/{s}/{e}',
   ),
   CinemaProvider(
     id: 'vidlink',
-    name: 'Server 3 · VidLink',
+    name: 'سيرفر 3 · VidLink',
     home: 'vidlink.pro',
     movie: 'https://vidlink.pro/movie/{id}',
     tv: 'https://vidlink.pro/tv/{tmdb}/{s}/{e}',
@@ -79,28 +79,28 @@ const List<CinemaProvider> cinemaProviders = <CinemaProvider>[
   ),
   CinemaProvider(
     id: 'vidsrccc',
-    name: 'Server 4 · VidSrc CC',
+    name: 'سيرفر 4 · VidSrc CC',
     home: 'vidsrc.cc',
     movie: 'https://vidsrc.cc/v2/embed/movie/{id}',
     tv: 'https://vidsrc.cc/v2/embed/tv/{id}/{s}-{e}',
   ),
   CinemaProvider(
     id: 'twoembed',
-    name: 'Server 5 · 2Embed',
+    name: 'سيرفر 5 · 2Embed',
     home: '2embed.cc',
     movie: 'https://www.2embed.cc/embed/{id}',
     tv: 'https://www.2embed.cc/embed/{id}/{s}-{e}',
   ),
   CinemaProvider(
     id: 'multiembed',
-    name: 'Server 6 · MultiEmbed',
+    name: 'سيرفر 6 · MultiEmbed',
     home: 'multiembed.mov',
     movie: 'https://multiembed.mov/?video_id={id}',
     tv: 'https://multiembed.mov/?video_id={id}&s={s}&e={e}',
   ),
   CinemaProvider(
     id: 'vidsrcxyz',
-    name: 'Server 7 · VidSrc X',
+    name: 'سيرفر 7 · VidSrc X',
     home: 'vidsrc.xyz',
     movie: 'https://vidsrc.xyz/embed/movie?imdb={id}',
     tv: 'https://vidsrc.xyz/embed/tv?imdb={id}&season={s}&episode={e}',
@@ -129,6 +129,8 @@ const List<String> cinemaAllowedHosts = <String>[
   'vidfast.vc',
   '2embed.cc',
   'multiembed.mov',
+  'streamingnow.mov', // multiembed.mov now 302s the main frame here
+  'vidsrc.buzz', // 2embed.cc player iframe
   'embed.su',
   'vidora.su',
   'vidjoy.pro',

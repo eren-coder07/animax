@@ -22,7 +22,7 @@ class CatalogScreen extends StatelessWidget {
       title = args;
       items = const <Anime>[];
     } else {
-      title = 'Browse';
+      title = 'تصفّح';
       items = const <Anime>[];
     }
 
@@ -47,10 +47,10 @@ class CatalogScreen extends StatelessWidget {
                     const Icon(Icons.movie_filter_rounded,
                         color: AppColors.muted, size: 40),
                     const SizedBox(height: 12),
-                    Text('Nothing here yet',
+                    Text('لا شيء هنا بعد',
                         style: AppText.bodyBold.copyWith(fontSize: 14)),
                     const SizedBox(height: 6),
-                    Text('This list is empty right now.',
+                    Text('هذه القائمة فارغة حاليًا.',
                         textAlign: TextAlign.center,
                         style: AppText.label.copyWith(fontSize: 11.5)),
                   ],

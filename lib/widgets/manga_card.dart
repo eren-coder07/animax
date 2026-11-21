@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'mb_ui.dart';
 import '../core/app_theme.dart';
 import '../core/manga_api.dart';
 
@@ -45,7 +46,7 @@ class MangaCard extends StatelessWidget {
                           child: Text(
                             manga.title.isNotEmpty ? manga.title[0] : '?',
                             style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Plex',
                                 fontSize: 36,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.accent),
@@ -71,7 +72,7 @@ class MangaCard extends StatelessWidget {
                                 const SizedBox(width: 3),
                                 Text(manga.followedLabel,
                                     style: const TextStyle(
-                                        fontFamily: 'Poppins',
+                                        fontFamily: 'Plex',
                                         fontSize: 9.5,
                                         fontWeight: FontWeight.w600,
                                         color: Colors.white)),
@@ -94,7 +95,7 @@ class MangaCard extends StatelessWidget {
             ),
             Text(
               manga.tags.isEmpty
-                  ? (manga.year.isEmpty ? 'Manga' : manga.year)
+                  ? (manga.year.isEmpty ? 'مانغا' : manga.year)
                   : manga.tags.take(2).map((MangaTag t) => t.name).join(' · '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -120,51 +121,26 @@ class MangaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Text(title, style: AppText.h2),
-        ),
-        SizedBox(
-          height: 216,
-          child: FutureBuilder<List<MangaItem>>(
-            future: future,
-            builder: (BuildContext context,
-                AsyncSnapshot<List<MangaItem>> snap) {
-              if (snap.connectionState != ConnectionState.done) {
-                return Center(
-                    child: SizedBox(
-                        width: 26,
-                        height: 26,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.2, color: AppColors.accent)));
-              }
-              if (snap.hasError || (snap.data?.isEmpty ?? true)) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    snap.hasError
-                        ? 'Could not load — check your connection.'
-                        : 'Nothing here right now.',
-                    style: AppText.label,
-                  ),
-                );
-              }
-              return ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: snap.data!.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (BuildContext c, int i) =>
-                    MangaCard(manga: snap.data![i]),
-              );
-            },
+    return FutureBuilder<List<MangaItem>>(
+      future: future,
+      builder: (BuildContext context, AsyncSnapshot<List<MangaItem>> snap) {
+        final bool loading = snap.connectionState != ConnectionState.done;
+        final List<MangaItem> list = snap.data ?? const <MangaItem>[];
+        if (!loading && list.isEmpty) return const SizedBox.shrink();
+        return PosterRow<MangaItem>(
+          title: title,
+          items: list,
+          loading: loading,
+          itemBuilder: (BuildContext c, MangaItem m, double w) => PosterTile(
+            title: m.title,
+            image: m.cover,
+            width: w,
+            viewsKey: 'manga:${m.id}',
+            onTap: () =>
+                Navigator.pushNamed(c, '/comic-details', arguments: m),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
-
 }

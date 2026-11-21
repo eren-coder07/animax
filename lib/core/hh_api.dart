@@ -131,15 +131,15 @@ class HentaiApi {
       // Cloudflare bot challenge — explain instead of a bare status code.
       if (e.statusCode == 403) {
         return ApiException(
-            'The source is protected right now (bot check). '
-            'Try again in a minute.');
+            'المصدر محمي حاليًا (فحص الحماية). '
+            'حاول بعد دقيقة.');
       }
       return e;
     }
     if (e is http.ClientException || e is TimeoutException || e is SocketException) {
-      return ApiException('Cannot reach the source — check your connection.');
+      return ApiException('تعذّر الوصول إلى المصدر — تحقّق من اتصالك.');
     }
-    return ApiException('The source is unavailable right now.');
+    return ApiException('المصدر غير متاح حاليًا.');
   }
 
   // =========================================================================
@@ -174,7 +174,7 @@ class HentaiApi {
         }
       }
       if (res.statusCode != 200) {
-        throw ApiException('The source returned HTTP ${res.statusCode}.',
+        throw ApiException('أعاد المصدر الخطأ HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       final dynamic decoded = jsonDecode(utf8.decode(res.bodyBytes));
@@ -204,7 +204,7 @@ class HentaiApi {
         return const HhSearchResult(<HhSeries>[], 0);
       }
       if (res.statusCode != 200) {
-        throw ApiException('Search is unavailable right now.',
+        throw ApiException('البحث غير متاح حاليًا.',
             statusCode: res.statusCode);
       }
       final Map<int, String> genreNames = await _genreMap();
@@ -273,7 +273,7 @@ class HentaiApi {
     try {
       final http.Response res = await _get(uri, json: false, document: true);
       if (res.statusCode != 200) {
-        throw ApiException('The source returned HTTP ${res.statusCode}.',
+        throw ApiException('أعاد المصدر الخطأ HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       final String body = utf8.decode(res.bodyBytes);
@@ -281,7 +281,7 @@ class HentaiApi {
       final String flat = body.replaceAll(r'\"', '"');
       final List<Map<String, dynamic>> posts = extractPostArray(flat);
       if (posts.isEmpty) {
-        throw ApiException('Trending list unavailable right now.');
+        throw ApiException('قائمة الرائج غير متاحة حاليًا.');
       }
       final Map<int, ({double rating, int views})> engagement =
           extractEngagement(flat);
@@ -391,12 +391,12 @@ class HentaiApi {
     try {
       final http.Response res = await _get(uri);
       if (res.statusCode != 200) {
-        throw ApiException('The source returned HTTP ${res.statusCode}.',
+        throw ApiException('أعاد المصدر الخطأ HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       final dynamic decoded = jsonDecode(utf8.decode(res.bodyBytes));
       if (decoded is! List || decoded.isEmpty) {
-        throw ApiException('Series not found.');
+        throw ApiException('المسلسل غير موجود.');
       }
       final Map<int, String> genreNames = await _genreMap();
       return HhSeries.fromRestJson(
@@ -414,11 +414,11 @@ class HentaiApi {
     try {
       final http.Response res = await _get(uri, json: false, document: true);
       if (res.statusCode != 200) {
-        throw ApiException('The source returned HTTP ${res.statusCode}.',
+        throw ApiException('أعاد المصدر الخطأ HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       final List<HhEpisode> eps = parseEpisodeCards(utf8.decode(res.bodyBytes), slug);
-      if (eps.isEmpty) throw ApiException('No episodes found.');
+      if (eps.isEmpty) throw ApiException('لا توجد حلقات.');
       // Site lists newest first; the app plays oldest first.
       return eps.reversed.toList(growable: false);
     } catch (e) {
@@ -466,14 +466,14 @@ class HentaiApi {
     try {
       final http.Response res = await _get(uri, json: false, document: true);
       if (res.statusCode != 200) {
-        throw ApiException('This episode is unavailable right now.',
+        throw ApiException('هذه الحلقة غير متاحة حاليًا.',
             statusCode: res.statusCode);
       }
       final HhStream? s =
           parseStream(utf8.decode(res.bodyBytes), slug, episode);
       if (s == null) {
         throw ApiException(
-            'Stream unavailable (episode $episode may have been removed).');
+            'البث غير متاح (ربما حُذفت الحلقة $episode).');
       }
       return s;
     } catch (e) {
@@ -510,7 +510,7 @@ class HentaiApi {
       pm2?.group(0);
     }
     final RegExpMatch? dm = RegExp(r'"duration":"(PT[^"]+)"').firstMatch(html);
-    final String title = 'Episode $episode';
+    final String title = 'الحلقة $episode';
     return HhStream(
       url: url,
       poster: poster,
@@ -670,7 +670,7 @@ class HhEpisode {
   final int number;
   final String thumb;
 
-  String get title => 'Episode $number';
+  String get title => 'الحلقة $number';
 }
 
 /// Resolved direct stream for an episode.

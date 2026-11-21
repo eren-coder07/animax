@@ -25,7 +25,7 @@ class MangaApi {
 
   static const String base = 'https://api.mangadex.org';
   static const String uploadsBase = 'https://uploads.mangadex.org';
-  static const String ua = 'Animax/1.9.1 (Android; Flutter)';
+  static const String ua = 'Animax/2.8.0 (Android; Flutter)';
 
   final http.Client _client = createHttpClient();
 
@@ -66,7 +66,7 @@ class MangaApi {
         final int after =
             int.tryParse(res.headers['retry-after'] ?? '') ?? 2;
         if (attempt > retries + 1) {
-          throw MangaApiException('Rate limited by MangaDex');
+          throw MangaApiException('MangaDex يحدّ من الطلبات حاليًا');
         }
         await Future<void>.delayed(Duration(seconds: after + 1));
         continue;
@@ -76,7 +76,7 @@ class MangaApi {
         continue;
       }
       if (res.statusCode != 200) {
-        throw MangaApiException('The source returned HTTP ${res.statusCode}.');
+        throw MangaApiException('أعاد المصدر الخطأ HTTP ${res.statusCode}.');
       }
       break;
     }
@@ -130,7 +130,11 @@ class MangaApi {
     p.write('&includes%5B%5D=cover_art');
     p.write('&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive');
     p.write('&hasAvailableChapters=true');
-    p.write('&availableTranslatedLanguage%5B%5D=${AppPrefs.I.mangaLanguage}');
+    // Arabic coverage is thin: list titles readable in the chosen language
+    // OR English (chapters still prefer the chosen language, see chapters()).
+    final String lang = AppPrefs.I.mangaLanguage;
+    p.write('&availableTranslatedLanguage%5B%5D=$lang');
+    if (lang != 'en') p.write('&availableTranslatedLanguage%5B%5D=en');
     p.write('&$query');
     final dynamic body = await _getJson(p.toString());
     return parseItems(body);
@@ -195,16 +199,25 @@ class MangaApi {
           Map<String, dynamic>.from(body['data'] as Map<dynamic, dynamic>),
           full: true);
     }
-    throw const MangaApiException('Unexpected manga payload.');
+    throw const MangaApiException('استجابة غير متوقعة من MangaDex.');
   }
 
   // -------------------------------------------------------------- chapters
 
   /// Chapter list for a title (newest first), skipping external-only
   /// chapters (MangaPlus embeds that cannot be read in-app).
+  /// Chapters in [language]; when that language has none, falls back to
+  /// English (Arabic coverage on MangaDex is thin).
   Future<List<MangaChapter>> chapters(String id,
-      {String language = 'en', int limit = 200}) async {
-    final String lang = language.isEmpty ? 'en' : language;
+      {String language = 'ar', int limit = 200}) async {
+    final List<MangaChapter> first =
+        await _chaptersIn(id, language.isEmpty ? 'ar' : language, limit);
+    if (first.isNotEmpty || language == 'en') return first;
+    return _chaptersIn(id, 'en', limit);
+  }
+
+  Future<List<MangaChapter>> _chaptersIn(
+      String id, String lang, int limit) async {
     final String p = '/manga/${Uri.encodeComponent(id)}/feed'
         '?translatedLanguage%5B%5D=${Uri.encodeComponent(lang)}'
         '&order%5Bchapter%5D=desc&order%5Bvolume%5D=desc'
@@ -338,13 +351,13 @@ class MangaItem {
     m.status = (a['status'] ?? '').toString();
     m.year = (a['year'] ?? '').toString();
     m.contentRating = (a['contentRating'] ?? 'safe').toString();
-    m.followedCount = (a['followedCount'] as num?)?.toInt() ?? 0;
-    m.chapterCount = (a['lastChapter'] as num?)?.toInt() ?? 0;
+    // MangaDex sends some numbers as strings ("lastChapter": "120",
+    // "12.5", "") — parse tolerantly so a title is never dropped.
+    m.followedCount = _num(a['followedCount']).toInt();
+    m.chapterCount = _num(a['lastChapter']).floor();
     final dynamic rating = a['rating'];
     if (rating is Map) {
-      m.rating = ((rating['bayesian'] ?? rating['average'] ?? 0) as num)
-              .toDouble()
-              .round();
+      m.rating = _num(rating['bayesian'] ?? rating['average']).round();
     }
     m.latestChapterAt = (a['latestUploadedChapter'] ?? a['updatedAt'] ?? '')
         .toString();
@@ -379,7 +392,7 @@ class MangaItem {
           final String file = (rattrs['fileName'] ?? '').toString();
           if (file.isNotEmpty) {
             m.cover =
-                '${MangaApi.uploadsBase}/covers/${m.id}/$file.512.jpg';
+                '${MangaApi.uploadsBase}/covers/${m.id}/$file.256.jpg';
           }
         }
         if ((rtype == 'author' || rtype == 'artist') && rattrs is Map) {
@@ -409,11 +422,11 @@ class MangaChapter {
   String get displayTitle {
     final String t = title.trim();
     if (t.isNotEmpty) return t;
-    return 'Chapter ${number.isEmpty ? '?' : number}';
+    return 'الفصل ${number.isEmpty ? '?' : number}';
   }
 
   String get chipLabel =>
-      number.isEmpty ? 'Oneshot' : 'Ch. ${_trimNum(number)}';
+      number.isEmpty ? 'فصل واحد' : 'فصل ${_trimNum(number)}';
 
   static String _trimNum(String n) {
     final double? d = double.tryParse(n);
@@ -432,9 +445,16 @@ class MangaChapter {
     c.title = (a['title'] ?? '').toString();
     c.number = (a['chapter'] ?? '').toString();
     c.volume = (a['volume'] ?? '').toString();
-    c.pages = (a['pages'] as num?)?.toInt() ?? 0;
+    c.pages = _num(a['pages']).toInt();
     c.publishedAt = (a['publishAt'] ?? a['readableAt'] ?? '').toString();
     c.isUnavailable = a['isUnavailable'] == true;
     return c;
   }
+}
+
+/// Number from a JSON value that may be a num, a numeric string or junk.
+double _num(dynamic v) {
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v.trim()) ?? 0;
+  return 0;
 }

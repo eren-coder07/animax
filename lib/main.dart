@@ -1,7 +1,17 @@
+import 'core/cloud_sync.dart';
+import 'core/data_budget.dart';
+import 'core/episode_alerts.dart';
+import 'core/library_store.dart';
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:video_player_media_kit/video_player_media_kit.dart';
 
 import 'core/app_prefs.dart';
 import 'core/app_theme.dart';
+import 'core/download_manager.dart';
+import 'core/net_quality.dart';
 import 'core/manga_api.dart';
 import 'screens/akwam_details_screen.dart';
 import 'screens/akwam_player_screen.dart';
@@ -13,6 +23,8 @@ import 'screens/comic_details_screen.dart';
 import 'screens/comic_reader_screen.dart';
 import 'screens/comic_tab.dart';
 import 'screens/details_screen.dart';
+import 'screens/downloads_screen.dart';
+import 'screens/global_search_screen.dart';
 import 'screens/help_center_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/hh_catalog_screen.dart';
@@ -28,6 +40,23 @@ import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Bigger in-memory image cache: fewer re-downloads on slow connections.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 160 << 20;
+  PaintingBinding.instance.imageCache.maximumSize = 600;
+  NetQuality.check();
+  AppPrefs.I.ready.then((_) => DataBudget.I.start());
+  LibraryStore.I.ready.then((_) {
+    CloudSync.I.start();
+    EpisodeAlerts.I.start();
+  });
+  // video_player has no Windows backend: route it through media_kit (mpv)
+  // there. Android keeps ExoPlayer untouched.
+  if (Platform.isWindows) {
+    VideoPlayerMediaKit.ensureInitialized(windows: true);
+  }
+  // Restores the download queue and resumes anything left unfinished.
+  DownloadManager.I.load();
   runApp(const AnimaxApp());
 }
 
@@ -40,8 +69,16 @@ class AnimaxApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: AppPrefs.I,
       builder: (BuildContext context, _) => MaterialApp(
-        title: 'Animax',
+        title: 'أنيماكس',
         debugShowCheckedModeBanner: false,
+        // Arabic-first app: Arabic strings, right-to-left layout everywhere.
+        locale: const Locale('ar'),
+        supportedLocales: const <Locale>[Locale('ar'), Locale('en')],
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: AppTheme.dark(),
         initialRoute: '/',
         routes: <String, WidgetBuilder>{
@@ -49,24 +86,28 @@ class AnimaxApp extends StatelessWidget {
           '/onboarding': (_) => const OnboardingScreen(),
           '/shell': (_) => const HomeShell(),
           '/details': (_) => const DetailsScreen(),
-          '/player': (_) => const PlayerScreen(),
+          // Video players + comic reader keep a left-to-right layout (seek
+          // bars, page order) inside the Arabic RTL app.
+          '/player': (_) => const _Ltr(PlayerScreen()),
           '/search': (_) => const SearchScreen(),
           '/catalog': (_) => const CatalogScreen(),
           '/notifications': (_) => const NotificationsScreen(),
           '/help': (_) => const HelpCenterScreen(),
           '/settings': (_) => const SettingsScreen(),
           '/library': (_) => const LibraryScreen(),
+          '/downloads': (_) => const DownloadsScreen(),
+          '/search-all': (_) => const GlobalSearchScreen(),
           '/calendar': (_) => const CalendarTab(),
           '/comics': (_) => const ComicTab(),
           '/comic-catalog': (_) => const ComicCatalogScreen(
               tag: null, title: 'Popular'),
           '/hh-catalog': (_) => const HhCatalogScreen(),
           '/hh-details': (_) => const HhDetailsScreen(),
-          '/hh-player': (_) => const HhPlayerScreen(),
+          '/hh-player': (_) => const _Ltr(HhPlayerScreen()),
           '/hh-search': (_) => const HhSearchScreen(),
           '/akwam-search': (_) => const AkwamSearchScreen(),
           '/akwam-details': (_) => const AkwamDetailsScreen(),
-          '/akwam-player': (_) => const AkwamPlayerScreen(),
+          '/akwam-player': (_) => const _Ltr(AkwamPlayerScreen()),
         },
         // Comic screens take constructor arguments → onGenerateRoute.
         onGenerateRoute: (RouteSettings settings) {
@@ -75,10 +116,10 @@ class AnimaxApp extends StatelessWidget {
             return _page(ComicDetailsScreen(manga: args));
           }
           if (settings.name == '/comic-reader' && args is ReaderArgs) {
-            return _page(ComicReaderScreen(
+            return _page(_Ltr(ComicReaderScreen(
                 manga: args.manga,
                 chapters: args.chapters,
-                startIndex: args.startIndex));
+                startIndex: args.startIndex)));
           }
           return null;
         },
@@ -107,4 +148,14 @@ class ReaderArgs {
   final MangaItem manga;
   final List<MangaChapter> chapters;
   final int startIndex;
+}
+
+/// Forces a left-to-right layout for one screen inside the RTL app.
+class _Ltr extends StatelessWidget {
+  const _Ltr(this.child);
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      Directionality(textDirection: TextDirection.ltr, child: child);
 }

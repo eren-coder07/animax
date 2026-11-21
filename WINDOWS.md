@@ -1,73 +1,37 @@
-# Building Animax as a Windows .exe
+# Animax on Windows
 
-This folder is your original Flutter source, prepared for a Windows desktop
-build. On a Windows PC the whole process is a **single double-click** on
-`build_exe.bat`.
+## Download / install
 
----
+GitHub Actions builds Windows on every push to `main` and on every pull
+request (`.github/workflows/build-windows.yml`). The `animax-windows`
+artifact of a run contains:
 
-## 1. One-time setup (on the Windows PC)
-
-| Requirement | Notes |
+| File | What it is |
 | --- | --- |
-| **Flutter SDK** (stable) | https://docs.flutter.dev/get-started/install/windows |
-| **Visual Studio 2022 Community** | During installer, tick the **"Desktop development with C++"** workload. That installs MSVC + Windows SDK, which Flutter needs to produce the exe. |
-| **Git for Windows** | Needed by the Flutter tool. |
+| `AnimaxSetup-<version>-x64.exe` | Single-file installer (per-user, no admin needed). Adds Start-menu and optional desktop shortcuts. |
+| `Animax-<version>-windows-x64-portable.zip` | Portable build — unzip anywhere and run `animax.exe` (keep the DLLs and `data\` next to it). |
 
-Then open a new terminal and check:
+Requirements: Windows 10/11 x64. Cinema/Cartoons use the Microsoft Edge
+WebView2 runtime (built into Windows 11, installed with Edge on Windows 10).
+The MSVC runtime DLLs are bundled.
 
-```
-flutter doctor
-```
+## How Windows support works
 
-Everything in the Flutter / Visual Studio rows must be green (Android Studio
-rows can stay red — they are not needed for the exe).
-
-## 2. Build the exe
-
-Double-click **`build_exe.bat`** (or run it from a terminal). It does:
-
-1. `flutter pub get`
-2. `flutter build windows --release`
-3. Collects the output into `Animax-1.6.1-windows-x64\` and zips it.
-
-**The result:**
-
-```
-Animax-1.6.1-windows-x64\
-├── animax.exe            ← the app
-├── flutter_windows.dll   ← runtime
-├── *.dll                 ← plugins (media_kit / mpv, shared_preferences, ...)
-└── data\                 ← app bundle (fonts, icons, AOT code)
-```
-
-To give the app to someone else, share the **whole folder** (or the generated
-zip), not just `animax.exe` — the exe needs the DLLs and the `data\` directory
-next to it. No installation required; it is fully portable.
-
-## 3. What was changed compared to your Android-only source
-
-| Change | Why |
+| Piece | Windows implementation |
 | --- | --- |
-| Added the `windows\` platform folder (runner, CMake, resources) | Flutter needs it to produce an exe; `flutter create --platforms=windows` generated it. |
-| Added `lib\core\video_backend.dart` + patched the two player screens | Google's official `video_player` package has **no Windows implementation**. The new platform-agnostic controller keeps ExoPlayer on Android (zero behavior change) and uses **media_kit (libmpv)** for playback on Windows — same UI, same custom controls overlay. |
-| Added `media_kit`, `media_kit_video`, `media_kit_libs_windows_video` to `pubspec.yaml` | The mpv engine for Windows. Android APK builds ignore these (no size impact). |
-| `build_exe.bat` | One-click build + packaging script. |
+| Native players (anime, 18+, Akwam) | `video_player` routed to **media_kit / libmpv** via `video_player_media_kit` (enabled in `main.dart` on Windows only; Android keeps ExoPlayer). |
+| Cinema / Cartoons embed players | `webview_flutter` backed by **WebView2** via `webview_win_floating`. |
+| Downloads | Saved to `Downloads\Animax\{Videos,Comics}`; opened with the default app. HLS streams with separate audio cannot be merged on Windows (no MediaMuxer), so those save as a video file + an `(audio).m4a` file. |
+| HTTP | `dart:io` (Cronet is Android-only). Cloudflare-fronted sources such as the 18+ catalog may refuse Windows requests. |
+| Window | Opens as a 480×900 phone-shaped window (`windows/runner/main.cpp`); resizable. |
 
-Your Android project is untouched — the same code still builds the APK exactly
-as before. If your older Android Flutter version ever complains about the new
-`pubspec.lock`, just run `flutter pub get` with that SDK and it will re-resolve.
+## Building locally
 
-## 4. Good to know
+Needs Flutter 3.47.9, Visual Studio 2022 with "Desktop development with
+C++", and a JDK (for the `jni` plugin):
 
-- The UI is designed portrait/mobile-first, so it shows phone-style layouts in
-  the desktop window. Player fullscreen toggle works fine.
-- The `setKeepScreenOn` / `openUrl` Android-native hooks are safely ignored on
-  Windows (they are wrapped in try/catch).
-- **Cloudflare-protected streams** (the +18 section) rely on Cronet's
-  Chrome-like TLS fingerprint, which is Android-only. On Windows those streams
-  may answer 403 to the mpv player even with the right headers. The main
-  catalog is not affected; if a particular server refuses, the player falls
-  back to the next server automatically.
-- Code status before shipping this folder: `flutter analyze` → 0 issues,
-  `flutter test` → 43/43 passed, full kernel compile OK.
+```
+flutter pub get
+flutter build windows --release
+"%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" windows\installer\animax.iss
+```

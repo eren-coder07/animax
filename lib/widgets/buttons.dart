@@ -91,7 +91,7 @@ class GhostChip extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Plex',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: active ? AppColors.ink : AppColors.text,
@@ -131,7 +131,7 @@ class SelectChip extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Plex',
               fontSize: 12.5,
               fontWeight: FontWeight.w600,
               color: selected ? AppColors.ink : AppColors.sub,
@@ -166,7 +166,7 @@ class ScoreBadge extends StatelessWidget {
           Text(
             score.toStringAsFixed(1),
             style: TextStyle(
-              fontFamily: 'Poppins',
+              fontFamily: 'Plex',
               fontSize: small ? 9.5 : 11.5,
               fontWeight: FontWeight.w700,
               color: AppColors.ink,

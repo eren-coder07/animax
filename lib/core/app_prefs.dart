@@ -13,15 +13,15 @@ class AccentTheme {
   final Color deep;
   final Color ink;
 
-  static const AccentTheme green = AccentTheme('green', 'Neo Green',
-      Color(0xFF04C14A), Color(0xFF02752E), Color(0xFF06130A));
-  static const AccentTheme red = AccentTheme('red', 'Cinema Red',
+  static const AccentTheme green = AccentTheme('green', 'أخضر نيون',
+      Color(0xFF2EE58B), Color(0xFF1FC8EE), Color(0xFF06130A));
+  static const AccentTheme red = AccentTheme('red', 'أحمر سينمائي',
       Color(0xFFE50914), Color(0xFF8E0A0F), Color(0xFFFFFFFF));
-  static const AccentTheme purple = AccentTheme('purple', 'Ultra Violet',
+  static const AccentTheme purple = AccentTheme('purple', 'بنفسجي',
       Color(0xFF8B5CF6), Color(0xFF5B2EC5), Color(0xFFFFFFFF));
-  static const AccentTheme blue = AccentTheme('blue', 'Deep Ocean',
+  static const AccentTheme blue = AccentTheme('blue', 'أزرق المحيط',
       Color(0xFF2E90FA), Color(0xFF1D5FB8), Color(0xFFFFFFFF));
-  static const AccentTheme pink = AccentTheme('pink', 'Sakura Pink',
+  static const AccentTheme pink = AccentTheme('pink', 'وردي ساكورا',
       Color(0xFFF0428C), Color(0xFFB0235E), Color(0xFFFFFFFF));
 
   static const List<AccentTheme> all = <AccentTheme>[
@@ -55,15 +55,25 @@ class AppPrefs extends ChangeNotifier {
 
   // ---- Playback ----------------------------------------------------------
   bool dataSaver = false; // caps manga images + warns on cellular
+  bool downloadWifiOnly = false; // downloads wait for Wi-Fi
   String defaultQuality = 'auto'; // auto | 1080 | 720 | 480 | 360
   bool autoPlayNext = true;
   bool autoSkipIntro = false;
+  bool bingeMode = false; // marathon: countdown auto-next + skip intros
+  bool timedComments = true; // comments pinned to moments float over video
+  bool spoilerShield = true; // blur clips/comments past your progress
+  bool audioOnly = false; // players: sound only (smallest stream, background)
+  int dataBudgetMb = 0; // monthly mobile-data budget, 0 = off
+  bool cloudSync = true; // list / progress / history follow the account
+  bool autoDownloadNext = false; // fetch the next episode on Wi-Fi
+  double readerScrollSpeed = 1.0; // auto-scroll speed multiplier
   int skipIntroSeconds = 85;
   bool pauseOnBackground = true;
   String cinemaProvider = ''; // '' = auto (first working provider)
 
   // ---- Reader ------------------------------------------------------------
-  String mangaLanguage = 'en';
+  /// Arabic first; chapters fall back to English when none exist.
+  String mangaLanguage = 'ar';
   String readerMode = 'vertical'; // vertical | paged
   bool readerRtl = true; // paged mode reading direction
   bool readerDataSaver = false;
@@ -85,9 +95,18 @@ class AppPrefs extends ChangeNotifier {
       accentKey = sp.getString('pref.accent') ?? accentKey;
       amoled = sp.getBool('pref.amoled') ?? amoled;
       dataSaver = sp.getBool('pref.dataSaver') ?? dataSaver;
+      downloadWifiOnly = sp.getBool('pref.dlWifiOnly') ?? downloadWifiOnly;
       defaultQuality = sp.getString('pref.defaultQuality') ?? defaultQuality;
       autoPlayNext = sp.getBool('pref.autoPlayNext') ?? autoPlayNext;
       autoSkipIntro = sp.getBool('pref.autoSkipIntro') ?? autoSkipIntro;
+      bingeMode = sp.getBool('pref.bingeMode') ?? bingeMode;
+      timedComments = sp.getBool('pref.timedComments') ?? timedComments;
+      spoilerShield = sp.getBool('pref.spoilerShield') ?? spoilerShield;
+      audioOnly = sp.getBool('pref.audioOnly') ?? audioOnly;
+      dataBudgetMb = sp.getInt('pref.dataBudgetMb') ?? dataBudgetMb;
+      cloudSync = sp.getBool('pref.cloudSync') ?? cloudSync;
+      autoDownloadNext = sp.getBool('pref.autoDlNext') ?? autoDownloadNext;
+      readerScrollSpeed = sp.getDouble('pref.readerScrollSpeed') ?? readerScrollSpeed;
       skipIntroSeconds = sp.getInt('pref.skipIntroSec') ?? skipIntroSeconds;
       pauseOnBackground = sp.getBool('pref.pauseOnBg') ?? pauseOnBackground;
       cinemaProvider = sp.getString('pref.cinemaProvider') ?? '';
@@ -123,6 +142,10 @@ class AppPrefs extends ChangeNotifier {
         dataSaver = value as bool;
         sp?.setBool('pref.dataSaver', dataSaver);
         break;
+      case 'downloadWifiOnly':
+        downloadWifiOnly = value as bool;
+        sp?.setBool('pref.dlWifiOnly', downloadWifiOnly);
+        break;
       case 'defaultQuality':
         defaultQuality = value as String;
         sp?.setString('pref.defaultQuality', defaultQuality);
@@ -130,6 +153,38 @@ class AppPrefs extends ChangeNotifier {
       case 'autoPlayNext':
         autoPlayNext = value as bool;
         sp?.setBool('pref.autoPlayNext', autoPlayNext);
+        break;
+      case 'bingeMode':
+        bingeMode = value as bool;
+        sp?.setBool('pref.bingeMode', bingeMode);
+        break;
+      case 'timedComments':
+        timedComments = value as bool;
+        sp?.setBool('pref.timedComments', timedComments);
+        break;
+      case 'spoilerShield':
+        spoilerShield = value as bool;
+        sp?.setBool('pref.spoilerShield', spoilerShield);
+        break;
+      case 'audioOnly':
+        audioOnly = value as bool;
+        sp?.setBool('pref.audioOnly', audioOnly);
+        break;
+      case 'dataBudgetMb':
+        dataBudgetMb = value as int;
+        sp?.setInt('pref.dataBudgetMb', dataBudgetMb);
+        break;
+      case 'cloudSync':
+        cloudSync = value as bool;
+        sp?.setBool('pref.cloudSync', cloudSync);
+        break;
+      case 'autoDownloadNext':
+        autoDownloadNext = value as bool;
+        sp?.setBool('pref.autoDlNext', autoDownloadNext);
+        break;
+      case 'readerScrollSpeed':
+        readerScrollSpeed = value as double;
+        sp?.setDouble('pref.readerScrollSpeed', readerScrollSpeed);
         break;
       case 'autoSkipIntro':
         autoSkipIntro = value as bool;

@@ -1,4 +1,4 @@
-name: Build Animax 32-bit APK
+name: Build Animax APK
 
 on:
   push:
@@ -36,6 +36,16 @@ jobs:
           echo "APP_VERSION=$VER" >> "$GITHUB_ENV"
           echo "App version: $VER"
 
+      - name: Build full (universal) release APK
+        run: >
+          flutter build apk --release
+          --dart-define=cronetHttpNoPlay=true
+
+      - name: Keep universal APK
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             animax-${APP_VERSION}-universal.apk
+
       - name: Build 32-bit (armeabi-v7a) release APK
         run: >
           flutter build apk --release
@@ -43,7 +53,7 @@ jobs:
           --split-per-abi
           --dart-define=cronetHttpNoPlay=true
 
-      - name: Rename APK
+      - name: Rename 32-bit APK
         run: |
           ls -la build/app/outputs/flutter-apk/
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk \
@@ -52,24 +62,24 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: animax-32bit-apk
-          path: animax-*-32bit-armeabi-v7a.apk
+          name: animax-apk
+          path: animax-*.apk
           if-no-files-found: error
 
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ env.APP_VERSION }}-32bit
-          name: Animax v${{ env.APP_VERSION }} (32-bit)
+          tag_name: v${{ env.APP_VERSION }}
+          name: Animax v${{ env.APP_VERSION }}
           body: |
-            32-bit release APK built by GitHub Actions.
+            Release APKs built by GitHub Actions.
 
-            - ABI: armeabi-v7a (32-bit ARM)
-            - Version: ${{ env.APP_VERSION }}
+            - `animax-${{ env.APP_VERSION }}-universal.apk`: every phone (32-bit, 64-bit, x86_64) — pick this one
+            - `animax-${{ env.APP_VERSION }}-32bit-armeabi-v7a.apk`: smaller build for older 32-bit phones only
             - Commit: ${{ github.sha }}
 
-            Install: download the APK and open it on a 32-bit Android device (allow installs from unknown sources).
-          files: animax-*-32bit-armeabi-v7a.apk
+            Install: download the APK and open it on your Android device (allow installs from unknown sources).
+          files: animax-*.apk
           make_latest: "true"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

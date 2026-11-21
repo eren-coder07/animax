@@ -1,0 +1,13 @@
+rules_version = '2';
+// Animax does not upload to Storage today (clips are stored as references to
+// the source video). Add this block to your existing rules so a future
+// upload feature (Blaze plan) is limited to signed-in users and small files.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /animax/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 25 * 1024 * 1024;
+    }
+  }
+}

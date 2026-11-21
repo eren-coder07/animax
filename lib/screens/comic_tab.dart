@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/mb_ui.dart';
 import '../core/app_theme.dart';
 import '../core/manga_api.dart';
 import '../widgets/manga_card.dart';
@@ -42,11 +43,14 @@ class _ComicTabState extends State<ComicTab>
 
   void _reload() {
     final MangaApi api = MangaApi.I;
-    _popular = api.popular(limit: 18);
-    _latest = api.latest(limit: 18);
-    _newest = api.newest(limit: 18);
-    _top = api.topRated(limit: 18);
-    _tags = api.tags();
+    // Rows below the fold are built lazily; mark the futures handled so a
+    // network failure never surfaces as an unhandled error (each row's
+    // FutureBuilder still receives and shows it).
+    _popular = api.popular(limit: 18)..ignore();
+    _latest = api.latest(limit: 18)..ignore();
+    _newest = api.newest(limit: 18)..ignore();
+    _top = api.topRated(limit: 18)..ignore();
+    _tags = api.tags()..ignore();
   }
 
   @override
@@ -80,7 +84,7 @@ class _ComicTabState extends State<ComicTab>
         setState(() {
           _searchError = e is MangaApiException
               ? e.message
-              : 'Cannot reach MangaDex — check your connection.';
+              : 'تعذّر الوصول إلى MangaDex — تحقّق من اتصالك.';
           _searching = false;
         });
       }
@@ -116,13 +120,13 @@ class _ComicTabState extends State<ComicTab>
                   autofocus: true,
                   onChanged: _onSearchChanged,
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 13.5,
                       color: AppColors.text),
                   decoration: InputDecoration(
-                    hintText: 'Search comics…',
+                    hintText: 'ابحث عن مانغا…',
                     hintStyle: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 13,
                         color: AppColors.muted),
                     prefixIcon: const Icon(Icons.search_rounded,
@@ -151,9 +155,9 @@ class _ComicTabState extends State<ComicTab>
                     _searchError = '';
                   });
                 },
-                child: Text('Cancel',
+                child: Text('إلغاء',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 12.5,
                         color: AppColors.accent)),
               ),
@@ -174,12 +178,12 @@ class _ComicTabState extends State<ComicTab>
                 )
               : _searchError.isNotEmpty
                   ? Center(
-                      child: Text('Search failed — $_searchError',
+                      child: Text('فشل البحث — $_searchError',
                           textAlign: TextAlign.center,
                           style: AppText.label))
                   : (_searchResults?.isEmpty ?? true)
                       ? Center(
-                          child: Text('No comics found for "${_searchCtl.text}"',
+                          child: Text('لا توجد نتائج لـ «${_searchCtl.text}»',
                               style: AppText.label))
                       : GridView.builder(
                           padding:
@@ -213,11 +217,12 @@ class _ComicTabState extends State<ComicTab>
       child: ListView(
         physics: const BouncingScrollPhysics(),
         children: <Widget>[
+          if (!EmbeddedSection.of(context))
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 2),
             child: Row(
               children: <Widget>[
-                Text('Comics', style: AppText.h1),
+                Text('مانغا', style: AppText.h1),
                 const Spacer(),
                 IconButton(
                   onPressed: () {
@@ -232,18 +237,18 @@ class _ComicTabState extends State<ComicTab>
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
             child: Text(
-                'Thousands of free manga & comics from MangaDex — no ads, no Cloudflare.',
+                'آلاف المانغا والقصص المصوّرة المجانية من MangaDex — بدون إعلانات.',
                 style: AppText.label),
           ),
           _buildGenreChips(),
           const SizedBox(height: 10),
-          MangaRow(title: 'Popular now', future: _popular!),
+          MangaRow(title: 'الأكثر شعبية', future: _popular!),
           const SizedBox(height: 22),
-          MangaRow(title: 'Latest updates', future: _latest!),
+          MangaRow(title: 'آخر التحديثات', future: _latest!),
           const SizedBox(height: 22),
-          MangaRow(title: 'Fresh releases', future: _newest!),
+          MangaRow(title: 'إصدارات جديدة', future: _newest!),
           const SizedBox(height: 22),
-          MangaRow(title: 'Top rated', future: _top!),
+          MangaRow(title: 'الأعلى تقييمًا', future: _top!),
           const SizedBox(height: 26),
         ],
       ),
@@ -256,13 +261,16 @@ class _ComicTabState extends State<ComicTab>
       child: FutureBuilder<List<MangaTag>>(
         future: _tags,
         builder: (BuildContext context, AsyncSnapshot<List<MangaTag>> snap) {
-          const List<String> wanted = <String>[
-            'Action', 'Adventure', 'Comedy', 'Fantasy', 'Romance',
-            'Horror', 'Sci-Fi', 'Mystery', 'Slice of Life', 'Sports',
-            'Supernatural', 'Thriller',
-          ];
+          // MangaDex tag name (filter key) → Arabic chip label.
+          const Map<String, String> wanted = <String, String>{
+            'Action': 'أكشن', 'Adventure': 'مغامرة', 'Comedy': 'كوميديا',
+            'Fantasy': 'فانتازيا', 'Romance': 'رومانسي', 'Horror': 'رعب',
+            'Sci-Fi': 'خيال علمي', 'Mystery': 'غموض',
+            'Slice of Life': 'شريحة من الحياة', 'Sports': 'رياضة',
+            'Supernatural': 'خارق للطبيعة', 'Thriller': 'إثارة',
+          };
           final List<MangaTag> tags = (snap.data ?? const <MangaTag>[])
-              .where((MangaTag t) => wanted.contains(t.name))
+              .where((MangaTag t) => wanted.containsKey(t.name))
               .toList();
           if (tags.isEmpty) return const SizedBox.shrink();
           return ListView.separated(
@@ -273,13 +281,14 @@ class _ComicTabState extends State<ComicTab>
             itemBuilder: (BuildContext c, int i) => ActionChip(
               backgroundColor: AppColors.surface,
               side: const BorderSide(color: AppColors.stroke),
-              label: Text(tags[i].name,
+              label: Text(wanted[tags[i].name] ?? tags[i].name,
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 11.5,
                       color: AppColors.text)),
               onPressed: () => Navigator.of(context).push(SlideFadeRoute<void>(
-                page: ComicCatalogScreen(tag: tags[i], title: tags[i].name),
+                page: ComicCatalogScreen(
+                    tag: tags[i], title: wanted[tags[i].name] ?? tags[i].name),
               )),
             ),
           );

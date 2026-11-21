@@ -38,7 +38,6 @@ class AkwamApi {
   final http.Client _client = createHttpClient();
 
   /// In-memory caches (per session).
-  final Map<String, String> _watchCache = <String, String>{};
   final Map<String, List<AkwamEpisode>> _episodeCache =
       <String, List<AkwamEpisode>>{};
 
@@ -62,15 +61,15 @@ class AkwamApi {
     try {
       res = await _client.get(uri, headers: _headers).timeout(timeout);
     } on TimeoutException {
-      throw AkwamApiException('Request timed out.');
+      throw AkwamApiException('انتهت مهلة الطلب.');
     } catch (_) {
-      throw AkwamApiException('Cannot reach Akwam.');
+      throw AkwamApiException('تعذّر الوصول إلى أكوام.');
     }
     if (res.statusCode == 403 || res.statusCode == 503) {
-      throw AkwamApiException('Akwam is rate-limiting or shielding right now.');
+      throw AkwamApiException('أكوام يحدّ من الطلبات حاليًا — حاول بعد قليل.');
     }
     if (res.statusCode >= 400) {
-      throw AkwamApiException('Akwam returned HTTP ${res.statusCode}.');
+      throw AkwamApiException('أعاد أكوام الخطأ HTTP ${res.statusCode}.');
     }
     return utf8.decode(res.bodyBytes, allowMalformed: true);
   }
@@ -145,18 +144,84 @@ class AkwamApi {
     return parseAkwamSources(html);
   }
 
+  /// Watch sources listed on any movie / episode page.
+  Future<List<AkwamSource>> sourcesForPath(String path) async {
+    final String html = await _get(path);
+    return parseAkwamSources(html);
+  }
+
   /// Resolves a `/watch/{fileId}/…` page into the direct media URL.
-  /// Results are cached per watch path.
-  Future<String> resolveStream(String watchPath) async {
-    final String cached = _watchCache[watchPath] ?? '';
-    if (cached.isNotEmpty) return cached;
-    final String html = await _get(watchPath);
-    final String url = extractAkwamStreamUrl(html);
+  ///
+  /// Every watch page lists the MP4 of *each* quality
+  /// (`<source src=… size="720|480|360">`): [quality] (e.g. `360p`) picks
+  /// that file, [lowest] the smallest one, otherwise the best. Pages are
+  /// cached per watch path.
+  Future<String> resolveStream(String watchPath,
+      {String quality = '', bool lowest = false}) async {
+    final Map<int, String> streams = await streamsOf(watchPath);
+    final String url = pickAkwamStream(streams,
+        height: _heightOf(quality), lowest: lowest);
     if (url.isEmpty) {
       throw AkwamApiException(
-          'No playable stream on this server — try another quality.');
+          'لا يوجد بث قابل للتشغيل على هذا السيرفر — جرّب جودة أخرى.');
     }
-    return _watchCache[watchPath] = url;
+    return url;
+  }
+
+  /// height → MP4 URL for every quality on a watch page (best first).
+  Future<Map<int, String>> streamsOf(String watchPath) async {
+    final Map<int, String>? hit = _streamsCache[watchPath];
+    if (hit != null && hit.isNotEmpty) return hit;
+    final String html = await _get(watchPath);
+    final Map<int, String> m = extractAkwamStreams(html);
+    if (m.isEmpty) {
+      final String one = extractAkwamStreamUrl(html);
+      if (one.isNotEmpty) m[0] = one;
+    }
+    return _streamsCache[watchPath] = m;
+  }
+
+  final Map<String, Map<int, String>> _streamsCache = <String, Map<int, String>>{};
+
+  static int? _heightOf(String quality) {
+    final RegExpMatch? m = RegExp(r'(\d{3,4})').firstMatch(quality);
+    return m == null ? null : int.parse(m.group(1)!);
+  }
+
+  /// Parses `<source src="…mp4" size="480">` tags (any attribute order).
+  static Map<int, String> extractAkwamStreams(String html) {
+    final List<MapEntry<int, String>> found = <MapEntry<int, String>>[];
+    for (final RegExpMatch m in RegExp(r'<source\b[^>]*>', caseSensitive: false)
+        .allMatches(html)) {
+      final String tag = m.group(0)!;
+      final String? src = RegExp(r'''src\s*=\s*["']([^"']+)["']''').firstMatch(tag)?.group(1);
+      if (src == null || !RegExp(r'\.(mp4|m3u8)', caseSensitive: false).hasMatch(src)) continue;
+      int h = int.tryParse(
+              RegExp(r'''size\s*=\s*["']?(\d{3,4})''').firstMatch(tag)?.group(1) ?? '') ??
+          0;
+      if (h == 0) {
+        h = int.tryParse(RegExp(r'(\d{3,4})p').firstMatch(src)?.group(1) ?? '') ?? 0;
+      }
+      found.add(MapEntry<int, String>(h, src.replaceAll('&amp;', '&')));
+    }
+    found.sort((MapEntry<int, String> a, MapEntry<int, String> b) => b.key.compareTo(a.key));
+    return Map<int, String>.fromEntries(found);
+  }
+
+  /// [height] → that quality (or the nearest lower one); [lowest] → the
+  /// smallest; otherwise the best.
+  static String pickAkwamStream(Map<int, String> streams,
+      {int? height, bool lowest = false}) {
+    if (streams.isEmpty) return '';
+    final List<int> hs = streams.keys.toList()..sort();
+    if (lowest) return streams[hs.first]!;
+    if (height != null) {
+      if (streams.containsKey(height)) return streams[height]!;
+      final Iterable<int> lower = hs.where((int h) => h > 0 && h <= height);
+      if (lower.isNotEmpty) return streams[lower.last]!;
+      return streams[hs.first]!;
+    }
+    return streams[hs.last]!;
   }
 
   // -------------------------------------------------------------------------
@@ -301,7 +366,7 @@ class AkwamApi {
       rich.episodes.add(AkwamEpisode(
         id: m.group(1)!,
         number: number,
-        label: label.isEmpty ? 'Episode $number' : label,
+        label: label.isEmpty ? 'الحلقة $number' : label,
         path: path,
         date: _entryDate(anchor),
       ));
@@ -396,6 +461,38 @@ class AkwamApi {
 
   // ----- helpers -----
 
+  /// The movie / series page behind a `/watch/{file}/{id}/{slug}[/{ep}]`
+  /// path (clips store only the watch path). Movies map directly; episode
+  /// watch pages link back to their series once.
+  Future<AkwamItem?> itemForWatch(String watchPath,
+      {String title = '', String poster = ''}) async {
+    final RegExpMatch? m =
+        RegExp(r'^/watch/\d+/(\d+)/([^/?#]+)(/[^?#]+)?').firstMatch(watchPath);
+    if (m == null) return null;
+    if (m.group(3) == null) {
+      return itemFromPath('/movie/${m.group(1)}/${m.group(2)}',
+          title: title, poster: poster);
+    }
+    final String html = await _get(watchPath);
+    final String slug = _decode(m.group(2)!);
+    String? first;
+    for (final RegExpMatch l in RegExp(r'''/(series|show)/(\d+)/([^"'\s<>?#]+)''')
+        .allMatches(html)) {
+      final String path = l.group(0)!;
+      first ??= path;
+      if (_decode(l.group(3)!) == slug) return itemFromPath(path, title: title, poster: poster);
+    }
+    return first == null ? null : itemFromPath(first, title: title, poster: poster);
+  }
+
+  /// Rebuilds an item from a stored page path (watch history, downloads).
+  static AkwamItem? itemFromPath(String path,
+      {String title = '', String poster = ''}) {
+    final AkwamItem? it = _itemFromHref(path, title);
+    if (it != null) it.poster = poster;
+    return it;
+  }
+
   static AkwamItem? _itemFromHref(String href, String fallbackTitle) {
     if (href.isEmpty) return null;
     final RegExpMatch? m = RegExp(
@@ -409,10 +506,16 @@ class AkwamApi {
           ? (href.startsWith('/') ? href : '/$href')
           : '${uri.path}${uri.query.isEmpty ? '' : '?${uri.query}'}',
       kind: AkwamKindExt.fromSlug(m.group(1)!),
-      title: fallbackTitle.isEmpty
-          ? Uri.decodeComponent(m.group(3)!)
-          : fallbackTitle,
+      title: fallbackTitle.isEmpty ? _decode(m.group(3)!) : fallbackTitle,
     );
+  }
+
+  static String _decode(String s) {
+    try {
+      return Uri.decodeComponent(s);
+    } catch (_) {
+      return s;
+    }
   }
 
   /// Highest episode number on the page (episodes ship newest-first).
@@ -498,11 +601,11 @@ extension AkwamKindExt on AkwamKind {
   String get label {
     switch (this) {
       case AkwamKind.movie:
-        return 'Movie';
+        return 'فيلم';
       case AkwamKind.series:
-        return 'Series';
+        return 'مسلسل';
       case AkwamKind.show:
-        return 'Show';
+        return 'برنامج';
     }
   }
 
@@ -588,4 +691,18 @@ class AkwamApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Highest-resolution source (1080p > 720p > 480p …); first one otherwise.
+AkwamSource bestAkwamSource(List<AkwamSource> sources) {
+  int score(AkwamSource s) {
+    final RegExpMatch? m = RegExp(r'(\d{3,4})').firstMatch(s.quality);
+    return m == null ? 0 : int.parse(m.group(1)!);
+  }
+
+  AkwamSource best = sources.first;
+  for (final AkwamSource s in sources) {
+    if (score(s) > score(best)) best = s;
+  }
+  return best;
 }

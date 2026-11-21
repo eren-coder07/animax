@@ -7,7 +7,11 @@ import 'package:http/http.dart' as http;
 import '../core/app_http.dart';
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
+import '../core/cloud.dart';
+import '../core/cloud_sync.dart';
 import '../core/library_store.dart';
+import '../widgets/data_budget_card.dart';
+import 'people_screens.dart';
 
 /// Settings hub — Appearance / Player / Comics / Data / About.
 class SettingsScreen extends StatefulWidget {
@@ -27,19 +31,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('الإعدادات'),
         backgroundColor: AppColors.bg,
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
         children: <Widget>[
-          _section('Appearance'),
+          _section('المظهر'),
           // Accent color picker
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-            child: Text('Accent color',
+            child: Text('لون التمييز',
                 style: const TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 12.5,
                     color: AppColors.sub)),
           ),
@@ -79,30 +83,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             value: p.amoled,
             onChanged: (bool v) => p.set('amoled', v),
-            title: const Text('AMOLED black theme',
+            title: const Text('الوضع الأسود AMOLED',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
-            subtitle: const Text('True black backgrounds — saves battery on '
-                'OLED screens',
+            subtitle: const Text('خلفيات سوداء بالكامل — توفّر البطارية في '
+                'شاشات OLED',
                 style: TextStyle(
-                    fontFamily: 'Poppins', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             value: p.navBadges,
             onChanged: (bool v) => p.set('navBadges', v),
-            title: const Text('New-episode badge on Calendar',
+            title: const Text('شارة الحلقات الجديدة على التقويم',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
           ),
 
-          _section('Player'),
-          _dropdown('Default quality', <String, String>{
-            'auto': 'Auto (network speed)',
+          _section('المشغّل'),
+          _dropdown('الجودة الافتراضية', <String, String>{
+            'auto': 'تلقائي (حسب سرعة الشبكة)',
             '1080': '1080p',
             '720': '720p',
             '480': '480p',
@@ -112,9 +116,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             value: p.autoPlayNext,
             onChanged: (bool v) => p.set('autoPlayNext', v),
-            title: const Text('Auto-play next episode',
+            title: const Text('تشغيل الحلقة التالية تلقائيًا',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
           ),
@@ -122,20 +126,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             value: p.autoSkipIntro,
             onChanged: (bool v) => p.set('autoSkipIntro', v),
-            title: const Text('Auto-skip intro',
+            title: const Text('تخطّي المقدمة تلقائيًا',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
-            subtitle: const Text('Skips the first seconds automatically',
+            subtitle: const Text('في أكوام يكتشف التطبيق المقدمة بذكاء ويتخطاها، وفي الأنمي حسب المدة أدناه',
                 style: TextStyle(
-                    fontFamily: 'Poppins', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            title: const Text('Intro length',
+            title: const Text('مدة المقدمة',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: Slider(
@@ -143,14 +147,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               min: 30,
               max: 120,
               divisions: 18,
-              label: '${p.skipIntroSeconds}s',
+              label: '${p.skipIntroSeconds} ث',
               activeColor: AppColors.accent,
               onChanged: (double v) =>
                   p.set('skipIntroSec', v.round()),
             ),
-            trailing: Text('${p.skipIntroSeconds}s',
+            trailing: Text('${p.skipIntroSeconds} ث',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
                     color: AppColors.accent)),
@@ -159,44 +163,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             value: p.pauseOnBackground,
             onChanged: (bool v) => p.set('pauseOnBackground', v),
-            title: const Text('Pause when app is in background',
+            title: const Text('إيقاف مؤقت عند الخروج من التطبيق',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
           ),
-          _dropdown('Cinema default server', <String, String>{
-            '': 'Auto (fallback order)',
-            'vidsrc': 'Server 1 · VidSrc',
-            'vidfast': 'Server 2 · VidFast',
-            'vidlink': 'Server 3 · VidLink',
-            'vidsrccc': 'Server 4 · VidSrc CC',
-            'twoembed': 'Server 5 · 2Embed',
-            'multiembed': 'Server 6 · MultiEmbed',
-            'vidsrcxyz': 'Server 7 · VidSrc X',
+          _dropdown('سيرفر السينما الافتراضي', <String, String>{
+            '': 'تلقائي (بالترتيب)',
+            'vidsrc': 'سيرفر 1 · VidSrc',
+            'vidfast': 'سيرفر 2 · VidFast',
+            'vidlink': 'سيرفر 3 · VidLink',
+            'vidsrccc': 'سيرفر 4 · VidSrc CC',
+            'twoembed': 'سيرفر 5 · 2Embed',
+            'multiembed': 'سيرفر 6 · MultiEmbed',
+            'vidsrcxyz': 'سيرفر 7 · VidSrc X',
           }, p.cinemaProvider, (String v) => p.set('cinemaProvider', v)),
 
-          _section('Comics'),
-          _dropdown('Reader language', <String, String>{
-            'en': 'English',
-            'ar': 'Arabic',
-            'es': 'Spanish',
-            'fr': 'French',
-            'pt-br': 'Portuguese (BR)',
-            'ru': 'Russian',
-            'ja': 'Japanese',
+          _section('مانغا'),
+          _dropdown('لغة القراءة', <String, String>{
+            'en': 'الإنجليزية',
+            'ar': 'العربية',
+            'es': 'الإسبانية',
+            'fr': 'الفرنسية',
+            'pt-br': 'البرتغالية (البرازيل)',
+            'ru': 'الروسية',
+            'ja': 'اليابانية',
           }, p.mangaLanguage, (String v) => p.set('mangaLanguage', v)),
-          _dropdown('Reader layout', <String, String>{
-            'vertical': 'Vertical scroll',
-            'paged': 'Paged',
+          _dropdown('تخطيط القارئ', <String, String>{
+            'vertical': 'تمرير عمودي',
+            'paged': 'صفحات',
           }, p.readerMode, (String v) => p.set('readerMode', v)),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             value: p.readerRtl,
             onChanged: (bool v) => p.set('readerRtl', v),
-            title: const Text('Right-to-left pages (manga style)',
+            title: const Text('صفحات من اليمين لليسار (أسلوب المانغا)',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
           ),
@@ -204,48 +208,147 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             value: p.readerDataSaver,
             onChanged: (bool v) => p.set('readerDataSaver', v),
-            title: const Text('Reader data saver',
+            title: const Text('توفير بيانات القارئ',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
-            subtitle: const Text('Loads smaller compressed page images',
+            subtitle: const Text('يحمّل صورًا مضغوطة أصغر للصفحات',
                 style: TextStyle(
-                    fontFamily: 'Poppins', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             value: p.dataSaver,
             onChanged: (bool v) => p.set('dataSaver', v),
-            title: const Text('Global data saver',
+            title: const Text('توفير البيانات العام',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
-            subtitle: const Text('Prefers lower quality on metered networks',
+            subtitle: const Text('يفضّل جودة أقل على الشبكات المحدودة',
                 style: TextStyle(
-                    fontFamily: 'Poppins', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.downloadWifiOnly,
+            onChanged: (bool v) => p.set('downloadWifiOnly', v),
+            title: const Text('التحميل عبر Wi-Fi فقط',
+                style: TextStyle(
+                    fontFamily: 'Plex',
+                    fontSize: 14,
+                    color: AppColors.text)),
+            subtitle: const Text('تنتظر التحميلات حتى تتصل بشبكة Wi-Fi لتوفير باقة الإنترنت',
+                style: TextStyle(
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
 
-          _section('Data'),
+          SwitchListTile(
+            key: const Key('autoDownloadNextSwitch'),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.autoDownloadNext,
+            onChanged: (bool v) => p.set('autoDownloadNext', v),
+            title: const Text('تحميل الحلقة التالية تلقائيًا',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            subtitle: const Text(
+                'على Wi-Fi فقط: بعد مشاهدة 80% من حلقة في أكوام تُحمَّل التالية لتشاهدها بدون إنترنت',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
+          const DataBudgetCard(),
+          _section('المجتمع والمشاهدة'),
+          ListenableBuilder(
+            listenable: Listenable.merge(<Listenable>[CloudSync.I, CloudAuth.I]),
+            builder: (BuildContext context, _) {
+              final CloudSync cs = CloudSync.I;
+              final DateTime? at = cs.lastSync;
+              final String sub = !CloudAuth.I.signedIn
+                  ? 'سجّل الدخول لحفظ قائمتك وتقدّمك في حسابك'
+                  : cs.busy
+                      ? 'جارٍ المزامنة…'
+                      : cs.error.isNotEmpty
+                          ? 'تعذّرت المزامنة: ${cs.error}'
+                          : at == null
+                              ? 'قائمتي والتقدّم والسجل تنتقل معك لأي جهاز'
+                              : 'آخر مزامنة: ${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+              return SwitchListTile(
+                key: const Key('cloudSyncSwitch'),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                value: p.cloudSync,
+                onChanged: (bool v) {
+                  p.set('cloudSync', v);
+                  if (v) cs.syncNow();
+                },
+                secondary: IconButton(
+                  tooltip: 'مزامنة الآن',
+                  icon: Icon(Icons.sync_rounded,
+                      color: cs.busy ? AppColors.muted : AppColors.accent),
+                  onPressed: cs.busy || !CloudAuth.I.signedIn ? null : cs.syncNow,
+                ),
+                title: const Text('مزامنة مع حسابي',
+                    style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+                subtitle: Text(sub,
+                    style: const TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+              );
+            },
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            leading: Icon(Icons.block_rounded, size: 21, color: AppColors.accent),
+            title: const Text('المستخدمون المحظورون',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const BlockedScreen())),
+          ),
+          SwitchListTile(
+            key: const Key('spoilerShieldSwitch'),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.spoilerShield,
+            onChanged: (bool v) => p.set('spoilerShield', v),
+            title: const Text('درع الحرق',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            subtitle: const Text(
+                'يُخفي المقاطع من حلقات لم تصل إليها والتعليقات المعلَّمة كحرق',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.timedComments,
+            onChanged: (bool v) => p.set('timedComments', v),
+            title: const Text('تعليقات اللحظة على الفيديو',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            subtitle: const Text('تعليقات المشاهدين تظهر عند الثانية التي كُتبت فيها',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.audioOnly,
+            onChanged: (bool v) => p.set('audioOnly', v),
+            title: const Text('وضع الصوت فقط',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            subtitle: const Text('استمع للحلقات كبودكاست بأقل استهلاك ومع إطفاء الشاشة',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
+
+          _section('البيانات'),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: Icon(Icons.ios_share_rounded,
                 size: 21, color: AppColors.accent),
-            title: const Text('Export library',
+            title: const Text('تصدير المكتبة',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
-            subtitle: const Text('Copies a JSON backup to the clipboard',
+            subtitle: const Text('ينسخ نسخة احتياطية JSON إلى الحافظة',
                 style: TextStyle(
-                    fontFamily: 'Poppins', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
             onTap: () async {
               final String json = jsonEncode(LibraryStore.I.exportJson());
               await Clipboard.setData(ClipboardData(text: json));
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Library backup copied to clipboard')));
+                    content: Text('تم نسخ النسخة الاحتياطية إلى الحافظة')));
               }
             },
           ),
@@ -253,14 +356,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: Icon(Icons.paste_rounded,
                 size: 21, color: AppColors.accent),
-            title: const Text('Import library',
+            title: const Text('استيراد المكتبة',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
-            subtitle: const Text('Paste a JSON backup from the clipboard',
+            subtitle: const Text('الصق نسخة احتياطية JSON من الحافظة',
                 style: TextStyle(
-                    fontFamily: 'Poppins', fontSize: 11.5, color: AppColors.muted)),
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
             onTap: () async {
               final ClipboardData? data =
                   await Clipboard.getData(Clipboard.kTextPlain);
@@ -268,7 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (text == null || text.isEmpty) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Clipboard is empty')));
+                      content: Text('الحافظة فارغة')));
                 }
                 return;
               }
@@ -278,12 +381,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 LibraryStore.I.importJson(decoded);
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Library imported')));
+                      content: Text('تم استيراد المكتبة')));
                 }
               } catch (_) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('That does not look like an Animax backup')));
+                      content: Text('هذه ليست نسخة احتياطية من أنيماكس')));
                 }
               }
             },
@@ -292,21 +395,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: const Icon(Icons.delete_sweep_rounded,
                 size: 21, color: AppColors.danger),
-            title: const Text('Clear watch history',
+            title: const Text('مسح سجل المشاهدة',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             onTap: () {
               LibraryStore.I.clearHistory();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Watch history cleared')));
+                    content: Text('تم مسح سجل المشاهدة')));
               }
             },
           ),
 
-          _section('About'),
+          _section('حول التطبيق'),
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: _checkingUpdate
@@ -317,19 +420,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         strokeWidth: 2.2, color: AppColors.accent))
                 : Icon(Icons.system_update_rounded,
                     size: 21, color: AppColors.accent),
-            title: const Text('Check for updates',
+            title: const Text('التحقق من التحديثات',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             subtitle: Text(
                 _updateMessage.isEmpty
-                    ? 'Compares this build against the latest GitHub release'
+                    ? 'يقارن هذا الإصدار بآخر إصدار منشور'
                     : _updateMessage,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 11.5,
-                    color: _updateMessage.startsWith('Update available')
+                    color: _updateMessage.startsWith('يتوفر تحديث')
                         ? AppColors.accent
                         : AppColors.muted)),
             onTap: _checkForUpdate,
@@ -338,9 +441,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
             leading: Icon(Icons.help_outline_rounded,
                 size: 21, color: AppColors.accent),
-            title: const Text('Help center',
+            title: const Text('مركز المساعدة',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
             trailing: const Icon(Icons.chevron_right_rounded,
@@ -350,9 +453,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
-              child: Text('Animax v1.9.1 (12) · built for the love of anime',
+              child: Text('أنيماكس الإصدار 2.8.0 · صُنع بحب للمشاهدين العرب',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 11,
                       color: AppColors.muted)),
             ),
@@ -366,7 +469,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
         child: Text(title.toUpperCase(),
             style: TextStyle(
-                fontFamily: 'Poppins',
+                fontFamily: 'Plex',
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.1,
@@ -383,13 +486,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       title: Text(label,
           style: const TextStyle(
-              fontFamily: 'Poppins', fontSize: 14, color: AppColors.text)),
+              fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
       trailing: DropdownButton<String>(
         value: current,
         underline: const SizedBox.shrink(),
         dropdownColor: AppColors.surface,
         style: TextStyle(
-            fontFamily: 'Poppins',
+            fontFamily: 'Plex',
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
             color: AppColors.accent),
@@ -409,31 +512,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _checkForUpdate() async {
     setState(() {
       _checkingUpdate = true;
-      _updateMessage = 'Checking…';
+      _updateMessage = 'جارٍ التحقق…';
     });
     try {
       final http.Response res = await createHttpClient()
           .get(Uri.parse('https://api.github.com/repos/eren-coder07/animax/releases/latest'))
           .timeout(const Duration(seconds: 15));
+      // A private repository answers 404 to unauthenticated API calls.
+      if (res.statusCode == 404) {
+        if (mounted) {
+          setState(() {
+            _checkingUpdate = false;
+            _updateMessage = 'التحقق من التحديثات غير متاح لهذا الإصدار.';
+          });
+        }
+        return;
+      }
       if (res.statusCode != 200) throw StateError('HTTP ${res.statusCode}');
       final String tag =
           ((jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['tag_name'] ?? '')
               .toString();
-      final String current = 'v1.9.1';
+      final String current = 'v2.8.0';
       final bool newer = _isNewer(tag, current);
       if (mounted) {
         setState(() {
           _checkingUpdate = false;
           _updateMessage = newer
-              ? 'Update available: $tag (installed $current)'
-              : 'You are on the latest version ($current)';
+              ? 'يتوفر تحديث: $tag (المثبّت $current)'
+              : 'لديك أحدث إصدار ($current)';
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
           _checkingUpdate = false;
-          _updateMessage = 'Could not check for updates — check your connection.';
+          _updateMessage = 'تعذّر التحقق من التحديثات — تحقّق من اتصالك.';
         });
       }
     }
