@@ -226,6 +226,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(
                     fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.downloadWifiOnly,
+            onChanged: (bool v) => p.set('downloadWifiOnly', v),
+            title: const Text('التحميل عبر Wi-Fi فقط',
+                style: TextStyle(
+                    fontFamily: 'Plex',
+                    fontSize: 14,
+                    color: AppColors.text)),
+            subtitle: const Text('تنتظر التحميلات حتى تتصل بشبكة Wi-Fi لتوفير باقة الإنترنت',
+                style: TextStyle(
+                    fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
 
           _section('البيانات'),
           ListTile(

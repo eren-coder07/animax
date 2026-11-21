@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/akwam_api.dart';
 import '../core/api_service.dart';
@@ -34,6 +35,34 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     'الكبير أوي', 'Attack on Titan', 'Game of Thrones',
   ];
 
+  /// Recent searches (newest first), persisted.
+  List<String> _recent = <String>[];
+  static const String _recentKey = 'search.recent';
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((SharedPreferences sp) {
+      if (mounted) {
+        setState(() => _recent = sp.getStringList(_recentKey) ?? <String>[]);
+      }
+    }).catchError((Object _) {});
+  }
+
+  Future<void> _remember(String q) async {
+    _recent = <String>[q, ..._recent.where((String x) => x != q)].take(12).toList();
+    try {
+      (await SharedPreferences.getInstance()).setStringList(_recentKey, _recent);
+    } catch (_) {}
+  }
+
+  Future<void> _clearRecent() async {
+    setState(() => _recent = <String>[]);
+    try {
+      (await SharedPreferences.getInstance()).remove(_recentKey);
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -57,6 +86,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
       _manga = null;
     });
     if (q.length < 2) return;
+    unawaited(_remember(q));
     Future<void> run<T>(Future<List<T>> f, void Function(List<T>) set) async {
       List<T> r;
       try {
@@ -156,6 +186,42 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
       children: <Widget>[
+        if (_recent.isNotEmpty) ...<Widget>[
+          Row(
+            children: <Widget>[
+              const Expanded(
+                child: Text('عمليات البحث الأخيرة',
+                    style: TextStyle(
+                        fontFamily: kFont,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white)),
+              ),
+              TextButton(
+                onPressed: _clearRecent,
+                child: const Text('مسح',
+                    style: TextStyle(
+                        fontFamily: kFont, color: AppColors.brandGreen)),
+              ),
+            ],
+          ),
+          for (final String r in _recent)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.history_rounded, color: AppColors.sub),
+              title: Text(r,
+                  style: const TextStyle(
+                      fontFamily: kFont, fontSize: 15, color: Colors.white)),
+              trailing: const Icon(Icons.north_west_rounded,
+                  color: AppColors.muted, size: 18),
+              onTap: () {
+                _ctl.text = r;
+                _run(r);
+              },
+            ),
+          const SizedBox(height: 18),
+        ],
         const Text('عمليات بحث شائعة',
             style: TextStyle(
                 fontFamily: kFont,

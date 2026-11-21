@@ -6,6 +6,7 @@ import '../core/app_theme.dart';
 import '../core/download_manager.dart';
 import '../widgets/mb_ui.dart';
 import 'akwam_tab.dart';
+import 'offline_player_screen.dart';
 
 /// Downloads: in-progress list with progress + status, finished files with
 /// filter chips, free-space readout, empty state and suggestions.
@@ -382,7 +383,7 @@ class _ActiveRow extends StatelessWidget {
     Color statusColor = AppColors.sub;
     switch (item.status) {
       case DownloadStatus.queued:
-        status = 'في الانتظار';
+        status = item.error.isNotEmpty ? item.error : 'في الانتظار';
       case DownloadStatus.running:
         status = item.progress > 0
             ? '${(item.progress * 100).clamp(0, 100).toStringAsFixed(0)}%'
@@ -498,6 +499,18 @@ class _DoneRow extends StatelessWidget {
   const _DoneRow({required this.item});
   final DownloadItem item;
 
+  /// Videos play in the in-app offline player; PDFs open in a reader.
+  Future<void> _play(BuildContext context) async {
+    if (item.kind == DownloadKind.video &&
+        item.extraUri.isEmpty &&
+        item.resultUri.isNotEmpty) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => OfflinePlayerScreen(item: item)));
+      return;
+    }
+    await _open(context);
+  }
+
   Future<void> _open(BuildContext context) async {
     final bool ok = await DownloadManager.I.open(item);
     if (!ok && context.mounted) {
@@ -513,7 +526,7 @@ class _DoneRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final DownloadManager m = DownloadManager.I;
     return InkWell(
-      onTap: () => _open(context),
+      onTap: () => _play(context),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 8, 4, 8),
         child: Row(
@@ -579,7 +592,7 @@ class _DoneRow extends StatelessWidget {
               },
               itemBuilder: (_) => const <PopupMenuEntry<String>>[
                 PopupMenuItem<String>(value: 'share', child: Text('مشاركة الملف')),
-                PopupMenuItem<String>(value: 'open', child: Text('فتح')),
+                PopupMenuItem<String>(value: 'open', child: Text('فتح بتطبيق آخر')),
                 PopupMenuItem<String>(
                     value: 'forget', child: Text('إزالة من القائمة')),
                 PopupMenuItem<String>(

@@ -98,8 +98,28 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     }
   }
 
+  String get _progressKey => 'akwam:${_item.path}';
+  String get _progressSub => '${_episode?.number ?? 0}';
+
+  /// Stores the playback position (resume + progress bars + watched marks).
+  void _saveProgress() {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized || _item.path.isEmpty) return;
+    final int pos = c.value.position.inSeconds;
+    final int dur = c.value.duration.inSeconds;
+    if (pos <= 0) return;
+    LibraryStore.I.saveProgress(
+      key: _progressKey,
+      sub: _progressSub,
+      positionSec: pos,
+      durationSec: dur,
+      watched: dur > 0 && pos >= dur * 0.92,
+    );
+  }
+
   @override
   void dispose() {
+    _saveProgress();
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
     _positionTicker?.cancel();
@@ -250,6 +270,21 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       await controller.dispose();
       return;
     }
+    // Resume where the viewer stopped last time (unless finished).
+    if ((resumeAt == null || resumeAt == Duration.zero) &&
+        _item.path.isNotEmpty) {
+      final ProgressEntry? p =
+          LibraryStore.I.progressOf(_progressKey, _progressSub);
+      if (p != null && !p.watched && p.positionSec > 15) {
+        resumeAt = Duration(seconds: p.positionSec);
+        if (mounted) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+            content: Text('استئناف من ${_fmt(resumeAt)}'),
+            duration: const Duration(seconds: 2),
+          ));
+        }
+      }
+    }
     if (resumeAt != null && resumeAt > Duration.zero) {
       try {
         await controller.seekTo(resumeAt);
@@ -272,8 +307,11 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
             : 'الحلقة ${_episode!.number}',
       );
     }
+    int ticks = 0;
     _positionTicker = Timer.periodic(const Duration(milliseconds: 400), (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      setState(() {});
+      if (++ticks % 12 == 0) _saveProgress(); // every ~5 s
     });
     _bumpControls();
     setState(() {

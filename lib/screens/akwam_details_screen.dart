@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
@@ -555,7 +554,10 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
   Widget _tabBody() {
     final int offset = _item.isSeries ? 0 : 1;
     final int t = _tab + offset; // 0 episodes, 1 for you, 2 about
-    if (t == 0) return _episodesGrid();
+    if (t == 0) {
+      return ListenableBuilder(
+          listenable: LibraryStore.I, builder: (_, _) => _episodesGrid());
+    }
     if (t == 2) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -662,12 +664,41 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('الحلقة ${ep.number}',
-                                style: const TextStyle(
-                                    fontFamily: kFont,
-                                    fontSize: 15.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white)),
+                            Row(
+                              children: <Widget>[
+                                Text('الحلقة ${ep.number}',
+                                    style: const TextStyle(
+                                        fontFamily: kFont,
+                                        fontSize: 15.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white)),
+                                ...() {
+                                  final ProgressEntry? p = LibraryStore.I
+                                      .progressOf(_libKey, '${ep.number}');
+                                  if (p == null) return const <Widget>[];
+                                  return <Widget>[
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                        p.watched
+                                            ? Icons.check_circle_rounded
+                                            : Icons.timelapse_rounded,
+                                        size: 16,
+                                        color: p.watched
+                                            ? AppColors.brandGreen
+                                            : AppColors.star),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                        p.watched
+                                            ? 'شوهدت'
+                                            : 'توقفت عند ${p.positionSec ~/ 60} د',
+                                        style: const TextStyle(
+                                            fontFamily: kFont,
+                                            fontSize: 12,
+                                            color: AppColors.sub)),
+                                  ];
+                                }(),
+                              ],
+                            ),
                             if (ep.date.isNotEmpty)
                               Text(ep.date,
                                   maxLines: 1,

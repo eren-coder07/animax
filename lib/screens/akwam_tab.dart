@@ -330,6 +330,28 @@ class _ContinueStrip extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
+                        ...() {
+                          final ProgressEntry? p =
+                              LibraryStore.I.progressOf(r.key, r.sub);
+                          final double f = (p == null || p.durationSec <= 0)
+                              ? 0
+                              : (p.positionSec / p.durationSec).clamp(0, 1);
+                          return <Widget>[
+                            if (f > 0)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: LinearProgressIndicator(
+                                    value: f,
+                                    minHeight: 2.5,
+                                    color: AppColors.brandGreen,
+                                    backgroundColor: AppColors.surfaceHi,
+                                  ),
+                                ),
+                              ),
+                          ];
+                        }(),
                         Text(r.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

@@ -55,6 +55,7 @@ class AppPrefs extends ChangeNotifier {
 
   // ---- Playback ----------------------------------------------------------
   bool dataSaver = false; // caps manga images + warns on cellular
+  bool downloadWifiOnly = false; // downloads wait for Wi-Fi
   String defaultQuality = 'auto'; // auto | 1080 | 720 | 480 | 360
   bool autoPlayNext = true;
   bool autoSkipIntro = false;
@@ -86,6 +87,7 @@ class AppPrefs extends ChangeNotifier {
       accentKey = sp.getString('pref.accent') ?? accentKey;
       amoled = sp.getBool('pref.amoled') ?? amoled;
       dataSaver = sp.getBool('pref.dataSaver') ?? dataSaver;
+      downloadWifiOnly = sp.getBool('pref.dlWifiOnly') ?? downloadWifiOnly;
       defaultQuality = sp.getString('pref.defaultQuality') ?? defaultQuality;
       autoPlayNext = sp.getBool('pref.autoPlayNext') ?? autoPlayNext;
       autoSkipIntro = sp.getBool('pref.autoSkipIntro') ?? autoSkipIntro;
@@ -123,6 +125,10 @@ class AppPrefs extends ChangeNotifier {
       case 'dataSaver':
         dataSaver = value as bool;
         sp?.setBool('pref.dataSaver', dataSaver);
+        break;
+      case 'downloadWifiOnly':
+        downloadWifiOnly = value as bool;
+        sp?.setBool('pref.dlWifiOnly', downloadWifiOnly);
         break;
       case 'defaultQuality':
         defaultQuality = value as String;

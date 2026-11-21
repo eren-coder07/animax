@@ -11,6 +11,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'akwam_api.dart';
+import 'app_prefs.dart';
 import 'api_service.dart';
 import 'app_http.dart';
 import 'hh_api.dart';
@@ -668,6 +669,17 @@ class DownloadManager extends ChangeNotifier {
       }
     }
     if (next == null) return;
+    // "Wi-Fi only": hold the queue while on mobile data, re-check shortly.
+    if (AppPrefs.I.downloadWifiOnly && !await _onWifi()) {
+      if (next.error != _waitingWifi) {
+        next.error = _waitingWifi;
+        _changed();
+      }
+      _wifiRetry?.cancel();
+      _wifiRetry = Timer(const Duration(seconds: 20), () => unawaited(_pump()));
+      return;
+    }
+    if (next.error == _waitingWifi) next.error = '';
     _running = next;
     _cancelRunning = false;
     next.status = DownloadStatus.running;
@@ -733,6 +745,18 @@ class DownloadManager extends ChangeNotifier {
       _changed(persist: true);
       _keepAwake(false);
       unawaited(_pump());
+    }
+  }
+
+  static const String _waitingWifi = 'بانتظار شبكة Wi-Fi';
+  Timer? _wifiRetry;
+
+  Future<bool> _onWifi() async {
+    try {
+      final String? t = await _channel.invokeMethod<String>('networkType');
+      return t == null || t == 'wifi' || t == 'other';
+    } catch (_) {
+      return true; // unknown platform / no channel → don't block
     }
   }
 
