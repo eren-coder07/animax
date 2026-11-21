@@ -38,7 +38,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '2.4.0';
+    const String version = '2.4.1';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -376,12 +376,10 @@ class WhatsNewDialog extends StatelessWidget {
   final String version;
 
   static const List<String> highlights = <String>[
-    '🔥 أبرز اللحظات على شريط التشغيل + تعليقات تظهر عند ثانيتها',
-    '🛡️ درع الحرق: لا مقاطع ولا تعليقات من حلقات لم تصلها',
-    '🎧 وضع الصوت فقط + ميزانية بيانات شهرية',
-    '📡 أرسل الحلقات لصديقك القريب بدون إنترنت',
-    '✂️ لوحات المانغا في «مقاطع» + الرد على مقطع بمقطع',
-    '🏆 دوري البينغو الأسبوعي مع من تتابعهم',
+    '⚡ أكوام والمقاطع تعمل بسرعة على الإنترنت الضعيف (تشغيل خلال ثوانٍ بدل 45 ثانية)',
+    '📶 قياس حقيقي لسرعة الإنترنت واختيار الجودة المناسبة تلقائيًا',
+    '🎯 إصلاح: جودة 360p و480p في أكوام كانت تشغّل 720p دائمًا',
+    '🔁 خفض الجودة تلقائيًا عند التقطيع',
   ];
 
   @override

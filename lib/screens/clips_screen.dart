@@ -178,9 +178,26 @@ class ClipsPager extends StatefulWidget {
 class _ClipsPagerState extends State<ClipsPager> {
   late final PageController _pc = PageController(initialPage: widget.initial);
   late int _page = widget.initial;
+  Timer? _warm;
+
+  @override
+  void initState() {
+    super.initState();
+    _warmNext(widget.initial);
+  }
+
+  /// After the current clip had a head start, prepare the next one.
+  void _warmNext(int i) {
+    _warm?.cancel();
+    if (i + 1 >= widget.clips.length) return;
+    _warm = Timer(const Duration(seconds: 3), () {
+      if (mounted && _page == i) _ClipPageState.warm(widget.clips[i + 1]);
+    });
+  }
 
   @override
   void dispose() {
+    _warm?.cancel();
     _pc.dispose();
     super.dispose();
   }
@@ -194,7 +211,10 @@ class _ClipsPagerState extends State<ClipsPager> {
         controller: _pc,
         scrollDirection: Axis.vertical,
         itemCount: widget.clips.length,
-        onPageChanged: (int i) => setState(() => _page = i),
+        onPageChanged: (int i) {
+          setState(() => _page = i);
+          _warmNext(i);
+        },
         itemBuilder: (BuildContext c, int i) => ClipPage(
           key: ValueKey<String>(widget.clips[i].id),
           clip: widget.clips[i],
@@ -304,36 +324,13 @@ class _ClipPageState extends State<ClipPage> {
       return;
     }
     try {
-      // Smallest quality unless the line is measured fast.
-      final bool fastNet =
-          NetQuality.hasFreshMeasure && NetQuality.measuredKbps > 4000;
-      final ({String url, Map<String, String> headers, bool isHls}) st =
-          _resolved[clip.id] ??
-              await DownloadManager.I
-                  .resolveStream(clip.source, clip.ref, lowest: !fastNet);
-      _resolved[clip.id] = st;
+      final _Prepared p = await _prepare(clip);
       if (!mounted) return;
-      // Progressive MP4 (Akwam / most anime): play a window holding just the
-      // clip — a few KB of index instead of the whole file's megabytes.
-      Uri uri = Uri.parse(st.url);
-      Map<String, String> headers = st.headers;
-      _offsetMs = 0;
-      if (!st.isHls) {
-        try {
-          final FastWindow w = await FastStart.open(st.url, st.headers,
-              from: clip.startMs / 1000 - 0.2, to: clip.endMs / 1000 + 0.4);
-          uri = w.uri;
-          headers = const <String, String>{};
-          _offsetMs = (w.offset * 1000).round();
-        } catch (_) {
-          _offsetMs = 0; // play the file directly
-        }
-      }
-      if (!mounted) return;
+      _offsetMs = p.offsetMs;
       final VideoPlayerController c = VideoPlayerController.networkUrl(
-        uri,
-        httpHeaders: headers,
-        formatHint: st.isHls ? VideoFormat.hls : VideoFormat.other,
+        p.uri,
+        httpHeaders: p.headers,
+        formatHint: p.isHls ? VideoFormat.hls : VideoFormat.other,
       );
       _c = c;
       await c.initialize();
@@ -351,6 +348,51 @@ class _ClipPageState extends State<ClipPage> {
         setState(() => _error = 'المصدر غير متاح حاليًا لهذا المقطع.');
       }
     }
+  }
+
+  static final Map<String, Future<_Prepared>> _prepared = <String, Future<_Prepared>>{};
+
+  /// Starts resolving [clip] and building its fast-start window (the feed
+  /// warms the next clip while the current one plays).
+  static Future<_Prepared> _prepare(VideoClip clip) {
+    final Future<_Prepared>? hit = _prepared[clip.id];
+    if (hit != null) return hit;
+    final Future<_Prepared> f = () async {
+      // Smallest quality unless the line is measured fast.
+      final bool fastNet =
+          NetQuality.hasFreshMeasure && NetQuality.measuredKbps > 4000;
+      final ({String url, Map<String, String> headers, bool isHls}) st =
+          _resolved[clip.id] ??
+              await DownloadManager.I
+                  .resolveStream(clip.source, clip.ref, lowest: !fastNet);
+      _resolved[clip.id] = st;
+      // Progressive MP4 (Akwam / most anime): a window holding just the
+      // clip — a few KB of index instead of the whole file's megabytes.
+      if (!st.isHls) {
+        try {
+          final FastWindow w = await FastStart.open(st.url, st.headers,
+              from: clip.startMs / 1000 - 0.2, to: clip.endMs / 1000 + 0.4);
+          return _Prepared(w.uri, const <String, String>{}, false,
+              (w.offset * 1000).round());
+        } catch (_) {
+          // Unusual file → play it directly.
+        }
+      }
+      return _Prepared(Uri.parse(st.url), st.headers, st.isHls, 0);
+    }();
+    _prepared[clip.id] = f;
+    // A failed preparation is retried next time.
+    f.catchError((Object _) {
+      _prepared.remove(clip.id);
+      return _Prepared(Uri(), const <String, String>{}, false, 0);
+    });
+    return f;
+  }
+
+  /// Warms [clip] in the background (no player, just the small index).
+  static void warm(VideoClip clip) {
+    if (clip.isPanel) return;
+    unawaited(_prepare(clip).then((_) {}, onError: (Object _) {}));
   }
 
   /// Loops inside [startMs, endMs].
@@ -1425,4 +1467,13 @@ Future<bool> _replyFromMine(BuildContext context, VideoClip parent) async {
     }
     return false;
   }
+}
+
+
+class _Prepared {
+  const _Prepared(this.uri, this.headers, this.isHls, this.offsetMs);
+  final Uri uri;
+  final Map<String, String> headers;
+  final bool isHls;
+  final int offsetMs;
 }

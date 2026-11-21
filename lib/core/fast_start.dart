@@ -65,12 +65,14 @@ class FastStart {
     final Mp4Index ix = await index(url, headers);
     final WindowPlan plan = await ix.plan(from: from, to: to, length: length);
     final Uint8List head = ix.buildHead(plan);
-    final Uri uri = await FastStartServer.I.publish(VirtualMp4(
-      reader: ix.reader,
-      head: head,
-      regionStart: plan.regionStart,
-      regionEnd: plan.regionEnd,
-    ));
+    final Uri uri = await FastStartServer.I.publish(
+      VirtualMp4(
+        reader: ix.reader,
+        head: head,
+        regionStart: plan.regionStart,
+        regionEnd: plan.regionEnd,
+      ),
+    );
     return FastWindow(
       uri: uri,
       offset: plan.startSec,
@@ -143,20 +145,23 @@ class RangeReader {
         final HttpClientRequest rq = await _client.getUrl(Uri.parse(url));
         headers.forEach(rq.headers.set);
         rq.headers.set(HttpHeaders.rangeHeader, 'bytes=$off-${off + len - 1}');
-        final HttpClientResponse rs =
-            await rq.close().timeout(const Duration(seconds: 25));
+        final HttpClientResponse rs = await rq.close().timeout(
+          const Duration(seconds: 25),
+        );
         if (rs.statusCode != 206 && rs.statusCode != 200) {
           await rs.drain<void>();
           throw HttpException('HTTP ${rs.statusCode}');
         }
         final String? cr = rs.headers.value(HttpHeaders.contentRangeHeader);
-        final RegExpMatch? m =
-            cr == null ? null : RegExp(r'/(\d+)').firstMatch(cr);
+        final RegExpMatch? m = cr == null
+            ? null
+            : RegExp(r'/(\d+)').firstMatch(cr);
         if (m != null) totalLength = int.parse(m.group(1)!);
         final BytesBuilder b = BytesBuilder(copy: false);
         int got = 0;
-        await for (final List<int> chunk
-            in rs.timeout(const Duration(seconds: 25))) {
+        await for (final List<int> chunk in rs.timeout(
+          const Duration(seconds: 25),
+        )) {
           // A 200 (no range support) streams the whole file: stop early.
           if (rs.statusCode == 200) {
             final int skip = math.max(0, off - got);
@@ -191,7 +196,9 @@ class RangeReader {
         _blocks[b] = blk;
       }
       final int s = b == b0 ? off - b * _block : 0;
-      final int e = b == b1 ? math.min(blk.length, off + len - b * _block) : blk.length;
+      final int e = b == b1
+          ? math.min(blk.length, off + len - b * _block)
+          : blk.length;
       if (s < e) out.add(Uint8List.sublistView(blk, s, e));
     }
     return out.takeBytes();
@@ -235,7 +242,9 @@ class _Table {
         ? math.min(count, math.max(n, prefixLen * 2 + 1024))
         : math.min(count, n);
     final Uint8List more = await reader.read(
-        dataOff + prefixLen * entrySize, (want - prefixLen) * entrySize);
+      dataOff + prefixLen * entrySize,
+      (want - prefixLen) * entrySize,
+    );
     final Uint8List all = Uint8List(prefix.length + more.length)
       ..setAll(0, prefix)
       ..setAll(prefix.length, more);
@@ -247,7 +256,10 @@ class _Table {
     if (i0 + n <= prefixLen) {
       return ByteData.sublistView(prefix, i0 * entrySize, (i0 + n) * entrySize);
     }
-    final Uint8List b = await reader.read(dataOff + i0 * entrySize, n * entrySize);
+    final Uint8List b = await reader.read(
+      dataOff + i0 * entrySize,
+      n * entrySize,
+    );
     return ByteData.sublistView(b);
   }
 }
@@ -341,7 +353,9 @@ class _Track {
       }
       final ByteData d = ByteData.sublistView(c.prefix);
       final int cnt = d.getUint32(i * 8);
-      final int off = cttsVersion == 1 ? d.getInt32(i * 8 + 4) : d.getUint32(i * 8 + 4);
+      final int off = cttsVersion == 1
+          ? d.getInt32(i * 8 + 4)
+          : d.getUint32(i * 8 + 4);
       final int a = math.max(s, s0), b = math.min(s + cnt, s1);
       for (int k = a; k < b; k++) {
         out.add(off);
@@ -369,8 +383,9 @@ class _Track {
         final ByteData d = ByteData.sublistView(stsc.prefix);
         final int fc = d.getUint32(i * 12) - 1;
         final int per = math.max(1, d.getUint32(i * 12 + 4));
-        final int nextFc =
-            i + 1 < stsc.prefixLen ? d.getUint32((i + 1) * 12) - 1 : chunkCount;
+        final int nextFc = i + 1 < stsc.prefixLen
+            ? d.getUint32((i + 1) * 12) - 1
+            : chunkCount;
         final int runSamples = (nextFc - fc) * per;
         if (chunk0 < 0 && s0 < sample + runSamples) {
           chunk0 = fc + (s0 - sample) ~/ per;
@@ -468,7 +483,12 @@ class Mp4Index {
       tracks.firstWhere((_Track t) => t.isVideo, orElse: () => tracks.first);
 
   static const Set<String> _containers = <String>{
-    'moov', 'trak', 'mdia', 'minf', 'stbl', 'edts',
+    'moov',
+    'trak',
+    'mdia',
+    'minf',
+    'stbl',
+    'edts',
   };
 
   static Future<Mp4Index> open(RangeReader r) async {
@@ -480,8 +500,12 @@ class Mp4Index {
   Future<_Box> _boxAt(int off) async {
     final ByteData h = ByteData.sublistView(await reader.readSmall(off, 16));
     int size = h.getUint32(0);
-    final String type = String.fromCharCodes(
-        <int>[h.getUint8(4), h.getUint8(5), h.getUint8(6), h.getUint8(7)]);
+    final String type = String.fromCharCodes(<int>[
+      h.getUint8(4),
+      h.getUint8(5),
+      h.getUint8(6),
+      h.getUint8(7),
+    ]);
     int hdr = 8;
     if (size == 1) {
       size = h.getUint64(8);
@@ -536,7 +560,9 @@ class Mp4Index {
             final int v = d.getUint8(8);
             final int n = d.getUint32(12);
             for (int i = 0; i < n; i++) {
-              final int mt = v == 1 ? d.getInt64(16 + i * 20 + 8) : d.getInt32(16 + i * 12 + 4);
+              final int mt = v == 1
+                  ? d.getInt64(16 + i * 20 + 8)
+                  : d.getInt32(16 + i * 12 + 4);
               if (mt >= 0) {
                 cur!.editMediaTime = mt;
                 break;
@@ -560,30 +586,49 @@ class Mp4Index {
             final int n = d.getUint32(12);
             cur!.stts = <List<int>>[
               for (int i = 0; i < n; i++)
-                <int>[d.getUint32(16 + i * 8), d.getUint32(20 + i * 8)]
+                <int>[d.getUint32(16 + i * 8), d.getUint32(20 + i * 8)],
             ];
-            cur!.sampleCount = cur!.stts.fold(0, (int a, List<int> r) => a + r[0]);
+            cur!.sampleCount = cur!.stts.fold(
+              0,
+              (int a, List<int> r) => a + r[0],
+            );
           case 'stss':
             final ByteData d = ByteData.sublistView(await _whole(b));
             final int n = d.getUint32(12);
-            cur!.stss = <int>[for (int i = 0; i < n; i++) d.getUint32(16 + i * 4)];
+            cur!.stss = <int>[
+              for (int i = 0; i < n; i++) d.getUint32(16 + i * 4),
+            ];
           case 'ctts':
-            final ByteData h = ByteData.sublistView(await reader.readSmall(b.dataOff, 8));
+            final ByteData h = ByteData.sublistView(
+              await reader.readSmall(b.dataOff, 8),
+            );
             cur!.cttsVersion = h.getUint8(0);
             cur!.ctts = _Table(reader, b.dataOff + 8, h.getUint32(4), 8);
           case 'stsc':
-            final ByteData h = ByteData.sublistView(await reader.readSmall(b.dataOff, 8));
+            final ByteData h = ByteData.sublistView(
+              await reader.readSmall(b.dataOff, 8),
+            );
             cur!.stsc = _Table(reader, b.dataOff + 8, h.getUint32(4), 12);
           case 'stsz':
-            final ByteData h = ByteData.sublistView(await reader.readSmall(b.dataOff, 12));
+            final ByteData h = ByteData.sublistView(
+              await reader.readSmall(b.dataOff, 12),
+            );
             cur!.stszUniform = h.getUint32(4);
             final int n = h.getUint32(8);
-            if (cur!.stszUniform == 0) cur!.stsz = _Table(reader, b.dataOff + 12, n, 4);
+            if (cur!.stszUniform == 0) {
+              cur!.stsz = _Table(reader, b.dataOff + 12, n, 4);
+            }
           case 'stco' || 'co64':
-            final ByteData h = ByteData.sublistView(await reader.readSmall(b.dataOff, 8));
+            final ByteData h = ByteData.sublistView(
+              await reader.readSmall(b.dataOff, 8),
+            );
             cur!.chunkCount = h.getUint32(4);
-            cur!.chunkOffsets =
-                _Table(reader, b.dataOff + 8, cur!.chunkCount, b.type == 'co64' ? 8 : 4);
+            cur!.chunkOffsets = _Table(
+              reader,
+              b.dataOff + 8,
+              cur!.chunkCount,
+              b.type == 'co64' ? 8 : 4,
+            );
           default:
             if (_containers.contains(b.type)) await walk(b.dataOff, b.end);
         }
@@ -592,23 +637,37 @@ class Mp4Index {
     }
 
     await walk(moov.dataOff, moov.end);
-    tracks.removeWhere((_Track t) =>
-        (t.handler != 'vide' && t.handler != 'soun') || t.sampleCount == 0);
-    if (!tracks.any((_Track t) => t.isVideo)) throw StateError('no video track');
+    tracks.removeWhere(
+      (_Track t) =>
+          (t.handler != 'vide' && t.handler != 'soun') || t.sampleCount == 0,
+    );
+    if (!tracks.any((_Track t) => t.isVideo)) {
+      throw StateError('no video track');
+    }
   }
 
   /// Plans a window: keyframe-aligned start at/before [from]; ends at [to]
   /// (exact, for clips) or at the first keyframe after from+[length].
-  Future<WindowPlan> plan({required double from, double? to, double length = 120}) async {
+  Future<WindowPlan> plan({
+    required double from,
+    double? to,
+    double length = 120,
+  }) async {
     final _Track v = _video;
     from = from.clamp(0, math.max(0, durationSec - 0.5)).toDouble();
-    int k0 = v.syncAtOrBefore(v.sampleAt((from * v.timescale).round() + v.editMediaTime));
+    int k0 = v.syncAtOrBefore(
+      v.sampleAt((from * v.timescale).round() + v.editMediaTime),
+    );
     int k1;
     if (to != null) {
-      k1 = math.min(v.sampleCount,
-          v.sampleAt((to * v.timescale).round() + v.editMediaTime) + 1);
+      k1 = math.min(
+        v.sampleCount,
+        v.sampleAt((to * v.timescale).round() + v.editMediaTime) + 1,
+      );
     } else {
-      final int target = v.sampleAt(((from + length) * v.timescale).round() + v.editMediaTime);
+      final int target = v.sampleAt(
+        ((from + length) * v.timescale).round() + v.editMediaTime,
+      );
       k1 = v.syncAtOrAfter(target + 1);
       // Never leave a tiny tail window.
       final double tail = (v.dts(v.sampleCount) - v.dts(k1)) / v.timescale;
@@ -617,11 +676,14 @@ class Mp4Index {
     if (k1 <= k0) k1 = math.min(v.sampleCount, k0 + 1);
 
     final List<int> vComp = await v.compOffsets(k0, k1);
-    final double startSec = (v.dts(k0) + vComp.first - v.editMediaTime) / v.timescale;
+    final double startSec =
+        (v.dts(k0) + vComp.first - v.editMediaTime) / v.timescale;
     final double endSec = k1 >= v.sampleCount
         ? durationSec
-        : (v.dts(k1) + (await v.compOffsets(k1, k1 + 1)).first - v.editMediaTime) /
-            v.timescale;
+        : (v.dts(k1) +
+                  (await v.compOffsets(k1, k1 + 1)).first -
+                  v.editMediaTime) /
+              v.timescale;
 
     Future<_TrackPlan?> planTrack(_Track t) async {
       _TrackPlan p;
@@ -631,17 +693,24 @@ class Mp4Index {
           ..mediaTime = vComp.first;
       } else {
         // Audio: samples presented in [startSec, endSec).
-        final int a0 = t.sampleAt((startSec * t.timescale).round() + t.editMediaTime);
+        final int a0 = t.sampleAt(
+          (startSec * t.timescale).round() + t.editMediaTime,
+        );
         final int a1 = k1 >= v.sampleCount
             ? t.sampleCount
-            : math.min(t.sampleCount,
-                t.sampleAt((endSec * t.timescale).round() + t.editMediaTime));
+            : math.min(
+                t.sampleCount,
+                t.sampleAt((endSec * t.timescale).round() + t.editMediaTime),
+              );
         if (a1 <= a0) return null;
         p = _TrackPlan(t, a0, a1)
           ..comp = await t.compOffsets(a0, a1)
           ..mediaTime = a0 == 0 ? t.editMediaTime : 0;
       }
-      final ({List<int> offsets, List<int> sizes}) loc = await t.locate(p.s0, p.s1);
+      final ({List<int> offsets, List<int> sizes}) loc = await t.locate(
+        p.s0,
+        p.s1,
+      );
       return p
         ..offsets = loc.offsets
         ..sizes = loc.sizes;
@@ -650,7 +719,12 @@ class Mp4Index {
     final List<_TrackPlan> plans = (await Future.wait(tracks.map(planTrack)))
         .whereType<_TrackPlan>()
         .toList();
-    final WindowPlan w = WindowPlan(plans, startSec, endSec, k1 >= v.sampleCount);
+    final WindowPlan w = WindowPlan(
+      plans,
+      startSec,
+      endSec,
+      k1 >= v.sampleCount,
+    );
     int lo = 1 << 62, hi = 0;
     for (final _TrackPlan p in plans) {
       for (int i = 0; i < p.offsets.length; i++) {
@@ -736,7 +810,9 @@ class Mp4Index {
       ..setInt64(16, p.mediaTime)
       ..setInt16(24, 1)
       ..setInt16(26, 0);
-    final Uint8List edts = _box('edts', <Uint8List>[_box('elst', <Uint8List>[el.buffer.asUint8List()])]);
+    final Uint8List edts = _box('edts', <Uint8List>[
+      _box('elst', <Uint8List>[el.buffer.asUint8List()]),
+    ]);
 
     final int n = p.s1 - p.s0;
     // stts runs.
@@ -749,7 +825,8 @@ class Mp4Index {
         runs.add(<int>[1, d]);
       }
     }
-    final ByteData stts = ByteData(8 + runs.length * 8)..setUint32(4, runs.length);
+    final ByteData stts = ByteData(8 + runs.length * 8)
+      ..setUint32(4, runs.length);
     for (int i = 0; i < runs.length; i++) {
       stts
         ..setUint32(8 + i * 8, runs[i][0])
@@ -784,7 +861,7 @@ class Mp4Index {
     if (t.stss != null) {
       final List<int> ks = <int>[
         for (final int k in t.stss!)
-          if (k - 1 >= p.s0 && k - 1 < p.s1) k - p.s0
+          if (k - 1 >= p.s0 && k - 1 < p.s1) k - p.s0,
       ];
       final ByteData ss = ByteData(8 + ks.length * 4)..setUint32(4, ks.length);
       for (int i = 0; i < ks.length; i++) {
@@ -873,7 +950,7 @@ class FastStartServer {
     final String id = 'w${++_seq}';
     _files[id] = f;
     _order.add(id);
-    while (_order.length > 12) {
+    while (_order.length > 48) {
       _files.remove(_order.removeAt(0));
     }
     return Uri.parse('http://127.0.0.1:${_server!.port}/fs/$id.mp4');
@@ -900,11 +977,14 @@ class FastStartServer {
       final int total = f.length;
       int a = 0, b = total - 1;
       final String? range = rq.headers.value(HttpHeaders.rangeHeader);
-      final RegExpMatch? m =
-          range == null ? null : RegExp(r'bytes=(\d*)-(\d*)').firstMatch(range);
+      final RegExpMatch? m = range == null
+          ? null
+          : RegExp(r'bytes=(\d*)-(\d*)').firstMatch(range);
       if (m != null) {
         if (m.group(1)!.isNotEmpty) a = int.parse(m.group(1)!);
-        if (m.group(2)!.isNotEmpty) b = math.min(total - 1, int.parse(m.group(2)!));
+        if (m.group(2)!.isNotEmpty) {
+          b = math.min(total - 1, int.parse(m.group(2)!));
+        }
         if (m.group(1)!.isEmpty && m.group(2)!.isNotEmpty) {
           a = math.max(0, total - int.parse(m.group(2)!));
           b = total - 1;
@@ -921,7 +1001,9 @@ class FastStartServer {
         ..contentType = ContentType('video', 'mp4')
         ..set(HttpHeaders.acceptRangesHeader, 'bytes')
         ..contentLength = b - a + 1;
-      if (m != null) res.headers.set(HttpHeaders.contentRangeHeader, 'bytes $a-$b/$total');
+      if (m != null) {
+        res.headers.set(HttpHeaders.contentRangeHeader, 'bytes $a-$b/$total');
+      }
       if (rq.method == 'HEAD') {
         await res.close();
         return;

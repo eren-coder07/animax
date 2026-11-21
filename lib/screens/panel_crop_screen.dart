@@ -417,8 +417,9 @@ class PanelClipViewState extends State<PanelClipView>
           if (widget.playing) _a.repeat();
         })
         .catchError((Object _) {
-          if (mounted)
+          if (mounted) {
             setState(() => _error = 'تعذّر تحميل اللوحة من MangaDex حاليًا.');
+          }
         });
   }
 

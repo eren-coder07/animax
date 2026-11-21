@@ -1,4 +1,4 @@
-# Animax (أنيماكس) v2.4.0 — Features
+# Animax (أنيماكس) v2.4.1 — Features
 
 Arabic-first streaming app: right-to-left UI in Arabic (IBM Plex Sans
 Arabic), Akwam as the home screen.
@@ -63,6 +63,18 @@ Arabic), Akwam as the home screen.
   a 4-digit code; received files land in Downloads.
 
 ## Slow internet
+- **Fast start for Akwam & clips**: a regular MP4 must download its whole
+  index (~4 MB for a movie, ~45 s at 100 KB/s) before the first frame. The
+  app now fetches only the index slices for the part being watched, writes a
+  small standalone MP4 index and serves the window from a local server
+  (media bytes stream straight from the CDN). Measured at 100 KB/s + 150 ms
+  latency on a real Akwam movie: start 43 s → 3 s, resume at 30:00 44 s →
+  6 s, a 10 s clip 48 s → 6 s; frames identical to the original; windows
+  chain seamlessly.
+- Real throughput measurement (the OS link speed is often wrong) picks the
+  quality; repeated stalls step down to a lower quality automatically.
+- Fix: Akwam's 480p/360p choices actually play those files (every watch page
+  lists all qualities; the first — 720p — was always taken before).
 - Automatic low-data mode on slow connections: small covers, lowest video
   quality first, data-saver manga pages, larger image cache.
 
