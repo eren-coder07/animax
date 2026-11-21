@@ -10,6 +10,7 @@ import '../core/download_manager.dart';
 import '../core/library_store.dart';
 import '../widgets/player_gestures.dart';
 import '../widgets/download_button.dart';
+import '../widgets/quick_share.dart';
 import 'akwam_tab.dart';
 
 /// Native (ExoPlayer) player for the Akwam section.
@@ -641,6 +642,24 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                     fontWeight: FontWeight.w600,
                     color: Colors.white),
               ),
+            ),
+            IconButton(
+              tooltip: 'مشاركة سريعة',
+              icon: const Icon(Icons.share_rounded, color: Colors.white, size: 21),
+              onPressed: _streamUrl.isEmpty
+                  ? null
+                  : () => showQuickShare(
+                        context,
+                        title: _item.title,
+                        subtitle: _episode == null ? '' : 'الحلقة ${_episode!.number}',
+                        poster: _item.poster,
+                        source: 'url',
+                        url: _streamUrl,
+                        headers: <String, String>{
+                          'User-Agent': AkwamApi.ua,
+                          'Referer': '${AkwamApi.base}/',
+                        },
+                      ),
             ),
             DownloadIconButton(
               url: _streamUrl,

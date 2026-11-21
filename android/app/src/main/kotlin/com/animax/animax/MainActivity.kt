@@ -134,6 +134,17 @@ class MainActivity : FlutterActivity() {
                         val mime = call.argument<String>("mime") ?: ""
                         result.success(DownloadHelper.open(this, uri, mime))
                     }
+                    "dlShareFile" -> {
+                        result.success(DownloadHelper.shareFile(
+                            this,
+                            call.argument<String>("uri") ?: "",
+                            call.argument<String>("mime") ?: "",
+                            call.argument<String>("text") ?: ""))
+                    }
+                    "shareText" -> {
+                        result.success(DownloadHelper.shareText(
+                            this, call.argument<String>("text") ?: ""))
+                    }
                     "dlDelete" -> {
                         val uri = call.argument<String>("uri") ?: ""
                         result.success(DownloadHelper.delete(applicationContext, uri))

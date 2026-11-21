@@ -551,11 +551,25 @@ class _DoneRow extends StatelessWidget {
                 ],
               ),
             ),
+            IconButton(
+              tooltip: 'إرسال لصديق',
+              icon: const Icon(Icons.send_rounded,
+                  color: AppColors.brandGreen, size: 22),
+              onPressed: () async {
+                final bool ok = await m.shareFile(item);
+                if (!ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('تعذّر فتح المشاركة لهذا الملف')));
+                }
+              },
+            ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert_rounded, color: AppColors.sub),
               color: AppColors.surfaceHi,
               onSelected: (String v) async {
-                if (v == 'open') {
+                if (v == 'share') {
+                  await m.shareFile(item);
+                } else if (v == 'open') {
                   await _open(context);
                 } else if (v == 'forget') {
                   await m.remove(item);
@@ -564,6 +578,7 @@ class _DoneRow extends StatelessWidget {
                 }
               },
               itemBuilder: (_) => const <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(value: 'share', child: Text('مشاركة الملف')),
                 PopupMenuItem<String>(value: 'open', child: Text('فتح')),
                 PopupMenuItem<String>(
                     value: 'forget', child: Text('إزالة من القائمة')),

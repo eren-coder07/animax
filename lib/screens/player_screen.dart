@@ -14,6 +14,7 @@ import '../core/stream_resolver.dart';
 import '../widgets/buttons.dart';
 import '../widgets/common.dart';
 import '../widgets/download_button.dart';
+import '../widgets/quick_share.dart';
 import '../widgets/player_gestures.dart';
 import '../core/app_prefs.dart';
 import '../core/library_store.dart';
@@ -1268,6 +1269,24 @@ class _BottomControls extends StatelessWidget {
                 const _OverlayLabel(
                     icon: Icons.high_quality_rounded, label: 'تلقائي'),
               const Spacer(),
+              IconButton(
+                tooltip: 'مشاركة سريعة',
+                icon: const Icon(Icons.share_rounded, color: Colors.white, size: 21),
+                onPressed: stream == null
+                    ? null
+                    : () => showQuickShare(
+                          context,
+                          title: state._anime.title,
+                          subtitle: 'الحلقة ${state._episode?.number ?? 1}',
+                          poster: state._anime.poster,
+                          source: 'url',
+                          url: stream.url,
+                          headers: <String, String>{
+                            'User-Agent': _browserUa,
+                            if (stream.referer.isNotEmpty) 'Referer': stream.referer,
+                          },
+                        ),
+              ),
               DownloadIconButton(
                 url: stream?.url ?? '',
                 enabled: stream != null,

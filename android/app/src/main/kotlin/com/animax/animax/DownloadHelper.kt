@@ -301,6 +301,42 @@ object DownloadHelper {
         }
     }
 
+    /** Share sheet with the video/PDF file itself (WhatsApp, Telegram…). */
+    fun shareFile(ctx: Context, uri: String, mime: String, text: String): Boolean {
+        if (!uri.startsWith("content://")) return false
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = mime.ifBlank { "video/*" }
+            putExtra(Intent.EXTRA_STREAM, Uri.parse(uri))
+            if (text.isNotBlank()) putExtra(Intent.EXTRA_TEXT, text)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        return try {
+            ctx.startActivity(Intent.createChooser(send, "مشاركة").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            })
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /** Share sheet with plain text (title + direct link). */
+    fun shareText(ctx: Context, text: String): Boolean {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        return try {
+            ctx.startActivity(Intent.createChooser(send, "مشاركة").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     fun delete(ctx: Context, uri: String): Boolean = try {
         ctx.contentResolver.delete(Uri.parse(uri), null, null) > 0
     } catch (e: Exception) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,14 +8,12 @@ import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/library_store.dart';
 import '../widgets/animax_logo.dart';
-import '../widgets/buttons.dart';
+import '../widgets/mb_ui.dart';
 
-/// Splash — synchronizes the app with the API backend before entering.
-///
-/// The logo shows a live sync status while [AppState.bootstrap] loads the
-/// catalog, release calendar and notifications from the backend. The app
-/// only continues once the sync finishes; if the backend cannot be reached,
-/// the splash turns into an error card with a Retry action.
+/// Splash — loads local data (preferences, library) and enters the app
+/// after a short brand animation. Network sync (anime catalog, schedule)
+/// runs in the background so a slow or unreachable source never blocks
+/// the app; each section shows its own loading / retry state instead.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -23,177 +23,93 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-        ..forward();
-
-  bool _failed = false;
-  bool _retrying = false;
-  bool _scheduleStep = false;
+  late final AnimationController _anim = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1100))
+    ..forward();
 
   @override
   void initState() {
     super.initState();
-    _sync();
+    _start();
   }
 
-  Future<void> _sync() async {
-    setState(() {
-      _retrying = true;
-      _failed = false;
-      _scheduleStep = false;
-    });
-    // Preferences + personal library must be ready before any screen builds.
-    await AppPrefs.I.load();
-    await LibraryStore.I.load();
-    // Listen so the status line tracks the repository's own messages.
-    final AppState state = AppState.I;
-    void listener() {
-      if (!mounted) return;
-      // The schedule phase starts once the catalog message flips to Connected.
-      setState(() => _scheduleStep =
-          state.isConnected && state.backendMode == BackendMode.connected);
-    }
-
-    state.addListener(listener);
-    final bool ok = await state.bootstrap().timeout(
-          const Duration(seconds: 40),
-          onTimeout: () => false,
-        );
-    state.removeListener(listener);
+  Future<void> _start() async {
+    final Stopwatch sw = Stopwatch()..start();
+    try {
+      await AppPrefs.I.load().timeout(const Duration(seconds: 3));
+    } catch (_) {}
+    try {
+      await LibraryStore.I.load().timeout(const Duration(seconds: 3));
+    } catch (_) {}
+    // Background sync — never awaited here.
+    unawaited(AppState.I.bootstrap().catchError((Object _) => false));
+    final int left = 1100 - sw.elapsedMilliseconds;
+    if (left > 0) await Future<void>.delayed(Duration(milliseconds: left));
     if (!mounted) return;
-    if (ok) {
-      await _enter();
-    } else {
-      setState(() {
-        _failed = true;
-        _retrying = false;
-      });
-    }
-  }
-
-  Future<void> _enter() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final bool onboarded = prefs.getBool('animax_onboarded') ?? false;
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, onboarded ? '/shell' : '/onboarding');
+    Navigator.pushReplacementNamed(
+        context, onboarded ? '/shell' : '/onboarding');
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _anim.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final AppState state = AppState.I;
+    final Animation<double> fade =
+        CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic);
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ScaleTransition(
-                scale: CurvedAnimation(
-                    parent: _controller, curve: Curves.easeOutBack),
-                child: const AnimaxLogo(size: 84),
-              ),
-              const SizedBox(height: 18),
-              const Text('أنيماكس', style: AppText.h1),
-              const SizedBox(height: 4),
-              const Text('أفلام · مسلسلات · أنمي — في أي وقت وأي مكان', style: AppText.label),
-              const SizedBox(height: 34),
-              if (_failed)
-                _SyncError(onRetry: _sync)
-              else ...<Widget>[
+        child: FadeTransition(
+          opacity: fade,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.92, end: 1).animate(fade),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const AnimaxLogo(size: 84),
+                const SizedBox(height: 18),
+                const Text('أنيماكس',
+                    style: TextStyle(
+                        fontFamily: kFont,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white)),
+                const SizedBox(height: 6),
+                const Text('أفلام · مسلسلات · أنمي · مانغا',
+                    style: TextStyle(
+                        fontFamily: kFont, fontSize: 15, color: AppColors.sub)),
+                const SizedBox(height: 28),
                 SizedBox(
-                  width: 26,
-                  height: 26,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.6, color: AppColors.accent),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    _retrying
-                        ? (_scheduleStep
-                            ? 'جارٍ تجهيز المحتوى…'
-                            : state.backendMessage)
-                        : 'جارٍ البدء…',
-                    textAlign: TextAlign.center,
-                    style: AppText.label.copyWith(
-                        fontSize: 11.5, color: AppColors.sub),
+                  width: 120,
+                  height: 3,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: AnimatedBuilder(
+                      animation: _anim,
+                      builder: (_, _) => Stack(
+                        children: <Widget>[
+                          Container(color: AppColors.surfaceHi),
+                          FractionallySizedBox(
+                            widthFactor: _anim.value,
+                            child: Container(
+                                decoration: const BoxDecoration(
+                                    gradient: AppColors.brandGrad)),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'جارٍ تجهيز المحتوى',
-                  style: AppText.label.copyWith(
-                      fontSize: 10,
-                      color: AppColors.muted,
-                      letterSpacing: 0.4),
-                ),
               ],
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Backend unreachable — reason + retry / continue actions.
-class _SyncError extends StatelessWidget {
-  const _SyncError({required this.onRetry});
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 34),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.wifi_off_rounded,
-                color: Colors.redAccent, size: 34),
-            const SizedBox(height: 10),
-            Text('المحتوى غير متاح',
-                style: AppText.bodyBold.copyWith(fontSize: 14)),
-            const SizedBox(height: 6),
-            Text(
-              'تعذّر الوصول إلى مكتبة المحتوى. تحقّق من اتصالك بالإنترنت.',
-              textAlign: TextAlign.center,
-              style: AppText.label.copyWith(fontSize: 11),
-            ),
-            const SizedBox(height: 16),
-            PrimaryButton(
-              label: 'إعادة المزامنة',
-              expanded: true,
-              onTap: onRetry,
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: GhostChip(
-                label: 'المتابعة بدون إنترنت',
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                onTap: () {
-                  // Enter anyway — tabs show their own offline/retry states.
-                  Navigator.pushReplacementNamed(context, '/shell');
-                },
-              ),
-            ),
-          ],
         ),
       ),
     );

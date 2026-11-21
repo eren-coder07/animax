@@ -7,6 +7,7 @@ import '../core/download_manager.dart';
 import '../core/library_store.dart';
 import '../widgets/download_button.dart';
 import '../widgets/mb_ui.dart';
+import '../widgets/quick_share.dart';
 
 /// Akwam details: hero backdrop, meta row, synopsis, and either the
 /// episode list (series / shows) or the quality list (movies).
@@ -171,11 +172,36 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
     }
   }
 
+  /// Quick share: movie → selected quality; series → first episode.
   void _share() {
-    Clipboard.setData(ClipboardData(
-        text: 'أشاهد «${_item.title}» على أنيماكس 🎬'));
-    _snack('تم نسخ نص المشاركة');
+    final List<AkwamSource> src = _sources ?? const <AkwamSource>[];
+    final List<AkwamEpisode> eps =
+        List<AkwamEpisode>.of(_episodes ?? const <AkwamEpisode>[])
+          ..sort((AkwamEpisode a, AkwamEpisode b) => a.number - b.number);
+    if (_item.isSeries && eps.isNotEmpty) {
+      _shareEpisode(eps.first);
+      return;
+    }
+    final AkwamSource? s =
+        src.isEmpty ? null : src[_quality.clamp(0, src.length - 1)];
+    showQuickShare(
+      context,
+      title: _item.title,
+      subtitle: s?.quality ?? '',
+      poster: _item.poster,
+      source: 'akwam',
+      ref: <String, String>{'path': s?.watchPath ?? _item.path},
+    );
   }
+
+  void _shareEpisode(AkwamEpisode ep) => showQuickShare(
+        context,
+        title: _item.title,
+        subtitle: 'الحلقة ${ep.number}',
+        poster: _item.poster,
+        source: 'akwam',
+        ref: <String, String>{'path': ep.path},
+      );
 
   void _snack(String t) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(t)));
@@ -652,6 +678,12 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                                       color: AppColors.sub)),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        tooltip: 'مشاركة سريعة',
+                        icon: const Icon(Icons.share_rounded,
+                            color: AppColors.sub, size: 21),
+                        onPressed: () => _shareEpisode(ep),
                       ),
                       DownloadIconButton(
                         downloadKey: _keyFor(ep.path),

@@ -37,6 +37,7 @@ class DownloadItem {
     this.chapterId = '',
     this.source = 'url',
     this.ref = const <String, String>{},
+    this.shareWhenDone = false,
     String key = '',
     this.status = DownloadStatus.queued,
     this.progress = 0,
@@ -73,6 +74,10 @@ class DownloadItem {
 
   /// Stable identity used to avoid duplicate downloads.
   final String key;
+
+  /// Opens the share sheet with the file as soon as it finishes
+  /// ("download & share" from the quick-share sheet).
+  bool shareWhenDone;
 
   /// Comic: MangaDex chapter id (page URLs expire, so they are fetched when
   /// the download actually runs).
@@ -117,6 +122,7 @@ class DownloadItem {
         'source': source,
         'ref': ref,
         'key': key,
+        'shareWhenDone': shareWhenDone,
         'status': status.name,
         'progress': progress,
         'received': received,
@@ -167,6 +173,7 @@ class DownloadItem {
               (dynamic k, dynamic v) => MapEntry(k.toString(), v.toString())))
           : const <String, String>{},
       key: (j['key'] ?? '').toString(),
+      shareWhenDone: j['shareWhenDone'] == true,
       status: pick(DownloadStatus.values, j['status'] as String?,
           DownloadStatus.queued),
       progress: (j['progress'] as num?)?.toDouble() ?? 0,
@@ -512,6 +519,103 @@ class DownloadManager extends ChangeNotifier {
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Sharing
+  // ---------------------------------------------------------------------
+
+  static String shareCaption(DownloadItem it) =>
+      '🎬 ${it.title}${it.subtitle.isEmpty ? '' : ' — ${it.subtitle}'}\n'
+      'شاهدته على أنيماكس';
+
+  /// Share sheet with the finished file (video MP4 / comic PDF).
+  Future<bool> shareFile(DownloadItem it) async {
+    if (it.status != DownloadStatus.done || it.resultUri.isEmpty) return false;
+    if (Platform.isWindows) {
+      try {
+        await Process.start('explorer', <String>['/select,', it.resultUri]);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    try {
+      return await _channel.invokeMethod<bool>('dlShareFile', <String, String>{
+            'uri': it.resultUri,
+            'mime': it.mime,
+            'text': shareCaption(it),
+          }) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Share sheet with plain text.
+  Future<bool> shareText(String text) async {
+    try {
+      return await _channel.invokeMethod<bool>(
+              'shareText', <String, String>{'text': text}) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// "Send the video file": shares it now when already downloaded,
+  /// otherwise downloads it and opens the share sheet when it finishes.
+  /// Returns true when the share sheet opened right away.
+  Future<bool> quickShareFile({
+    required String source,
+    Map<String, String> ref = const <String, String>{},
+    String url = '',
+    Map<String, String> headers = const <String, String>{},
+    required String title,
+    String subtitle = '',
+    String poster = '',
+  }) async {
+    await load();
+    final String key =
+        source == 'url' ? url : '$source:${ref.values.join('|')}';
+    final DownloadItem? have = find(key: key, url: url);
+    if (have != null && have.status == DownloadStatus.done) {
+      return shareFile(have);
+    }
+    if (have != null) {
+      have.shareWhenDone = true;
+      if (have.status == DownloadStatus.failed ||
+          have.status == DownloadStatus.paused) {
+        resume(have);
+      }
+      _changed(persist: true);
+      return false;
+    }
+    final DownloadItem it = source == 'url'
+        ? await addVideo(
+            title: title,
+            subtitle: subtitle,
+            poster: poster,
+            url: url,
+            headers: headers)
+        : await addResolvable(
+            source: source,
+            ref: ref,
+            title: title,
+            subtitle: subtitle,
+            poster: poster);
+    it.shareWhenDone = true;
+    _changed(persist: true);
+    return false;
+  }
+
+  /// Resolves a details-page source into its direct video URL (for
+  /// sharing a link that plays in any browser / VLC).
+  Future<String> directLink(String source, Map<String, String> ref) async {
+    final DownloadItem tmp = DownloadItem(
+        id: 'link', kind: DownloadKind.video, title: '', source: source, ref: ref);
+    await _resolve(tmp);
+    return tmp.url;
+  }
+
   /// Free bytes on shared storage (-1 when unknown).
   Future<int> freeSpace() async {
     try {
@@ -607,6 +711,10 @@ class DownloadManager extends ChangeNotifier {
       }
       next.status = DownloadStatus.done;
       next.progress = 1;
+      if (next.shareWhenDone) {
+        next.shareWhenDone = false;
+        unawaited(shareFile(next));
+      }
       try {
         final Directory d = await _workDir(next.id);
         if (d.existsSync()) d.deleteSync(recursive: true);
