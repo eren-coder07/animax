@@ -1,6 +1,8 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/app_prefs.dart';
 import '../core/cloud.dart';
 import '../core/social.dart';
 import '../screens/auth_screen.dart';
@@ -191,6 +193,10 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   String? _error;
   bool _sending = false;
 
+  /// Next comment is marked as a spoiler.
+  bool _spoiler = false;
+  final Set<String> _revealed = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -230,8 +236,10 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     setState(() => _sending = true);
     try {
       final Comment c = await Social.addComment(widget.threadPath,
-          widget.threadKey, widget.counterPath, _ctl.text);
+          widget.threadKey, widget.counterPath, _ctl.text,
+          spoiler: _spoiler);
       _ctl.clear();
+      _spoiler = false;
       setState(() => _list = <Comment>[c, ...?_list]);
     } catch (e) {
       if (mounted) {
@@ -343,12 +351,52 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                                       ],
                                     ),
                                     const SizedBox(height: 2),
-                                    Text(cm.text,
-                                        style: const TextStyle(
-                                            fontFamily: kFont,
-                                            fontSize: 15,
-                                            height: 1.5,
-                                            color: Colors.white)),
+                                    if (cm.spoiler &&
+                                        cm.uid != me &&
+                                        AppPrefs.I.spoilerShield &&
+                                        !_revealed.contains(cm.id))
+                                      GestureDetector(
+                                        key: const Key('spoilerComment'),
+                                        onTap: () =>
+                                            setState(() => _revealed.add(cm.id)),
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: <Widget>[
+                                            ImageFiltered(
+                                              imageFilter: ui.ImageFilter.blur(
+                                                  sigmaX: 6, sigmaY: 6),
+                                              child: Text(cm.text,
+                                                  style: const TextStyle(
+                                                      fontFamily: kFont,
+                                                      fontSize: 15,
+                                                      height: 1.5,
+                                                      color: Colors.white)),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black87,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: const Text(
+                                                  '🛡️ حرق — اضغط للكشف',
+                                                  style: TextStyle(
+                                                      fontFamily: kFont,
+                                                      fontSize: 12.5,
+                                                      color: Colors.white)),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else
+                                      Text(cm.text,
+                                          style: const TextStyle(
+                                              fontFamily: kFont,
+                                              fontSize: 15,
+                                              height: 1.5,
+                                              color: Colors.white)),
                                     if (cm.uid == me)
                                       GestureDetector(
                                         onTap: () async {
@@ -403,6 +451,14 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
             child: Row(
               children: <Widget>[
+                IconButton(
+                  key: const Key('spoilerToggle'),
+                  tooltip: _spoiler ? 'مُعلَّم كحرق' : 'علّم كحرق',
+                  icon: Icon(
+                      _spoiler ? Icons.shield_rounded : Icons.shield_outlined,
+                      color: _spoiler ? AppColors.brandGreen : AppColors.sub),
+                  onPressed: () => setState(() => _spoiler = !_spoiler),
+                ),
                 Expanded(
                   child: TextField(
                     controller: _ctl,
@@ -414,7 +470,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                     decoration: InputDecoration(
                       counterText: '',
                       hintText: CloudAuth.I.signedIn
-                          ? 'أضف تعليقًا…'
+                          ? (_spoiler ? 'تعليق يحتوي حرقًا…' : 'أضف تعليقًا…')
                           : 'سجّل الدخول لتعليق…',
                       hintStyle: const TextStyle(
                           fontFamily: kFont, color: AppColors.muted),

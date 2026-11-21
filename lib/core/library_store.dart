@@ -279,6 +279,9 @@ class LibraryStore extends ChangeNotifier {
 
   ProgressEntry? progressOf(String key, String sub) => _progress['$key@$sub'];
 
+  /// Every stored progress row (spoiler shield).
+  Iterable<ProgressEntry> get allProgress => _progress.values;
+
   ProgressEntry progressForItem(String key) {
     // Latest progress row of any sub for this item.
     ProgressEntry? best;

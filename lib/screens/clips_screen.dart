@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -12,6 +13,7 @@ import '../core/app_theme.dart';
 import '../core/cloud.dart';
 import '../core/download_manager.dart';
 import '../core/social.dart';
+import '../core/spoilers.dart';
 import '../widgets/mb_ui.dart';
 import '../widgets/social_bar.dart';
 import 'auth_screen.dart';
@@ -225,6 +227,14 @@ class _ClipPageState extends State<ClipPage> {
   bool _counted = false;
   bool _muted = false;
   bool _opening = false;
+  late bool _shielded = Spoilers.hides(widget.clip);
+  late int _replies = widget.clip.replies;
+
+  void _reveal() {
+    Spoilers.reveal(widget.clip.id);
+    setState(() => _shielded = false);
+    if (widget.playing && _c == null) _start();
+  }
 
   /// Opens the clip's full movie / series page, pausing the clip meanwhile.
   Future<void> _openSource() async {
@@ -252,13 +262,14 @@ class _ClipPageState extends State<ClipPage> {
         });
       }
     }).catchError((Object _) {});
-    if (widget.playing) _start();
+    if (widget.playing && !_shielded) _start();
   }
 
   @override
   void didUpdateWidget(ClipPage old) {
     super.didUpdateWidget(old);
     if (widget.playing && !old.playing) {
+      if (_shielded) return;
       _c == null ? _start() : _c!.play();
     } else if (!widget.playing && old.playing) {
       _c?.pause();
@@ -356,6 +367,30 @@ class _ClipPageState extends State<ClipPage> {
 
   Future<void> _share() => showClipShare(context, widget.clip);
 
+  Future<void> _openReplies() async {
+    final bool wasPlaying = _c?.value.isPlaying ?? false;
+    await _c?.pause();
+    if (!mounted) return;
+    final int? n = await showClipReplies(context, widget.clip);
+    if (n != null && mounted) setState(() => _replies = n);
+    if (wasPlaying && mounted && widget.playing) await _c?.play();
+  }
+
+  Future<void> _openParent() async {
+    final VideoClip? p = await Social.clipById(widget.clip.replyTo)
+        .catchError((Object _) => null);
+    if (!mounted) return;
+    if (p == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('المقطع الأصلي لم يعد متاحًا.')));
+      return;
+    }
+    await _c?.pause();
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => ClipsViewer(clips: <VideoClip>[p])));
+  }
+
   @override
   Widget build(BuildContext context) {
     final VideoClip clip = widget.clip;
@@ -390,13 +425,16 @@ class _ClipPageState extends State<ClipPage> {
               )
             else
               Center(
-                child: _error != null
+                child: _shielded
+                    ? const SizedBox.shrink()
+                    : _error != null
                     ? Text(_error!,
                         style: const TextStyle(
                             fontFamily: kFont, color: Colors.white))
                     : const CircularProgressIndicator(
                         color: AppColors.brandGreen),
               ),
+            if (_shielded) _SpoilerShield(clip: clip, onReveal: _reveal),
             if (ready && !c.value.isPlaying)
               const Center(
                   child: Icon(Icons.play_arrow_rounded,
@@ -429,6 +467,9 @@ class _ClipPageState extends State<ClipPage> {
                   _action(Icons.chat_bubble_rounded, compactCount(_comments), _comment),
                   _action(Icons.repeat_rounded, compactCount(_reposts), _repost,
                       color: _reposted ? AppColors.brandGreen : Colors.white),
+                  _action(Icons.reply_rounded,
+                      _replies > 0 ? compactCount(_replies) : 'رد', _openReplies,
+                      key: const Key('clipReplies')),
                   _action(Icons.share_rounded, 'مشاركة', _share),
                   _action(_muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
                       '', () {
@@ -446,6 +487,29 @@ class _ClipPageState extends State<ClipPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
+                  if (clip.replyTo.isNotEmpty)
+                    GestureDetector(
+                      key: const Key('clipReplyTo'),
+                      onTap: _openParent,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Icon(Icons.reply_rounded, color: Colors.white, size: 16),
+                            SizedBox(width: 4),
+                            Text('ردًا على مقطع — اضغط لمشاهدته',
+                                style: TextStyle(
+                                    fontFamily: kFont, fontSize: 12.5, color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
                   GestureDetector(
                     onTap: () => openUserProfile(context, clip.uid),
                     child: Row(
@@ -536,10 +600,11 @@ class _ClipPageState extends State<ClipPage> {
   }
 
   Widget _action(IconData icon, String label, VoidCallback onTap,
-          {Color color = Colors.white}) =>
+          {Color color = Colors.white, Key? key}) =>
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: GestureDetector(
+          key: key,
           onTap: onTap,
           child: Column(
             children: <Widget>[
@@ -575,7 +640,16 @@ class ClipThumb extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            NetImage(clip.poster),
+            if (Spoilers.hides(clip))
+              ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                child: NetImage(clip.poster),
+              )
+            else
+              NetImage(clip.poster),
+            if (Spoilers.hides(clip))
+              const Center(
+                  child: Icon(Icons.shield_rounded, color: Colors.white70, size: 28)),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -818,8 +892,10 @@ class _ClipMakerState extends State<_ClipMaker> {
     setState(() => _busy = true);
     final int s = _start.round();
     final int e = (s + _len).clamp(s + 1, _durS);
+    final VideoClip? replyTo = ClipReply.pending;
     try {
       await Social.createClip(VideoClip(
+        replyTo: replyTo?.id ?? '',
         title: widget.title,
         label: '${widget.label.isEmpty ? '' : '${widget.label} · '}${_fmt(s)}',
         poster: widget.poster,
@@ -829,11 +905,12 @@ class _ClipMakerState extends State<_ClipMaker> {
         startMs: s * 1000,
         endMs: e * 1000,
       ));
+      if (replyTo != null) ClipReply.pending = null;
       if (!mounted) return;
       final ScaffoldMessengerState m = ScaffoldMessenger.of(context);
       Navigator.pop(context);
       m.showSnackBar(SnackBar(
-        content: const Text('تم نشر المقطع ✂️'),
+        content: Text(replyTo == null ? 'تم نشر المقطع ✂️' : 'تم نشر ردّك ✂️'),
         persist: false,
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
@@ -868,6 +945,35 @@ class _ClipMakerState extends State<_ClipMaker> {
                     fontSize: 19,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),
+            if (ClipReply.pending != null)
+              Container(
+                key: const Key('clipMakerReplyBanner'),
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 4, 4),
+                decoration: BoxDecoration(
+                  color: AppColors.brandGreen.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    const Icon(Icons.reply_rounded, color: AppColors.brandGreen, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                          'ردًا على @${ClipReply.pending!.name} · ${ClipReply.pending!.title}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontFamily: kFont, fontSize: 13, color: Colors.white)),
+                    ),
+                    IconButton(
+                      tooltip: 'إلغاء الرد',
+                      icon: const Icon(Icons.close_rounded, color: AppColors.sub, size: 18),
+                      onPressed: () => setState(() => ClipReply.pending = null),
+                    ),
+                  ],
+                ),
+              ),
             Text(widget.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1001,4 +1107,245 @@ AkwamItem? bestAkwamMatch(List<AkwamItem> results, String title) {
     if (norm(r.title) == t) return r;
   }
   return null;
+}
+
+
+/// Reply chains: the clip the next made clip will answer.
+class ClipReply {
+  ClipReply._();
+  static VideoClip? pending;
+}
+
+/// Blurred cover over a clip from an episode you have not reached yet.
+class _SpoilerShield extends StatelessWidget {
+  const _SpoilerShield({required this.clip, required this.onReveal});
+  final VideoClip clip;
+  final VoidCallback onReveal;
+
+  @override
+  Widget build(BuildContext context) {
+    final int mine = Spoilers.furthestEpisode(clip);
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: NetImage(clip.poster),
+        ),
+        const ColoredBox(color: Color(0x99000000)),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Icon(Icons.shield_rounded, color: AppColors.brandGreen, size: 56),
+                const SizedBox(height: 12),
+                const Text('درع الحرق',
+                    style: TextStyle(
+                        fontFamily: kFont,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white)),
+                const SizedBox(height: 6),
+                Text(
+                    mine == 0
+                        ? 'هذا المقطع من الحلقة ${clip.episode} من «${clip.title}» ولم تبدأ مشاهدتها بعد.'
+                        : 'هذا المقطع من الحلقة ${clip.episode} وأنت وصلت إلى الحلقة $mine.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontFamily: kFont, fontSize: 14.5, height: 1.6, color: Colors.white70)),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  key: const Key('revealSpoiler'),
+                  onPressed: onReveal,
+                  icon: const Icon(Icons.visibility_rounded, color: Colors.white),
+                  label: const Text('اكشف المقطع',
+                      style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Replies sheet: the clips answering [parent] + ways to answer it.
+/// Returns the new reply count when it changed.
+Future<int?> showClipReplies(BuildContext context, VideoClip parent) async {
+  int? changed;
+  await showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: AppColors.surface,
+    isScrollControlled: true,
+    builder: (BuildContext ctx) => Directionality(
+      textDirection: TextDirection.rtl,
+      child: SizedBox(
+        height: MediaQuery.of(ctx).size.height * 0.7,
+        child: StatefulBuilder(builder: (BuildContext ctx, StateSetter set) {
+          return FutureBuilder<List<VideoClip>>(
+            future: Social.repliesOf(parent.id),
+            builder: (BuildContext ctx, AsyncSnapshot<List<VideoClip>> snap) {
+              final List<VideoClip> list = snap.data ?? const <VideoClip>[];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Text('الردود بالمقاطع (${snap.hasData ? list.length : '…'})',
+                        style: const TextStyle(
+                            fontFamily: kFont,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white)),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('ردّ على هذا المقطع بمشهد من أي عمل آخر — سلسلة مشاهد تجاوب بعضها.',
+                        style: TextStyle(fontFamily: kFont, fontSize: 13, color: AppColors.sub)),
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: FilledButton.icon(
+                            key: const Key('replyNewClip'),
+                            onPressed: () async {
+                              if (!await requireLogin(ctx)) return;
+                              ClipReply.pending = parent;
+                              if (!ctx.mounted) return;
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                persist: false,
+                                duration: Duration(seconds: 5),
+                                content: Text(
+                                    'افتح أي فيلم أو حلقة واضغط ✂️ — سيُنشر مقطعك كرد على هذا المقطع.'),
+                              ));
+                            },
+                            icon: const Icon(Icons.content_cut_rounded),
+                            label: const Text('رد بمقطع جديد',
+                                style: TextStyle(fontFamily: kFont)),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const Key('replyFromMine'),
+                            onPressed: () async {
+                              if (!await requireLogin(ctx)) return;
+                              if (!ctx.mounted) return;
+                              final bool ok = await _replyFromMine(ctx, parent);
+                              if (ok) {
+                                changed = (changed ?? parent.replies) + 1;
+                                set(() {});
+                              }
+                            },
+                            icon: const Icon(Icons.video_library_rounded, color: Colors.white),
+                            label: const Text('من مقاطعي',
+                                style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: !snap.hasData
+                        ? const Center(
+                            child: CircularProgressIndicator(color: AppColors.brandGreen))
+                        : list.isEmpty
+                            ? const Center(
+                                child: Text('لا توجد ردود بعد — كن أول من يرد!',
+                                    style: TextStyle(fontFamily: kFont, color: AppColors.sub)))
+                            : GridView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    mainAxisSpacing: 8,
+                                    crossAxisSpacing: 8,
+                                    childAspectRatio: 0.66),
+                                itemCount: list.length,
+                                itemBuilder: (BuildContext c, int i) => ClipThumb(
+                                  clip: list[i],
+                                  onTap: () => Navigator.of(c).push(MaterialPageRoute<void>(
+                                      builder: (_) => ClipsViewer(clips: list, initial: i))),
+                                ),
+                              ),
+                  ),
+                ],
+              );
+            },
+          );
+        }),
+      ),
+    ),
+  );
+  return changed;
+}
+
+/// Re-posts one of your own clips as a reply to [parent].
+Future<bool> _replyFromMine(BuildContext context, VideoClip parent) async {
+  final String me = CloudAuth.I.user?.uid ?? '';
+  final List<VideoClip> mine = (await Social.clipsOf(me).catchError((Object _) => <VideoClip>[]))
+      .where((VideoClip c) => c.uid == me && c.id != parent.id)
+      .toList();
+  if (!context.mounted) return false;
+  if (mine.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('ليس لديك مقاطع بعد — اختر «رد بمقطع جديد».')));
+    return false;
+  }
+  final VideoClip? pick = await showModalBottomSheet<VideoClip>(
+    context: context,
+    backgroundColor: AppColors.surface,
+    builder: (BuildContext ctx) => Directionality(
+      textDirection: TextDirection.rtl,
+      child: ListView(
+        children: <Widget>[
+          for (final VideoClip c in mine)
+            ListTile(
+              leading: SizedBox(
+                  width: 56,
+                  child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6), child: NetImage(c.poster))),
+              title: Text(c.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontFamily: kFont, color: Colors.white)),
+              subtitle: Text(c.label,
+                  style: const TextStyle(fontFamily: kFont, color: AppColors.sub)),
+              onTap: () => Navigator.pop(ctx, c),
+            ),
+        ],
+      ),
+    ),
+  );
+  if (pick == null) return false;
+  try {
+    await Social.createClip(VideoClip(
+      title: pick.title,
+      label: pick.label,
+      poster: pick.poster,
+      kind: pick.kind,
+      source: pick.source,
+      ref: pick.ref,
+      startMs: pick.startMs,
+      endMs: pick.endMs,
+      replyTo: parent.id,
+    ));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('تم نشر ردّك ✂️')));
+    }
+    return true;
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+    return false;
+  }
 }
