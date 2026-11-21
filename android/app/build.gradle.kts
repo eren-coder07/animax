@@ -56,3 +56,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Offline phone-to-phone sharing (Bluetooth + Wi-Fi Direct).
+    implementation("com.google.android.gms:play-services-nearby:19.3.0")
+}

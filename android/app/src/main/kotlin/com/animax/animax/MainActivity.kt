@@ -21,11 +21,43 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var pendingStorageResult: MethodChannel.Result? = null
+    private var pendingNearbyResult: MethodChannel.Result? = null
+    private var nearby: NearbyHelper? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private val main = Handler(Looper.getMainLooper())
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        val nearbyChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "animax/nearby")
+        nearbyChannel.setMethodCallHandler { call, result ->
+            try {
+                val nb = nearby ?: NearbyHelper(applicationContext, nearbyChannel).also { nearby = it }
+                when (call.method) {
+                    "permissions" -> requestNearbyPermissions(result)
+                    "send" -> {
+                        @Suppress("UNCHECKED_CAST")
+                        val meta = (call.argument<Map<String, Any?>>("meta") ?: emptyMap())
+                        nb.startSending(
+                            call.argument<String>("name") ?: "Animax",
+                            call.argument<String>("uri") ?: "",
+                            meta, result
+                        )
+                    }
+                    "receive" -> nb.startReceiving(result)
+                    "connect" -> nb.connect(
+                        call.argument<String>("name") ?: "Animax",
+                        call.argument<String>("id") ?: "", result
+                    )
+                    "accept" -> nb.accept(call.argument<String>("id") ?: "", result)
+                    "reject" -> { nb.reject(call.argument<String>("id") ?: ""); result.success(true) }
+                    "stop" -> { nb.stop(); result.success(true) }
+                    else -> result.notImplemented()
+                }
+            } catch (e: Throwable) {
+                // e.g. Google Play services missing on this device.
+                result.error("nearby", "خدمات Google Play غير متوفرة: ${e.message}", null)
+            }
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "animax/app")
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -263,10 +295,51 @@ class MainActivity : FlutterActivity() {
             }
     }
 
+    /** Runtime permissions Nearby Connections needs on this Android version. */
+    private fun nearbyPermissionList(): Array<String> {
+        val l = ArrayList<String>()
+        if (Build.VERSION.SDK_INT >= 31) {
+            l.add(Manifest.permission.BLUETOOTH_ADVERTISE)
+            l.add(Manifest.permission.BLUETOOTH_CONNECT)
+            l.add(Manifest.permission.BLUETOOTH_SCAN)
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            l.add(Manifest.permission.NEARBY_WIFI_DEVICES)
+        } else if (Build.VERSION.SDK_INT >= 29) {
+            l.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        } else {
+            l.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        return l.toTypedArray()
+    }
+
+    private fun requestNearbyPermissions(result: MethodChannel.Result) {
+        val missing = nearbyPermissionList().filter {
+            checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isEmpty()) {
+            result.success(true)
+            return
+        }
+        if (pendingNearbyResult != null) {
+            result.success(false)
+            return
+        }
+        pendingNearbyResult = result
+        requestPermissions(missing.toTypedArray(), 4713)
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 4713) {
+            val ok = grantResults.isNotEmpty() &&
+                grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            pendingNearbyResult?.success(ok)
+            pendingNearbyResult = null
+            return
+        }
         if (requestCode == 4711) {
             val granted = grantResults.isNotEmpty() &&
                 grantResults[0] == PackageManager.PERMISSION_GRANTED
@@ -276,6 +349,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        try { nearby?.stop() } catch (_: Throwable) {}
         try { stopService(Intent(this, AudioKeepService::class.java)) } catch (_: Exception) {}
         wakeLock?.let { if (it.isHeld) it.release() }
         super.onDestroy()
