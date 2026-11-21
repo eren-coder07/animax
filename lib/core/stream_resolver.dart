@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'api_service.dart';
 
 import 'app_http.dart';
+import 'net_quality.dart';
 
 /// A playback stream resolved into a **direct media URL** the native player
 /// can open (progressive MP4 or an HLS playlist).
@@ -198,9 +199,12 @@ ResolvedStream? parseGetSources(dynamic body,
       if (url != null) qualities.putIfAbsent(label, () => url!);
     });
     if (qualities.isEmpty) return null;
-    // Prefer the best-looking default: HQ > HD > first entry.
+    // Prefer the best-looking default (HQ > HD) — or the smallest (SD) on a
+    // slow connection.
     String url = qualities.values.first;
-    for (final String pref in const <String>['HQ', 'HD', 'FHD', 'SD']) {
+    for (final String pref in NetQuality.isSlow
+        ? const <String>['SD', 'HD', 'HQ', 'FHD']
+        : const <String>['HQ', 'HD', 'FHD', 'SD']) {
       if (qualities.containsKey(pref)) {
         url = qualities[pref]!;
         break;

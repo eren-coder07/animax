@@ -14,7 +14,7 @@ void main() {
       expect(m.id, '7bd37661-c0b1-4166-87c1-7e633adb55ac');
       expect(m.title, "Vivi's Adventure");
       expect(m.cover,
-          'https://uploads.mangadex.org/covers/7bd37661-c0b1-4166-87c1-7e633adb55ac/cover1.jpg.512.jpg');
+          'https://uploads.mangadex.org/covers/7bd37661-c0b1-4166-87c1-7e633adb55ac/cover1.jpg.256.jpg');
       expect(m.followedCount, 12345);
       expect(m.followedLabel, '12.3K');
       expect(m.tags.map((MangaTag t) => t.name), contains('Comedy'));

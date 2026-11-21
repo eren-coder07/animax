@@ -6,6 +6,7 @@ import '../core/app_theme.dart';
 import '../core/download_manager.dart';
 import '../widgets/download_button.dart';
 import '../core/library_store.dart';
+import '../core/net_quality.dart';
 import '../core/manga_api.dart';
 
 /// Manga reader.
@@ -82,7 +83,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
       List<String>? urls = _prefetched[idx];
       if (urls == null) {
         urls = await MangaApi.I.pages(widget.chapters[idx].id,
-            dataSaver: AppPrefs.I.readerDataSaver);
+            dataSaver: AppPrefs.I.readerDataSaver || NetQuality.isSlow);
         _prefetched[idx] = urls;
       }
       if (!mounted) return;
@@ -143,7 +144,7 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
     final int next = _chapterIdx + 1;
     if (next >= widget.chapters.length || _prefetched.containsKey(next)) return;
     MangaApi.I
-        .pages(widget.chapters[next].id, dataSaver: AppPrefs.I.readerDataSaver)
+        .pages(widget.chapters[next].id, dataSaver: AppPrefs.I.readerDataSaver || NetQuality.isSlow)
         .then((List<String> urls) => _prefetched[next] = urls)
         .catchError((Object e) => const <String>[]);
   }

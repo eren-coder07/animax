@@ -8,6 +8,7 @@ import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
 import '../core/library_store.dart';
+import '../core/net_quality.dart';
 import '../widgets/player_gestures.dart';
 import '../widgets/download_button.dart';
 import '../widgets/quick_share.dart';
@@ -189,7 +190,17 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       _sources = sources;
       _status = 'جارٍ التحميل…';
     });
-    await _playSource(0, resumeAt: resumeAt);
+    // Slow connection → start at the lowest quality (smallest file).
+    int start = 0;
+    if (await NetQuality.check() && sources.length > 1) {
+      int lowest(AkwamSource s) =>
+          int.tryParse(RegExp(r'(\d{3,4})').firstMatch(s.quality)?.group(1) ?? '') ??
+          9999;
+      for (int i = 1; i < sources.length; i++) {
+        if (lowest(sources[i]) < lowest(sources[start])) start = i;
+      }
+    }
+    await _playSource(start, resumeAt: resumeAt);
 
     // 3. Episode list for prev/next (series only, best-effort).
     if (episode != null && _episodes.isEmpty) {

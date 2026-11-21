@@ -7,6 +7,7 @@ import 'package:video_player_media_kit/video_player_media_kit.dart';
 import 'core/app_prefs.dart';
 import 'core/app_theme.dart';
 import 'core/download_manager.dart';
+import 'core/net_quality.dart';
 import 'core/manga_api.dart';
 import 'screens/akwam_details_screen.dart';
 import 'screens/akwam_player_screen.dart';
@@ -36,6 +37,10 @@ import 'screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Bigger in-memory image cache: fewer re-downloads on slow connections.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 160 << 20;
+  PaintingBinding.instance.imageCache.maximumSize = 600;
+  NetQuality.check();
   // video_player has no Windows backend: route it through media_kit (mpv)
   // there. Android keeps ExoPlayer untouched.
   if (Platform.isWindows) {

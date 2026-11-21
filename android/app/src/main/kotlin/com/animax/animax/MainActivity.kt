@@ -89,6 +89,16 @@ class MainActivity : FlutterActivity() {
                             result.error("pip_error", e.message, null)
                         }
                     }
+                    "netSpeedKbps" -> {
+                        // Estimated downstream bandwidth of the active network.
+                        try {
+                            val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+                            val caps = cm.getNetworkCapabilities(cm.activeNetwork)
+                            result.success(caps?.linkDownstreamBandwidthKbps ?: -1)
+                        } catch (e: Exception) {
+                            result.success(-1)
+                        }
+                    }
                     "networkType" -> {
                         // Wi-Fi / cellular / none — used by the bandwidth-based
                         // auto quality picker (hls_quality.dart).

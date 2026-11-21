@@ -130,7 +130,11 @@ class MangaApi {
     p.write('&includes%5B%5D=cover_art');
     p.write('&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive');
     p.write('&hasAvailableChapters=true');
-    p.write('&availableTranslatedLanguage%5B%5D=${AppPrefs.I.mangaLanguage}');
+    // Arabic coverage is thin: list titles readable in the chosen language
+    // OR English (chapters still prefer the chosen language, see chapters()).
+    final String lang = AppPrefs.I.mangaLanguage;
+    p.write('&availableTranslatedLanguage%5B%5D=$lang');
+    if (lang != 'en') p.write('&availableTranslatedLanguage%5B%5D=en');
     p.write('&$query');
     final dynamic body = await _getJson(p.toString());
     return parseItems(body);
@@ -347,13 +351,13 @@ class MangaItem {
     m.status = (a['status'] ?? '').toString();
     m.year = (a['year'] ?? '').toString();
     m.contentRating = (a['contentRating'] ?? 'safe').toString();
-    m.followedCount = (a['followedCount'] as num?)?.toInt() ?? 0;
-    m.chapterCount = (a['lastChapter'] as num?)?.toInt() ?? 0;
+    // MangaDex sends some numbers as strings ("lastChapter": "120",
+    // "12.5", "") — parse tolerantly so a title is never dropped.
+    m.followedCount = _num(a['followedCount']).toInt();
+    m.chapterCount = _num(a['lastChapter']).floor();
     final dynamic rating = a['rating'];
     if (rating is Map) {
-      m.rating = ((rating['bayesian'] ?? rating['average'] ?? 0) as num)
-              .toDouble()
-              .round();
+      m.rating = _num(rating['bayesian'] ?? rating['average']).round();
     }
     m.latestChapterAt = (a['latestUploadedChapter'] ?? a['updatedAt'] ?? '')
         .toString();
@@ -388,7 +392,7 @@ class MangaItem {
           final String file = (rattrs['fileName'] ?? '').toString();
           if (file.isNotEmpty) {
             m.cover =
-                '${MangaApi.uploadsBase}/covers/${m.id}/$file.512.jpg';
+                '${MangaApi.uploadsBase}/covers/${m.id}/$file.256.jpg';
           }
         }
         if ((rtype == 'author' || rtype == 'artist') && rattrs is Map) {
@@ -441,9 +445,16 @@ class MangaChapter {
     c.title = (a['title'] ?? '').toString();
     c.number = (a['chapter'] ?? '').toString();
     c.volume = (a['volume'] ?? '').toString();
-    c.pages = (a['pages'] as num?)?.toInt() ?? 0;
+    c.pages = _num(a['pages']).toInt();
     c.publishedAt = (a['publishAt'] ?? a['readableAt'] ?? '').toString();
     c.isUnavailable = a['isUnavailable'] == true;
     return c;
   }
+}
+
+/// Number from a JSON value that may be a num, a numeric string or junk.
+double _num(dynamic v) {
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v.trim()) ?? 0;
+  return 0;
 }
