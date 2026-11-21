@@ -22,6 +22,7 @@ import '../widgets/mb_ui.dart';
 import '../widgets/social_bar.dart';
 import 'auth_screen.dart';
 import 'panel_crop_screen.dart';
+import 'people_screens.dart';
 import 'user_profile_screen.dart';
 
 /// Index of the Clips tab in the bottom bar.
@@ -129,16 +130,31 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
       children: <Widget>[
         Positioned.fill(child: _body()),
         _modeTabs(),
+        SafeArea(
+          child: Align(
+            alignment: AlignmentDirectional.topEnd,
+            child: IconButton(
+              key: const Key('discoverCreators'),
+              tooltip: 'اكتشف صنّاع المقاطع',
+              icon: const Icon(Icons.person_search_rounded,
+                  color: Colors.white,
+                  shadows: <Shadow>[Shadow(color: Colors.black54, blurRadius: 6)]),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => const CreatorsScreen())),
+            ),
+          ),
+        ),
       ],
     );
   }
 
   Widget _body() {
     return ListenableBuilder(
-      listenable: AppState.I,
+      listenable: Listenable.merge(<Listenable>[AppState.I, Blocks.I]),
       builder: (BuildContext context, _) {
         final bool visible = AppState.I.navIndex == kClipsTab;
-        final List<VideoClip>? c = _clips;
+        final List<VideoClip>? c =
+            _clips == null ? null : Blocks.I.visibleClips(_clips!);
         if (c == null) {
           return ColoredBox(
             color: Colors.black,
@@ -547,6 +563,82 @@ class _ClipPageState extends State<ClipPage> {
     if (wasPlaying && mounted && widget.playing) await _c?.play();
   }
 
+  /// ⋯ : not interested / report / block.
+  Future<void> _more() async {
+    final VideoClip clip = widget.clip;
+    final bool mine = clip.uid == CloudAuth.I.user?.uid;
+    final String? pick = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (BuildContext ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (!mine)
+                ListTile(
+                  leading: const Icon(Icons.visibility_off_rounded, color: Colors.white),
+                  title: const Text('لست مهتمًا', style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                  onTap: () => Navigator.pop(ctx, 'hide'),
+                ),
+              if (!mine)
+                ListTile(
+                  key: const Key('reportClip'),
+                  leading: const Icon(Icons.flag_rounded, color: Color(0xFFFFB020)),
+                  title: const Text('إبلاغ عن المقطع', style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                  onTap: () => Navigator.pop(ctx, 'report'),
+                ),
+              if (!mine)
+                ListTile(
+                  key: const Key('blockUser'),
+                  leading: const Icon(Icons.block_rounded, color: Color(0xFFFF6B6B)),
+                  title: Text('حظر @${clip.name}', style: const TextStyle(fontFamily: kFont, color: Colors.white)),
+                  onTap: () => Navigator.pop(ctx, 'block'),
+                ),
+              if (mine)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline_rounded, color: Color(0xFFFF6B6B)),
+                  title: const Text('حذف المقطع', style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                  onTap: () => Navigator.pop(ctx, 'delete'),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || pick == null) return;
+    final ScaffoldMessengerState m = ScaffoldMessenger.of(context);
+    switch (pick) {
+      case 'hide':
+        Blocks.I.hideClip(clip.id);
+        m.showSnackBar(const SnackBar(content: Text('لن يظهر هذا المقطع لك بعد الآن.')));
+      case 'report':
+        final String? reason = await pickReportReason(context);
+        if (reason == null || !mounted) return;
+        if (!await requireLogin(context)) return;
+        try {
+          await Social.report('clip:${clip.id}', reason);
+          Blocks.I.hideClip(clip.id);
+          m.showSnackBar(const SnackBar(content: Text('شكرًا، وصل بلاغك وسنراجعه.')));
+        } catch (e) {
+          m.showSnackBar(SnackBar(content: Text(e.toString())));
+        }
+      case 'block':
+        if (!await requireLogin(context)) return;
+        await Blocks.I.block(clip.uid);
+        m.showSnackBar(SnackBar(content: Text('تم حظر @${clip.name} — لن ترى مقاطعه وتعليقاته.')));
+      case 'delete':
+        try {
+          await Social.deleteClip(clip);
+          Blocks.I.hideClip(clip.id);
+          m.showSnackBar(const SnackBar(content: Text('تم حذف المقطع.')));
+        } catch (e) {
+          m.showSnackBar(SnackBar(content: Text(e.toString())));
+        }
+    }
+  }
+
   Future<void> _openParent() async {
     final VideoClip? p = await Social.clipById(widget.clip.replyTo)
         .catchError((Object _) => null);
@@ -659,6 +751,8 @@ class _ClipPageState extends State<ClipPage> {
                       _replies > 0 ? compactCount(_replies) : 'رد', _openReplies,
                       key: const Key('clipReplies')),
                   _action(Icons.share_rounded, 'مشاركة', _share),
+                  _action(Icons.more_horiz_rounded, '', _more,
+                      key: const Key('clipMore')),
                   _action(_muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
                       '', () {
                     setState(() => _muted = !_muted);
@@ -1605,3 +1699,4 @@ class _Prepared {
   final bool isHls;
   final int offsetMs;
 }
+

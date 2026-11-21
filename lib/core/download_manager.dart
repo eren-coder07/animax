@@ -977,7 +977,10 @@ class DownloadManager extends ChangeNotifier {
   static const String _waitingWifi = 'بانتظار شبكة Wi-Fi';
   Timer? _wifiRetry;
 
-  Future<bool> _onWifi() async {
+  Future<bool> _onWifi() => onWifi();
+
+  /// True on Wi-Fi (or when the network type is unknown).
+  Future<bool> onWifi() async {
     try {
       final String? t = await _channel.invokeMethod<String>('networkType');
       return t == null || t == 'wifi' || t == 'other';

@@ -65,6 +65,7 @@ class AppPrefs extends ChangeNotifier {
   bool audioOnly = false; // players: sound only (smallest stream, background)
   int dataBudgetMb = 0; // monthly mobile-data budget, 0 = off
   bool cloudSync = true; // list / progress / history follow the account
+  bool autoDownloadNext = false; // fetch the next episode on Wi-Fi
   double readerScrollSpeed = 1.0; // auto-scroll speed multiplier
   int skipIntroSeconds = 85;
   bool pauseOnBackground = true;
@@ -104,6 +105,7 @@ class AppPrefs extends ChangeNotifier {
       audioOnly = sp.getBool('pref.audioOnly') ?? audioOnly;
       dataBudgetMb = sp.getInt('pref.dataBudgetMb') ?? dataBudgetMb;
       cloudSync = sp.getBool('pref.cloudSync') ?? cloudSync;
+      autoDownloadNext = sp.getBool('pref.autoDlNext') ?? autoDownloadNext;
       readerScrollSpeed = sp.getDouble('pref.readerScrollSpeed') ?? readerScrollSpeed;
       skipIntroSeconds = sp.getInt('pref.skipIntroSec') ?? skipIntroSeconds;
       pauseOnBackground = sp.getBool('pref.pauseOnBg') ?? pauseOnBackground;
@@ -175,6 +177,10 @@ class AppPrefs extends ChangeNotifier {
       case 'cloudSync':
         cloudSync = value as bool;
         sp?.setBool('pref.cloudSync', cloudSync);
+        break;
+      case 'autoDownloadNext':
+        autoDownloadNext = value as bool;
+        sp?.setBool('pref.autoDlNext', autoDownloadNext);
         break;
       case 'readerScrollSpeed':
         readerScrollSpeed = value as double;

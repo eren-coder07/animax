@@ -16,6 +16,7 @@ import 'activity_screen.dart';
 import 'auth_screen.dart';
 import 'bingo_screen.dart';
 import 'league_screen.dart';
+import 'people_screens.dart';
 import 'user_profile_screen.dart';
 
 /// "حسابي" — grouped cards: list, watch history (with thumbnails),
@@ -61,6 +62,13 @@ class ProfileTab extends StatelessWidget {
                           MaterialPageRoute<void>(
                               builder: (_) => const ActivityScreen())),
                     ),
+                  GroupRow(
+                    icon: Icons.person_search_outlined,
+                    label: 'اكتشف صنّاع المقاطع',
+                    onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: (_) => const CreatorsScreen())),
+                  ),
                   if (CloudAuth.I.signedIn)
                     GroupRow(
                       icon: Icons.account_circle_outlined,
@@ -160,7 +168,7 @@ class ProfileTab extends StatelessWidget {
                   const GroupRow(
                     icon: Icons.info_outline_rounded,
                     label: 'الإصدار',
-                    value: '2.6.0',
+                    value: '2.7.0',
                   ),
                 ]),
               ],

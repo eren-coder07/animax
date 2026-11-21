@@ -11,6 +11,7 @@ import '../core/cloud.dart';
 import '../core/cloud_sync.dart';
 import '../core/library_store.dart';
 import '../widgets/data_budget_card.dart';
+import 'people_screens.dart';
 
 /// Settings hub — Appearance / Player / Comics / Data / About.
 class SettingsScreen extends StatefulWidget {
@@ -243,6 +244,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
 
+          SwitchListTile(
+            key: const Key('autoDownloadNextSwitch'),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.autoDownloadNext,
+            onChanged: (bool v) => p.set('autoDownloadNext', v),
+            title: const Text('تحميل الحلقة التالية تلقائيًا',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            subtitle: const Text(
+                'على Wi-Fi فقط: بعد مشاهدة 80% من حلقة في أكوام تُحمَّل التالية لتشاهدها بدون إنترنت',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
           const DataBudgetCard(),
           _section('المجتمع والمشاهدة'),
           ListenableBuilder(
@@ -279,6 +291,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: const TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
               );
             },
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            leading: Icon(Icons.block_rounded, size: 21, color: AppColors.accent),
+            title: const Text('المستخدمون المحظورون',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const BlockedScreen())),
           ),
           SwitchListTile(
             key: const Key('spoilerShieldSwitch'),
@@ -433,7 +453,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
-              child: Text('أنيماكس الإصدار 2.6.0 · صُنع بحب للمشاهدين العرب',
+              child: Text('أنيماكس الإصدار 2.7.0 · صُنع بحب للمشاهدين العرب',
                   style: TextStyle(
                       fontFamily: 'Plex',
                       fontSize: 11,
@@ -512,7 +532,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final String tag =
           ((jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['tag_name'] ?? '')
               .toString();
-      final String current = 'v2.6.0';
+      final String current = 'v2.7.0';
       final bool newer = _isNewer(tag, current);
       if (mounted) {
         setState(() {

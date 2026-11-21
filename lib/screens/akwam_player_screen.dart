@@ -63,6 +63,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   bool _preparingNext = false;
   bool _swapping = false;
 
+  /// Episode whose successor was already queued for offline viewing.
+  String _autoQueuedFor = '';
+
   /// Sleep timer: minutes (0 = off, -1 = end of this episode).
   int _sleepMinutes = 0;
   Timer? _sleepTimer;
@@ -513,6 +516,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
         }
       }
       _watchStalls();
+      _maybeQueueNext();
     });
     _bumpControls();
     setState(() {
@@ -618,6 +622,38 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       return;
     }
     await _playSource(_sourceIndex, resumeAt: t, exact: true);
+  }
+
+  /// Smart downloads: past 80 % of an episode on Wi-Fi, queue the next one
+  /// (same quality) so it is ready offline.
+  void _maybeQueueNext() {
+    if (!AppPrefs.I.autoDownloadNext || _episode == null || !_hasNext) return;
+    final String id = '${_item.path}#${_episode!.number}';
+    if (_autoQueuedFor == id) return;
+    final int dur = _dur.inSeconds;
+    if (dur <= 0 || _pos.inSeconds < dur * 0.8) return;
+    _autoQueuedFor = id;
+    final AkwamEpisode next = _episodes[_indexOfEpisode(_episode!) + 1];
+    unawaited(() async {
+      if (!await DownloadManager.I.onWifi()) return;
+      await DownloadManager.I.addResolvable(
+        source: 'akwam',
+        ref: <String, String>{
+          'path': next.path,
+          if (_sources.isNotEmpty) 'q': _sources[_sourceIndex].quality,
+        },
+        title: _item.title,
+        subtitle: 'الحلقة ${next.number}',
+        poster: _item.poster,
+      );
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+          persist: false,
+          duration: const Duration(seconds: 3),
+          content: Text('جارٍ تحميل الحلقة ${next.number} لتشاهدها بدون إنترنت'),
+        ));
+      }
+    }());
   }
 
   /// ~8 s of stalling within a minute → step down to a lower quality.

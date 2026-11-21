@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -100,7 +101,7 @@ class Social {
       });
     }
     out.sort((Comment a, Comment b) => b.at.compareTo(a.at));
-    return out;
+    return out.where((Comment c) => !Blocks.I.isBlocked(c.uid)).toList();
   }
 
   /// [threadPath]: `comments` (items) or `clipComments` (clips).
@@ -270,7 +271,7 @@ class Social {
       });
     }
     out.sort((VideoClip a, VideoClip b) => (b.at ?? DateTime(0)).compareTo(a.at ?? DateTime(0)));
-    return out;
+    return Blocks.I.visibleClips(out);
   }
 
   static Future<List<VideoClip>> clipsOf(String uid) async {
@@ -336,6 +337,56 @@ class Social {
     final List<VideoClip> all = await clipsFeed(limit: limit);
     all.sort((VideoClip a, VideoClip b) => trendScore(b, now).compareTo(trendScore(a, now)));
     return all;
+  }
+
+  // ------------------------------------------------- discovery / ranking
+
+  /// Most-viewed titles on Animax (Akwam, anime, manga), best first.
+  static Future<List<TopItem>> topItems({int limit = 10}) async {
+    final dynamic v = await getOrdered('items', 'views', 80);
+    final List<TopItem> out = <TopItem>[];
+    if (v is Map) {
+      v.forEach((dynamic k, dynamic it) {
+        if (it is! Map) return;
+        final TopItem? t = TopItem.from(k.toString(), it);
+        if (t != null) out.add(t);
+      });
+    }
+    out.sort((TopItem a, TopItem b) => b.views.compareTo(a.views));
+    return out.take(limit).toList();
+  }
+
+  /// Creators with the most followers (you and blocked users excluded).
+  static Future<List<UserProfile>> topCreators({int limit = 40}) async {
+    final dynamic v = await getOrdered('users', 'followers', limit + 10);
+    final List<UserProfile> out = <UserProfile>[];
+    Set<String> mine = <String>{};
+    if (_uid.isNotEmpty) {
+      final dynamic f = await CloudDb.I.get('following/$_uid');
+      if (f is Map) mine = f.keys.map((dynamic k) => k.toString()).toSet();
+    }
+    if (v is Map) {
+      v.forEach((dynamic id, dynamic j) {
+        final String uid = id.toString();
+        if (j is! Map || uid == _uid || Blocks.I.isBlocked(uid)) return;
+        out.add(UserProfile.fromJson(uid, j, following: mine.contains(uid)));
+      });
+    }
+    out.sort((UserProfile a, UserProfile b) {
+      final int c = b.followers.compareTo(a.followers);
+      return c != 0 ? c : b.clips.compareTo(a.clips);
+    });
+    return out.take(limit).toList();
+  }
+
+  /// Reports a clip / comment / user for moderation (`reports/{target}/{uid}`).
+  static Future<void> report(String target, String reason) async {
+    _needLogin();
+    await CloudDb.I.put('reports/${CloudDb.key(target)}/$_uid', <String, dynamic>{
+      'target': target.length > 200 ? target.substring(0, 200) : target,
+      'reason': reason.length > 200 ? reason.substring(0, 200) : reason,
+      'at': serverTime,
+    });
   }
 
   /// Clips by the people you follow (and their reposts), newest first.
@@ -823,6 +874,113 @@ class BingoStore extends ChangeNotifier {
   bool get loaded => _loaded;
 }
 
+/// A title from the community ranking (`items/{key}`).
+class TopItem {
+  const TopItem({
+    required this.key,
+    required this.title,
+    required this.poster,
+    required this.kind,
+    required this.views,
+  });
+
+  /// Original item key, e.g. `akwam:/movie/1/x`, `anime:{id}`, `manga:{id}`.
+  final String key;
+  final String title;
+  final String poster;
+  final String kind;
+  final int views;
+
+  static const Set<String> kinds = <String>{'akwam', 'anime', 'manga'};
+
+  /// Decodes `items/{base64url(key)}`; null for unsupported / incomplete rows.
+  static TopItem? from(String encoded, Map<dynamic, dynamic> j) {
+    String key;
+    try {
+      final String pad = '=' * ((4 - encoded.length % 4) % 4);
+      key = utf8.decode(base64Url.decode(encoded + pad));
+    } catch (_) {
+      return null;
+    }
+    final String kind = (j['kind'] ?? key.split(':').first).toString();
+    final String title = (j['title'] ?? '').toString();
+    if (!kinds.contains(kind) || title.isEmpty || !key.startsWith('$kind:')) return null;
+    return TopItem(
+      key: key,
+      title: title,
+      poster: (j['poster'] ?? '').toString(),
+      kind: kind,
+      views: ((j['views'] as num?)?.toInt() ?? 0).clamp(0, 1 << 31),
+    );
+  }
+
+  /// Part after `kind:` (Akwam page path / anime id / manga id).
+  String get ref => key.substring(kind.length + 1);
+}
+
+/// People you blocked (private `blocked/{uid}`) and clips you hid: their
+/// clips, comments, timed comments and notices disappear for you.
+class Blocks extends ChangeNotifier {
+  Blocks._() {
+    CloudAuth.I.addListener(_onAuth);
+    _onAuth();
+  }
+  static final Blocks I = Blocks._();
+
+  final Set<String> _users = <String>{};
+  final Set<String> _hiddenClips = <String>{};
+  String _uid = '';
+
+  bool isBlocked(String uid) => uid.isNotEmpty && _users.contains(uid);
+  Set<String> get blocked => Set<String>.unmodifiable(_users);
+
+  List<VideoClip> visibleClips(List<VideoClip> clips) => clips
+      .where((VideoClip c) => !isBlocked(c.uid) && !_hiddenClips.contains(c.id))
+      .toList();
+
+  void _onAuth() {
+    final String uid = CloudAuth.I.user?.uid ?? '';
+    if (uid == _uid) return;
+    _uid = uid;
+    _users.clear();
+    if (uid.isNotEmpty) unawaited(load());
+    notifyListeners();
+  }
+
+  Future<void> load() async {
+    if (_uid.isEmpty) return;
+    try {
+      final dynamic v = await CloudDb.I.get('blocked/$_uid');
+      _users
+        ..clear()
+        ..addAll(v is Map ? v.keys.map((dynamic k) => k.toString()) : const <String>[]);
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Blocks [uid] (and stops following them).
+  Future<void> block(String uid) async {
+    if (_uid.isEmpty || uid.isEmpty || uid == _uid) return;
+    _users.add(uid);
+    notifyListeners();
+    await CloudDb.I.put('blocked/$_uid/$uid', true);
+    final dynamic following = await CloudDb.I.get('following/$_uid/$uid');
+    if (following == true) await Social.setFollow(uid, false);
+  }
+
+  Future<void> unblock(String uid) async {
+    _users.remove(uid);
+    notifyListeners();
+    if (_uid.isNotEmpty) await CloudDb.I.delete('blocked/$_uid/$uid');
+  }
+
+  /// "Not interested": hides one clip on this device for this session.
+  void hideClip(String id) {
+    _hiddenClips.add(id);
+    notifyListeners();
+  }
+}
+
 /// One activity notice ("أحمد أعجب بمقطعك").
 class InboxItem {
   const InboxItem({
@@ -930,7 +1088,10 @@ class Inbox extends ChangeNotifier {
       final List<InboxItem> out = <InboxItem>[];
       if (r[0] is Map) {
         (r[0] as Map<dynamic, dynamic>).forEach((dynamic id, dynamic v) {
-          if (v is Map) out.add(InboxItem.fromJson(id.toString(), v));
+          if (v is Map) {
+            final InboxItem it = InboxItem.fromJson(id.toString(), v);
+            if (!Blocks.I.isBlocked(it.from)) out.add(it);
+          }
         });
       }
       out.sort((InboxItem a, InboxItem b) =>

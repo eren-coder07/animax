@@ -1,9 +1,11 @@
-# Animax (أنيماكس) v2.6.0 — Features
+# Animax (أنيماكس) v2.7.0 — Features
 
 Arabic-first streaming app: right-to-left UI in Arabic (IBM Plex Sans
 Arabic), Akwam as the home screen.
 
 ## Sections (Home category bar)
+- v2.7: «الأكثر مشاهدة على أنيماكس» — community ranking row (Akwam, anime,
+  manga; shown once 3+ titles have views).
 - **الرائج (Akwam)** — featured carousel (play / download / share), continue
   watching with progress bars, rows: recently added, movies, series, shows.
 - **أفلام · مسلسلات · برامج** — full paginated Akwam catalogs (3-column grid).
@@ -26,6 +28,10 @@ Arabic), Akwam as the home screen.
   when unreachable).
 
 ## Clips (مقاطع)
+- v2.7: ⋯ on clips — not interested / report / block / delete own; long-press
+  comments to report or block; block / unblock / report from profiles;
+  Settings → blocked users. Blocked people's clips, comments, timed comments
+  and notices are hidden. «اكتشف صنّاع المقاطع» (top creators, one-tap follow).
 - v2.6: «الرائج» feed (engagement with time decay).
 - v2.5: optional captions (clips and manga panels); "Following" feed next to
   "Everyone"; activity inbox (likes, comments, replies, reposts, comment
@@ -103,6 +109,8 @@ Arabic), Akwam as the home screen.
   auto-skip intro, auto-play next.
 
 ## Downloads
+- v2.7: smart downloads — past 80 % of an Akwam episode on Wi-Fi, the next
+  episode is queued (same quality) for offline viewing (Settings switch).
 - Movies and episodes save as MP4 (direct files with resume; HLS with
   AES-128 + separate audio remuxed on-device); manga chapters save as PDF.
 - Download from details pages, players, comic chapters or "download all".

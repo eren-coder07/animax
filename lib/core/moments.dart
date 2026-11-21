@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'cloud.dart';
+import 'social.dart' show Blocks;
 
 /// Per-episode community layer shared by every player:
 ///
@@ -153,7 +154,7 @@ class EpisodeSocial extends ChangeNotifier {
         });
       }
       cs.sort((TimedComment a, TimedComment b) => a.t.compareTo(b.t));
-      comments = cs;
+      comments = cs.where((TimedComment c) => !Blocks.I.isBlocked(c.uid)).toList();
     } catch (_) {}
     loaded = true;
     if (!_disposed) notifyListeners();

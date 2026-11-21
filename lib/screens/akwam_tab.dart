@@ -8,6 +8,7 @@ import '../core/download_manager.dart';
 import '../core/library_store.dart';
 import '../widgets/download_button.dart';
 import '../widgets/mb_ui.dart';
+import '../widgets/top_row.dart';
 import '../widgets/quick_share.dart';
 
 /// Akwam section accent (site brand teal).
@@ -117,6 +118,7 @@ class _AkwamTabState extends State<AkwamTab>
                 _HeroCarousel(
                     items: _rows[AkwamFeed.recent]!.take(6).toList()),
               if (recent.isNotEmpty) _ContinueStrip(rows: recent),
+              const TopOnAnimaxRow(),
               if (_error != null && allEmpty && _loading.isEmpty)
                 _ErrorBox(message: _error!, onRetry: _loadAll),
               for (final AkwamFeed f in AkwamFeed.values)

@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   testWidgets('category bar switches the Home section', (WidgetTester t) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    AppPrefs.I.set('lastSeenVersion', '2.6.0');
+    AppPrefs.I.set('lastSeenVersion', '2.7.0');
     AppState.I.setCategory(0);
     t.view.physicalSize = const Size(390 * 3, 844 * 3);
     t.view.devicePixelRatio = 3;

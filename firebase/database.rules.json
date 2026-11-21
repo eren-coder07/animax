@@ -29,7 +29,10 @@
             ".validate": "newData.isString() && newData.val().length <= 160"
           }
         },
-        ".read": true
+        ".read": true,
+        ".indexOn": [
+          "followers"
+        ]
       },
       "following": {
         "$uid": {
@@ -317,6 +320,29 @@
           },
           "at": {
             ".validate": "newData.isNumber()"
+          }
+        }
+      },
+      "blocked": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          "$target": {
+            ".validate": "newData.val() === true"
+          }
+        }
+      },
+      "reports": {
+        "$target": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && !data.exists()",
+            ".validate": "newData.hasChildren(['target','reason','at'])",
+            "target": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "reason": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            }
           }
         }
       }

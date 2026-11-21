@@ -278,6 +278,53 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     } catch (_) {}
   }
 
+  Future<void> _commentMenu(Comment cm) async {
+    final String? pick = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (BuildContext ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.flag_rounded, color: Color(0xFFFFB020)),
+                title: const Text('إبلاغ عن التعليق',
+                    style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, 'report'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.block_rounded, color: Color(0xFFFF6B6B)),
+                title: Text('حظر ${cm.name}',
+                    style: const TextStyle(fontFamily: kFont, color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, 'block'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || pick == null) return;
+    if (!await requireLogin(context)) return;
+    if (!mounted) return;
+    final ScaffoldMessengerState m = ScaffoldMessenger.of(context);
+    if (pick == 'report') {
+      final String? reason = await pickReportReason(context);
+      if (reason == null) return;
+      try {
+        await Social.report('comment:${widget.threadPath}/${widget.threadKey}/${cm.id}', reason);
+        m.showSnackBar(const SnackBar(content: Text('شكرًا، وصل بلاغك وسنراجعه.')));
+      } catch (e) {
+        m.showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } else {
+      await Blocks.I.block(cm.uid);
+      if (mounted) setState(() => _list?.removeWhere((Comment c) => c.uid == cm.uid));
+      m.showSnackBar(SnackBar(content: Text('تم حظر ${cm.name}.')));
+    }
+  }
+
   static String _ago(DateTime at) {
     final Duration d = DateTime.now().difference(at);
     if (d.inMinutes < 1) return 'الآن';
@@ -330,7 +377,9 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                       itemBuilder: (BuildContext c, int i) {
                         final Comment cm = _list![i];
                         final bool liked = _liked[cm.id] ?? false;
-                        return Padding(
+                        return GestureDetector(
+                          onLongPress: cm.uid == me ? null : () => _commentMenu(cm),
+                          child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,6 +504,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                               ),
                             ],
                           ),
+                        ),
                         );
                       },
                     ),
@@ -561,4 +611,42 @@ class UserAvatar extends StatelessWidget {
               color: Colors.white)),
     );
   }
+}
+
+
+/// Report reasons sheet; returns the chosen reason or null.
+Future<String?> pickReportReason(BuildContext context) {
+  const List<String> reasons = <String>[
+    'محتوى جنسي أو غير لائق',
+    'عنف أو كراهية',
+    'إزعاج أو رسائل مزعجة',
+    'حرق أحداث بدون تحذير',
+    'انتحال شخصية أو احتيال',
+    'سبب آخر',
+  ];
+  return showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: AppColors.surface,
+    builder: (BuildContext ctx) => Directionality(
+      textDirection: TextDirection.rtl,
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: Text('ما المشكلة؟',
+                  style: TextStyle(
+                      fontFamily: kFont, fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+            ),
+            for (final String r in reasons)
+              ListTile(
+                title: Text(r, style: const TextStyle(fontFamily: kFont, color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, r),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

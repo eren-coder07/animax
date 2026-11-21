@@ -53,3 +53,9 @@ blanket `.read` on `/animax` became per-node public reads plus a private
 
 Adds the private `sync/{uid}` node (account library sync). Publish the new
 `database.rules.json` again.
+
+## v2.7 update
+
+Adds private `blocked/{uid}`, write-only `reports/{target}/{uid}` (read them
+in the Firebase console → Realtime Database → animax/reports) and an index
+on `users/followers`. Publish the new `database.rules.json`.

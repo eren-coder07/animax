@@ -136,7 +136,50 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final bool me = CloudAuth.I.user?.uid == widget.uid;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(backgroundColor: AppColors.bg, title: Text(p?.name ?? '')),
+      appBar: AppBar(
+        backgroundColor: AppColors.bg,
+        title: Text(p?.name ?? ''),
+        actions: <Widget>[
+          if (!me && p != null)
+            ListenableBuilder(
+              listenable: Blocks.I,
+              builder: (BuildContext context, _) => PopupMenuButton<String>(
+                key: const Key('profileMenu'),
+                color: AppColors.surface,
+                onSelected: (String v) async {
+                  final ScaffoldMessengerState m = ScaffoldMessenger.of(context);
+                  if (!await requireLogin(context)) return;
+                  if (v == 'block') {
+                    await Blocks.I.block(p.uid);
+                    m.showSnackBar(SnackBar(content: Text('تم حظر ${p.name}.')));
+                    await _load();
+                  } else if (v == 'unblock') {
+                    await Blocks.I.unblock(p.uid);
+                    m.showSnackBar(SnackBar(content: Text('تم إلغاء حظر ${p.name}.')));
+                  } else if (v == 'report' && context.mounted) {
+                    final String? reason = await pickReportReason(context);
+                    if (reason == null) return;
+                    await Social.report('user:${p.uid}', reason);
+                    m.showSnackBar(const SnackBar(content: Text('شكرًا، وصل بلاغك وسنراجعه.')));
+                  }
+                },
+                itemBuilder: (BuildContext ctx) => <PopupMenuEntry<String>>[
+                  const PopupMenuItem<String>(
+                      value: 'report',
+                      child: Text('إبلاغ عن الحساب', style: TextStyle(fontFamily: kFont))),
+                  if (Blocks.I.isBlocked(p.uid))
+                    const PopupMenuItem<String>(
+                        value: 'unblock',
+                        child: Text('إلغاء الحظر', style: TextStyle(fontFamily: kFont)))
+                  else
+                    const PopupMenuItem<String>(
+                        value: 'block',
+                        child: Text('حظر', style: TextStyle(fontFamily: kFont))),
+                ],
+              ),
+            ),
+        ],
+      ),
       body: p == null
           ? Center(
               child: _error != null
