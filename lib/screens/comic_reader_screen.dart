@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'panel_crop_screen.dart';
+
 import '../core/social.dart';
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
@@ -405,6 +407,24 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                         chapterId: _chapter.id,
                         poster: widget.manga.cover,
                       ),
+                    ),
+                    IconButton(
+                      key: const Key('cutPanel'),
+                      tooltip: 'قص لوحة',
+                      icon: const Icon(Icons.content_cut_rounded,
+                          color: Colors.white, size: 21),
+                      onPressed: _pages.isEmpty
+                          ? null
+                          : () => showPanelCropper(
+                                context,
+                                imageUrl: _pages[_pageIndex.clamp(0, _pages.length - 1)],
+                                mangaId: widget.manga.id,
+                                mangaTitle: widget.manga.title,
+                                cover: widget.manga.cover,
+                                chapterId: _chapter.id,
+                                chapterLabel: _chapter.chipLabel,
+                                page: _pageIndex.clamp(0, _pages.length - 1),
+                              ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.tune_rounded,

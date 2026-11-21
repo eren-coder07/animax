@@ -9,6 +9,7 @@ import '../core/app_data.dart';
 import '../core/api_html.dart' show AnimeWatchId;
 import '../core/app_state.dart';
 import '../core/hh_api.dart';
+import '../core/manga_api.dart';
 import '../core/app_theme.dart';
 import '../core/cloud.dart';
 import '../core/download_manager.dart';
@@ -17,6 +18,7 @@ import '../core/spoilers.dart';
 import '../widgets/mb_ui.dart';
 import '../widgets/social_bar.dart';
 import 'auth_screen.dart';
+import 'panel_crop_screen.dart';
 import 'user_profile_screen.dart';
 
 /// Index of the Clips tab in the bottom bar.
@@ -228,6 +230,7 @@ class _ClipPageState extends State<ClipPage> {
   bool _muted = false;
   bool _opening = false;
   late bool _shielded = Spoilers.hides(widget.clip);
+  final GlobalKey<PanelClipViewState> _panel = GlobalKey<PanelClipViewState>();
   late int _replies = widget.clip.replies;
 
   void _reveal() {
@@ -265,6 +268,8 @@ class _ClipPageState extends State<ClipPage> {
     if (widget.playing && !_shielded) _start();
   }
 
+  bool get _isPanel => widget.clip.isPanel;
+
   @override
   void didUpdateWidget(ClipPage old) {
     super.didUpdateWidget(old);
@@ -284,6 +289,14 @@ class _ClipPageState extends State<ClipPage> {
 
   Future<void> _start() async {
     final VideoClip clip = widget.clip;
+    if (clip.isPanel) {
+      // Panels are images (PanelClipView); only count the view.
+      if (!_counted) {
+        _counted = true;
+        unawaited(Social.countClipView(clip.id));
+      }
+      return;
+    }
     try {
       final ({String url, Map<String, String> headers, bool isHls}) st =
           _resolved[clip.id] ??
@@ -365,7 +378,9 @@ class _ClipPageState extends State<ClipPage> {
     if (mounted && n is num) setState(() => _comments = n.toInt());
   }
 
-  Future<void> _share() => showClipShare(context, widget.clip);
+  Future<void> _share() => _isPanel
+      ? sharePanelImage(context, widget.clip)
+      : showClipShare(context, widget.clip);
 
   Future<void> _openReplies() async {
     final bool wasPlaying = _c?.value.isPlaying ?? false;
@@ -396,13 +411,20 @@ class _ClipPageState extends State<ClipPage> {
     final VideoClip clip = widget.clip;
     final VideoPlayerController? c = _c;
     final bool ready = c != null && c.value.isInitialized;
-    final double progress = ready
-        ? ((c.value.position.inMilliseconds - clip.startMs) /
-                (clip.endMs - clip.startMs))
-            .clamp(0.0, 1.0)
-        : 0;
+    final double progress = _isPanel
+        ? (_panel.currentState?.progress ?? 0)
+        : ready
+            ? ((c.value.position.inMilliseconds - clip.startMs) /
+                    (clip.endMs - clip.startMs))
+                .clamp(0.0, 1.0)
+            : 0;
     return GestureDetector(
       onTap: () {
+        if (_isPanel) {
+          _panel.currentState?.togglePause();
+          setState(() {});
+          return;
+        }
         if (!ready) return;
         c.value.isPlaying ? c.pause() : c.play();
         setState(() {});
@@ -415,8 +437,18 @@ class _ClipPageState extends State<ClipPage> {
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            if (!ready) Opacity(opacity: 0.35, child: NetImage(clip.poster)),
-            if (ready)
+            if (_isPanel && !_shielded)
+              PanelClipView(
+                  key: _panel,
+                  clip: clip,
+                  playing: widget.playing,
+                  onTick: () {
+                    if (mounted) setState(() {});
+                  })
+            else if (!ready) Opacity(opacity: 0.35, child: NetImage(clip.poster)),
+            if (_isPanel)
+              const SizedBox.shrink()
+            else if (ready)
               Center(
                 child: AspectRatio(
                   aspectRatio: c.value.aspectRatio == 0 ? 16 / 9 : c.value.aspectRatio,
@@ -559,15 +591,19 @@ class _ClipPageState extends State<ClipPage> {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(20),
                       onTap: _openSource,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
-                            Icon(Icons.play_circle_fill_rounded,
-                                color: Colors.white, size: 20),
-                            SizedBox(width: 6),
-                            Text('شاهد كاملًا',
+                            Icon(
+                                clip.isPanel
+                                    ? Icons.menu_book_rounded
+                                    : Icons.play_circle_fill_rounded,
+                                color: Colors.white,
+                                size: 20),
+                            const SizedBox(width: 6),
+                            Text(clip.isPanel ? 'اقرأ الفصل' : 'شاهد كاملًا',
                                 style: TextStyle(
                                     fontFamily: kFont,
                                     fontSize: 13.5,
@@ -1086,6 +1122,16 @@ Future<void> openClipSource(BuildContext context, VideoClip clip) async {
                 synopsis: '',
                 slug: slug,
               ));
+      return;
+    case 'manga':
+      final String id = clip.ref['mangaId'] ?? '';
+      if (id.isEmpty) return fail();
+      try {
+        final MangaItem m = await MangaApi.I.details(id);
+        await nav.pushNamed('/comic-details', arguments: m);
+      } catch (_) {
+        fail();
+      }
       return;
     case 'hh':
       final String slug = clip.ref['slug'] ?? '';

@@ -678,6 +678,39 @@ class DownloadManager extends ChangeNotifier {
     return it;
   }
 
+  /// Saves an image (a manga panel clip) to `Download/Animax/Clips` and
+  /// returns the finished item (for sharing).
+  Future<DownloadItem> saveImageFile(
+    List<int> png, {
+    required String title,
+    String subtitle = '',
+    String poster = '',
+  }) async {
+    await load();
+    final String id = 'panel_${_newId()}';
+    final Directory dir = await _workDir(id);
+    final File out = File('${dir.path}/panel.png');
+    await out.writeAsBytes(png, flush: true);
+    final DownloadItem it = DownloadItem(
+      id: id,
+      kind: DownloadKind.comic,
+      title: title,
+      subtitle: subtitle.isEmpty ? 'لوحة' : subtitle,
+      poster: poster,
+      url: 'panel:$id',
+      status: DownloadStatus.done,
+      progress: 1,
+    );
+    it.received = out.lengthSync();
+    await _publish(it, out, '${it.fileBase} (لوحة).png', 'image/png', 'Clips');
+    _items.insert(0, it);
+    _changed(persist: true);
+    try {
+      dir.deleteSync(recursive: true);
+    } catch (_) {}
+    return it;
+  }
+
   /// Downloads only the HLS segments overlapping [startMs, endMs] (lowest
   /// variant — fastest) and remuxes them (+ separate audio) into [out].
   Future<bool> _hlsWindow(String url, Map<String, String> headers, int startMs,
