@@ -1302,6 +1302,7 @@ class _BottomControls extends StatelessWidget {
                           ref: <String, String>{
                             'watchId': state._anime.watchId!,
                             'ep': '${state._episode?.number ?? 1}',
+                            'slug': state._anime.slug ?? state._anime.id,
                           },
                         );
                       },

@@ -402,6 +402,30 @@ class AkwamApi {
 
   // ----- helpers -----
 
+  /// The movie / series page behind a `/watch/{file}/{id}/{slug}[/{ep}]`
+  /// path (clips store only the watch path). Movies map directly; episode
+  /// watch pages link back to their series once.
+  Future<AkwamItem?> itemForWatch(String watchPath,
+      {String title = '', String poster = ''}) async {
+    final RegExpMatch? m =
+        RegExp(r'^/watch/\d+/(\d+)/([^/?#]+)(/[^?#]+)?').firstMatch(watchPath);
+    if (m == null) return null;
+    if (m.group(3) == null) {
+      return itemFromPath('/movie/${m.group(1)}/${m.group(2)}',
+          title: title, poster: poster);
+    }
+    final String html = await _get(watchPath);
+    final String slug = _decode(m.group(2)!);
+    String? first;
+    for (final RegExpMatch l in RegExp(r'''/(series|show)/(\d+)/([^"'\s<>?#]+)''')
+        .allMatches(html)) {
+      final String path = l.group(0)!;
+      first ??= path;
+      if (_decode(l.group(3)!) == slug) return itemFromPath(path, title: title, poster: poster);
+    }
+    return first == null ? null : itemFromPath(first, title: title, poster: poster);
+  }
+
   /// Rebuilds an item from a stored page path (watch history, downloads).
   static AkwamItem? itemFromPath(String path,
       {String title = '', String poster = ''}) {
@@ -423,10 +447,16 @@ class AkwamApi {
           ? (href.startsWith('/') ? href : '/$href')
           : '${uri.path}${uri.query.isEmpty ? '' : '?${uri.query}'}',
       kind: AkwamKindExt.fromSlug(m.group(1)!),
-      title: fallbackTitle.isEmpty
-          ? Uri.decodeComponent(m.group(3)!)
-          : fallbackTitle,
+      title: fallbackTitle.isEmpty ? _decode(m.group(3)!) : fallbackTitle,
     );
+  }
+
+  static String _decode(String s) {
+    try {
+      return Uri.decodeComponent(s);
+    } catch (_) {
+      return s;
+    }
   }
 
   /// Highest episode number on the page (episodes ship newest-first).

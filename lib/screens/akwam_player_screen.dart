@@ -721,7 +721,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                         kind: 'akwam',
                         source: 'akwam',
                         ref: <String, String>{
-                          'path': _sources[_sourceIndex].watchPath
+                          'path': _sources[_sourceIndex].watchPath,
+                          'item': _item.path,
                         },
                       );
                     },

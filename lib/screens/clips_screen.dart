@@ -3,7 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../core/akwam_api.dart';
+import '../core/app_data.dart';
+import '../core/api_html.dart' show AnimeWatchId;
 import '../core/app_state.dart';
+import '../core/hh_api.dart';
 import '../core/app_theme.dart';
 import '../core/cloud.dart';
 import '../core/download_manager.dart';
@@ -220,6 +224,22 @@ class _ClipPageState extends State<ClipPage> {
   late int _reposts = widget.clip.reposts;
   bool _counted = false;
   bool _muted = false;
+  bool _opening = false;
+
+  /// Opens the clip's full movie / series page, pausing the clip meanwhile.
+  Future<void> _openSource() async {
+    if (_opening) return;
+    _opening = true;
+    final bool wasPlaying = _c?.value.isPlaying ?? false;
+    await _c?.pause();
+    try {
+      if (!mounted) return;
+      await openClipSource(context, widget.clip);
+    } finally {
+      _opening = false;
+      if (wasPlaying && mounted && widget.playing) await _c?.play();
+    }
+  }
 
   @override
   void initState() {
@@ -446,14 +466,19 @@ class _ClipPageState extends State<ClipPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(clip.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontFamily: kFont,
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white)),
+                  GestureDetector(
+                    onTap: _openSource,
+                    child: Text(clip.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontFamily: kFont,
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white54,
+                            color: Colors.white)),
+                  ),
                   if (clip.label.isNotEmpty)
                     Text(clip.label,
                         style: const TextStyle(
@@ -462,6 +487,33 @@ class _ClipPageState extends State<ClipPage> {
                   Text('${compactCount(clip.views)} مشاهدة',
                       style: const TextStyle(
                           fontFamily: kFont, fontSize: 12.5, color: Colors.white60)),
+                  const SizedBox(height: 10),
+                  Material(
+                    key: const Key('clipWatchFull'),
+                    color: Colors.white.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(20),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: _openSource,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Icon(Icons.play_circle_fill_rounded,
+                                color: Colors.white, size: 20),
+                            SizedBox(width: 6),
+                            Text('شاهد كاملًا',
+                                style: TextStyle(
+                                    fontFamily: kFont,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -871,4 +923,82 @@ class _ClipMakerState extends State<_ClipMaker> {
       ),
     );
   }
+}
+
+/// Opens the details page of the movie / series a clip was cut from.
+/// New clips carry the page in their ref; older ones fall back to a
+/// catalog lookup or a title search.
+Future<void> openClipSource(BuildContext context, VideoClip clip) async {
+  final NavigatorState nav = Navigator.of(context);
+  final ScaffoldMessengerState msg = ScaffoldMessenger.of(context);
+  void fail() => msg.showSnackBar(const SnackBar(
+      content: Text('تعذّر فتح صفحة هذا الفيديو حاليًا.')));
+  switch (clip.source) {
+    case 'akwam':
+      AkwamItem? item;
+      final String path = clip.ref['item'] ?? '';
+      if (path.isNotEmpty) {
+        item = AkwamApi.itemFromPath(path, title: clip.title, poster: clip.poster);
+      }
+      if (item == null) {
+        msg.showSnackBar(const SnackBar(
+            duration: Duration(seconds: 2), content: Text('جارٍ فتح الصفحة…')));
+        try {
+          item = await AkwamApi.I.itemForWatch(clip.ref['path'] ?? '',
+              title: clip.title, poster: clip.poster);
+        } catch (_) {}
+        if (item == null) {
+          try {
+            item = bestAkwamMatch(await AkwamApi.I.search(clip.title), clip.title);
+          } catch (_) {}
+        }
+        msg.hideCurrentSnackBar();
+      }
+      if (item == null) return fail();
+      await nav.pushNamed('/akwam-details', arguments: item);
+      return;
+    case 'anime':
+      final String wid = clip.ref['watchId'] ?? '';
+      Anime? a;
+      for (final Anime x in AppState.I.catalog) {
+        if (x.watchId == wid) {
+          a = x;
+          break;
+        }
+      }
+      final String slug = clip.ref['slug'] ?? wid;
+      if (a == null && slug.isEmpty) return fail();
+      await nav.pushNamed('/details',
+          arguments: a ??
+              Anime(
+                id: slug,
+                title: clip.title,
+                poster: clip.poster,
+                score: 0,
+                year: '',
+                genres: const <String>[],
+                synopsis: '',
+                slug: slug,
+              ));
+      return;
+    case 'hh':
+      final String slug = clip.ref['slug'] ?? '';
+      if (slug.isEmpty) return fail();
+      await nav.pushNamed('/hh-details',
+          arguments: HhSeries(id: 0, slug: slug, title: clip.title, thumb: clip.poster));
+      return;
+  }
+  fail();
+}
+
+/// The search result whose title is exactly [title] (ignoring case and
+/// spacing), or null — a wrong page is worse than none.
+AkwamItem? bestAkwamMatch(List<AkwamItem> results, String title) {
+  if (results.isEmpty) return null;
+  String norm(String s) => s.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
+  final String t = norm(title);
+  for (final AkwamItem r in results) {
+    if (norm(r.title) == t) return r;
+  }
+  return null;
 }
