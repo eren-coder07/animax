@@ -38,7 +38,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '2.2.0';
+    const String version = '2.3.0';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -376,11 +376,11 @@ class WhatsNewDialog extends StatelessWidget {
   final String version;
 
   static const List<String> highlights = <String>[
-    'شريط الأقسام في الأعلى يعمل الآن بشكل صحيح',
-    'إصلاح التحميل: الأفلام والحلقات تُحفظ في مجلد التحميلات',
-    'رسالة «جارٍ التحميل» تختفي تلقائيًا',
-    'الأقسام: أكوام · أنمي · كرتون · مانغا · +18',
-    'تحسينات في كل الشاشات',
+    'حسابات بالبريد: أعجب وعلّق وتابع الآخرين',
+    'تبويب «مقاطع»: قص 10 ثوانٍ من أي حلقة وشاركها مع الجميع',
+    'عدد المشاهدات والقراءات في كل الأقسام',
+    'بينغو المشاهدة + وضع الماراثون',
+    'إصلاح قسم المانغا ووضع الإنترنت الضعيف',
   ];
 
   @override

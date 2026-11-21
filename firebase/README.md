@@ -1,0 +1,37 @@
+# Firebase setup for Animax
+
+Animax talks to the Firebase project `cimacloud-22762` over Firebase's REST
+APIs (Auth, Realtime Database). All Animax data lives under `/animax`.
+
+## 1. Authentication
+Console → Authentication → Sign-in method → **Email/Password: Enabled**
+(already enabled — verified). Email verification is not used; the app only
+accepts addresses at real providers (Gmail, Outlook/Hotmail, Yahoo, iCloud,
+Proton, Zoho, GMX, …).
+
+## 2. Realtime Database rules (important)
+Your database is currently readable **and writable by anyone**, including
+your `goldenace` data. Paste `database.rules.json` into
+Console → Realtime Database → Rules → Publish.
+
+What the rules do:
+- Everything outside `/animax` and `/goldenace` is locked.
+- `/goldenace` keeps today's open access so your other app keeps working —
+  lock it down separately for that app.
+- `/animax` is public to read (it is a social feed) but:
+  - only the signed-in owner can write their profile, likes, follows,
+    reposts, Bingo/Binge progress, comments and clips;
+  - every counter (likes, comments, followers, reposts) can only move by
+    exactly +1 / -1 per write; view counts can only go up by 1;
+  - clips must be ≤ 10 seconds; text fields have length limits;
+  - `items` is indexed by `views` (poster view badges).
+
+## 3. Storage
+Uploads to the default bucket return HTTP 402 on the Spark plan, so clips
+are stored as references (source + start/end) and cut on-device when
+shared. `storage.rules` is ready for when you move to Blaze.
+
+## 4. Clean-up
+A test account `animax.probe.<number>@gmail.com` (UID starting `rYjp4X`)
+was left from the first connectivity check — delete it in
+Console → Authentication → Users.

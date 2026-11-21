@@ -1,4 +1,4 @@
-# Animax (أنيماكس) v2.2.0 — Features
+# Animax (أنيماكس) v2.3.0 — Features
 
 Arabic-first streaming app: right-to-left UI in Arabic (IBM Plex Sans
 Arabic), Akwam as the home screen.
@@ -14,6 +14,32 @@ Arabic), Akwam as the home screen.
   vertical / paged / right-to-left reader; Arabic chapters first with
   English fallback.
 - **+18** — age-gated section.
+
+## Accounts & community (Firebase)
+- Email + password accounts — real providers only (Gmail, Outlook/Hotmail,
+  Yahoo, iCloud, Proton, Zoho, GMX…), no verification mail.
+- Every category (Akwam, anime, cartoons, manga, +18): view / read counts,
+  likes, comments, likes on comments, delete your own comment; view-count
+  badges on posters.
+- User profiles: followers, following, clips; follow / unfollow.
+- Splash connects to the backend and restores your account (offline mode
+  when unreachable).
+
+## Clips (مقاطع)
+- ✂️ in the Akwam, anime and +18 players: pick a 3 / 5 / 10-second window
+  and publish it.
+- Clips tab: vertical feed, like (or double-tap), comments, repost (shows
+  on your profile), views, share — sends a real MP4 cut on the phone.
+
+## Bingo & Binge
+- Watch Bingo: 3×3 goal card (watch, read, like, comment, clip, follow,
+  marathon); rows / columns / diagonals count as BINGO; new rounds.
+- Marathon mode: next episode after a 5 s cancellable countdown, intros
+  skipped, streak counter.
+
+## Slow internet
+- Automatic low-data mode on slow connections: small covers, lowest video
+  quality first, data-saver manga pages, larger image cache.
 
 ## Search
 - Unified search across Akwam, anime and manga with poster rows.
