@@ -1,114 +1,64 @@
-# Animax v1.9.1 — 55 + 6 Features
+# Animax (أنيماكس) v2.2.0 — Features
 
-v1.9.0 shipped **55 features** across the whole app (Cartoons, Comics, a
-re-engineered Cinema player, gesture-rich native players, a personal
-library layer and a themeable UI). v1.9.1 adds the **Akwam section** and
-removes every user-facing connection diagnostic from the UI.
+Arabic-first streaming app: right-to-left UI in Arabic (IBM Plex Sans
+Arabic), Akwam as the home screen.
 
-## Akwam section (akwam.ss) + debug cleanup — new in v1.9.1 (6)
+## Sections (Home category bar)
+- **الرائج (Akwam)** — featured carousel (play / download / share), continue
+  watching with progress bars, rows: recently added, movies, series, shows.
+- **أفلام · مسلسلات · برامج** — full paginated Akwam catalogs (3-column grid).
+- **أنمي** — trending, top hits, new episodes, this season; SUB / S-SUB / DUB
+  servers with automatic fallback.
+- **كرتون** — animated movies & series, inline search, multi-server player.
+- **مانغا** — MangaDex: popular, latest, new, top rated, genre chips;
+  vertical / paged / right-to-left reader; Arabic chapters first with
+  English fallback.
+- **+18** — age-gated section.
 
-| # | Feature | Where |
-|---|---------|-------|
-| 1 | **Akwam tab** — Arabic movies, series & shows: Recently Added / Movies / Series / Shows feeds with infinite scroll | `core/akwam_api.dart`, `screens/akwam_tab.dart` |
-| 2 | Keyword search (Arabic + English) with debounced input and lazy pagination | `screens/akwam_search_screen.dart` |
-| 3 | Details screen — story, rating, quality label, genres, episode list with air dates | `screens/akwam_details_screen.dart` |
-| 4 | **Native MP4 playback** — quality tabs resolved from the /watch page into direct streams (no WebView), auto-fallback to the next quality | `screens/akwam_player_screen.dart` |
-| 5 | Player: quality switcher, prev/next episode, auto-advance, speed, mute, lock, fullscreen, double-tap seek gestures | `screens/akwam_player_screen.dart` |
-| 6 | **Debug cleanup** — Profile→API Backend screen, settings row, mock server (`backend_reference/`) and per-endpoint probe machinery removed; "Connecting to …" / raw error dumps replaced with neutral status text | `core/app_state.dart`, `screens/splash_screen.dart`, `screens/home_tab.dart` |
+## Search
+- Unified search across Akwam, anime and manga with poster rows.
+- Recent searches (tap to repeat, clear) and popular suggestions.
 
-## Cinema — verification-failed fix + player overhaul (11)
+## Details pages
+- Player-style header, rating · year · type · genre line, info sheet.
+- Pill actions: add to My List, quick share, download, view downloads.
+- Sources: quality picker, play bar, tabs (episodes / for you / about).
+- Episode rows with watched / "stopped at N min" marks, per-episode
+  download and quick share; "download all episodes".
 
-| # | Feature | Where |
-|---|---------|-------|
-| 1 | **FIX: "Verification failed"** — 7 embed servers per title, failure pages auto-detected via JS probe and skipped silently | `core/cinema_providers.dart`, `screens/cinema_player_screen.dart` |
-| 2 | In-player server switcher (bottom sheet with provider names + current pick) | cinema player |
-| 3 | Smart retry: 14 s no-video watchdog + "N servers left in queue" status | cinema player |
-| 4 | TMDB-id support (`moviedb_id` from Cinemeta) unlocks VidLink for series | `core/cinema_api.dart` |
-| 5 | Auto-next-episode for cinema series (embed `postMessage` pump → 10 s countdown dialog) | cinema player |
-| 6 | Episode picker drawer inside the cinema player | cinema player |
-| 7 | Default cinema server preference (Settings → Player) | `core/app_prefs.dart` |
-| 8 | Cinema watch-state tracking (movie / SxxExy watched flags) | `core/library_store.dart` |
-| 9 | Cinema "save to My List" bookmark in details | `screens/cinema_details_screen.dart` |
-| 10 | "Retry all" / "Pick server" recovery card when every server fails | cinema player |
-| 11 | Allow-list extended to all 7 providers + CDNs (popunders still blocked) | `core/cinema_providers.dart` |
+## Playback
+- Native players (ExoPlayer on Android, mpv on Windows).
+- Resume where you stopped (Akwam + anime); progress saved every 5 s,
+  ≥92 % marks an episode watched.
+- Gestures: double-tap ±10 s, swipe brightness / volume, long-press 2×,
+  control lock; speed, quality switch, Picture-in-Picture, sleep timer,
+  auto-skip intro, auto-play next.
 
-## Comics (MangaDex) — new section (12)
+## Downloads
+- Movies and episodes save as MP4 (direct files with resume; HLS with
+  AES-128 + separate audio remuxed on-device); manga chapters save as PDF.
+- Download from details pages, players, comic chapters or "download all".
+- Saved to `Download/Animax/{Videos,Comics}`; free-space readout, filters,
+  pause / resume / retry / manage, survives app restarts.
+- Downloaded videos play in-app (offline player); PDFs open in any reader.
+- "Wi-Fi only" setting holds the queue on mobile data.
 
-| # | Feature | Where |
-|---|---------|-------|
-| 12 | Comics tab — Popular / Latest updates / Fresh releases / Top rated rows | `screens/comic_tab.dart` |
-| 13 | Manga search with debounce + poster grid results | comic tab |
-| 14 | Genre chips → paginated catalog grid (infinite scroll) | `screens/comic_catalog_screen.dart` |
-| 15 | Manga details — cover hero, status/year/chapters/authors meta, expandable description, genre tags | `screens/comic_details_screen.dart` |
-| 16 | Chapter list with read markers, page counts, publish dates, per-chapter progress % | comic details |
-| 17 | Vertical reader (swipe up/down, snap pages) | `screens/comic_reader_screen.dart` |
-| 18 | Paged reader with right-to-left manga mode | comic reader |
-| 19 | Reader settings sheet — layout, RTL, data-saver images, background color | comic reader |
-| 20 | Data-saver page rendering (`data-saver` endpoint) | `core/manga_api.dart` |
-| 21 | Reading progress: resume where you left off per chapter | `core/library_store.dart` |
-| 22 | Auto mark-read at last page + next/prev chapter navigation with prefetch | comic reader |
-| 23 | Manga language selector (EN/AR/ES/FR/PT-BR/RU/JA) | Settings → Comics |
+## Fast sharing
+- Quick-share sheet: send the **video file** to WhatsApp / Telegram / any app
+  (instantly when downloaded, otherwise it downloads and the share sheet
+  opens automatically), share a **direct playable link** (browser / VLC),
+  or share the title.
+- Send button on every finished download and in the offline player.
 
-## Cartoons (Cinemeta Animation) — new section (5)
+## Library & profile
+- My List with statuses, ratings, watch history with thumbnails, stats.
+- Export / import library backup (JSON via clipboard).
 
-| # | Feature | Where |
-|---|---------|-------|
-| 24 | Cartoons tab — trending / popular series / top movies / best-rated rows | `screens/cartoon_tab.dart` |
-| 25 | Cartoon inline search (animation-filtered) | cartoon tab |
-| 26 | Cartoon details + episodes reuse the cinema pipeline | `screens/cinema_details_screen.dart` |
-| 27 | Cartoon playback through the same 7-server engine | cinema player |
-| 28 | Genre-quality dedup: client-side Animation filter for unreliable search extras | `core/cartoon_api.dart` |
+## Look & feel
+- Dark theme, cyan→green accent, accent picker, AMOLED black mode.
+- Shimmer loading placeholders, fade-in images, phone-shaped window on
+  Windows.
 
-## Native player upgrades — anime + 18+ (12)
-
-| # | Feature | Where |
-|---|---------|-------|
-| 29 | Double-tap seek ±10 s with side ripple | `widgets/player_gestures.dart` |
-| 30 | Long-press 2× speed boost | player gestures |
-| 31 | Swipe left side → screen brightness (native `setBrightness` channel) | `MainActivity.kt` + gestures |
-| 32 | Swipe right side → player volume HUD | player gestures |
-| 33 | Control lock (unlock button only) | player gestures |
-| 34 | Picture-in-Picture (Android 8+ `enterPip`, manifest flag) | `MainActivity.kt` |
-| 35 | Loop-episode toggle | player_screen |
-| 36 | Sleep timer (15–90 min, auto-pause) | player_screen |
-| 37 | Auto-skip intro (Settings → Player, configurable 30–120 s) | player_screen |
-| 38 | Auto-play next gated behind a preference | player_screen |
-| 39 | Exact resume position persisted per episode (anime) | player_screen |
-| 40 | Watch history rows + progress bars for anime playback | player_screen |
-
-## Personal library (7)
-
-| # | Feature | Where |
-|---|---------|-------|
-| 41 | My List with 5 statuses (Plan / Watching / Completed / On Hold / Dropped) | `core/library_store.dart` |
-| 42 | 10-point personal rating (dialog on details) | `screens/details_screen.dart` |
-| 43 | Watch history page with relative timestamps | `screens/library_screen.dart` |
-| 44 | Stats dashboard — episodes watched, chapters read, hours streamed, active days | library + profile |
-| 45 | JSON export/import of the whole library via clipboard | Settings → Data |
-| 46 | Continue Watching row on Home (red progress bars) | `screens/home_tab.dart` |
-| 47 | Library screen with My List / History / Stats tabs | library screen |
-
-## UI upgrade + polish (8)
-
-| # | Feature | Where |
-|---|---------|-------|
-| 48 | Hero carousel on Home — auto-rotating top titles with backdrop art | home tab |
-| 49 | Accent color picker — 5 palettes (Neo Green, Cinema Red, Ultra Violet, Deep Ocean, Sakura Pink) applied app-wide | `core/app_theme.dart` |
-| 50 | AMOLED true-black theme | app_theme |
-| 51 | "Surprise me" random-title shortcut | home tab |
-| 52 | Shimmer skeleton loaders | `widgets/shimmer.dart` |
-| 53 | Slide-fade page transitions | `widgets/transitions.dart` |
-| 54 | "What's new" changelog dialog once per version | `screens/home_shell.dart` |
-| 55 | Settings hub — appearance / player / comics / data / about + check-for-updates against GitHub releases | `screens/settings_screen.dart` |
-
-## Live verification (2026-11-17, updated for v1.9.1)
-
-- Cinemeta catalogs incl. `genre=Animation` — HTTP 200, plain JSON
-- MangaDex — search / feed / at-home pages all 200 (throttled client)
-- Embed providers verified: vidsrc.sh 200, vidfast 200, vidlink 200 (movies),
-  vidsrc.cc/2embed/multiembed reachable from consumer networks (fallbacks)
-- Akwam live checks — /movies, /series, /recent, /shows, /search all 200;
-  /watch/{fileId} pages expose direct MP4s (HTTP 206 on range requests)
-- `flutter analyze` clean (Windows-conditional media_kit notes excluded —
-  dead file not compiled into the APK), parser tests green incl. the new
-  Akwam fixtures
+## Platforms
+- Android: universal APK (32/64-bit ARM + x86_64).
+- Windows: installer + portable zip (GitHub Actions).

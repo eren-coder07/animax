@@ -418,7 +418,8 @@ class GradientButton extends StatelessWidget {
             child: SizedBox(
               height: height,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 26),
+                // Compact buttons (carousel, retry) need room for the label.
+                padding: EdgeInsets.symmetric(horizontal: height <= 44 ? 10 : 26),
                 child: content,
               ),
             ),

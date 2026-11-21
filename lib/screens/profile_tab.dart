@@ -95,7 +95,7 @@ class ProfileTab extends StatelessWidget {
                   const GroupRow(
                     icon: Icons.info_outline_rounded,
                     label: 'الإصدار',
-                    value: '2.1.0',
+                    value: '2.2.0',
                   ),
                 ]),
               ],
