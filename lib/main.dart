@@ -1,3 +1,4 @@
+import 'core/data_budget.dart';
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
@@ -41,6 +42,7 @@ void main() {
   PaintingBinding.instance.imageCache.maximumSizeBytes = 160 << 20;
   PaintingBinding.instance.imageCache.maximumSize = 600;
   NetQuality.check();
+  AppPrefs.I.ready.then((_) => DataBudget.I.start());
   // video_player has no Windows backend: route it through media_kit (mpv)
   // there. Android keeps ExoPlayer untouched.
   if (Platform.isWindows) {

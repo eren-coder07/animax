@@ -21,6 +21,10 @@ import '../widgets/quick_share.dart';
 import '../widgets/player_gestures.dart';
 import '../core/app_prefs.dart';
 import '../core/library_store.dart';
+import '../core/audio_mode.dart';
+import '../core/data_budget.dart';
+import '../core/moments.dart';
+import '../widgets/player_social.dart';
 
 /// In-app episode player — **native playback**.
 ///
@@ -49,6 +53,9 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   VideoPlayerController? _player;
   ResolvedStream? _stream;
+
+  /// Hot moments + timed comments of the current episode.
+  EpisodeSocial? _social;
   bool _resolving = false;
   String? _error;
   String _status = '';
@@ -98,7 +105,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (c == null || !c.value.isInitialized) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      if (c.value.isPlaying) c.pause();
+      // Sound-only mode keeps playing with the screen off.
+      if (c.value.isPlaying && !AppPrefs.I.audioOnly) c.pause();
       _hideTimer?.cancel();
       if (mounted) setState(() => _controlsVisible = true);
     } else if (state == AppLifecycleState.resumed) {
@@ -207,6 +215,16 @@ class _PlayerScreenState extends State<PlayerScreen>
   Future<bool> _resolveAndPlay(EpisodeServer server,
       {List<EpisodeServer> rest = const <EpisodeServer>[]}) async {
     if (!mounted) return true;
+    if (!await DataBudget.I.allowStreaming(context)) {
+      if (mounted) {
+        setState(() {
+          _resolving = false;
+          _error = 'تم الإيقاف للحفاظ على ميزانية البيانات — اتصل بشبكة Wi-Fi.';
+        });
+      }
+      return true;
+    }
+    if (!mounted) return true;
     setState(() {
       _server = server;
       _resolving = true;
@@ -275,10 +293,27 @@ class _PlayerScreenState extends State<PlayerScreen>
     // string, so ExoPlayer cannot infer HLS from the path and would try to
     // parse the playlist as progressive media (fails with an error). The
     // explicit format hint fixes exactly that case.
+    // Sound only: the audio rendition (or smallest variant) of the master.
+    String playUrl = effective.url;
+    if (AppPrefs.I.audioOnly && effective.isHls) {
+      playUrl = await AudioMode.lightestHls(rs.url, headers);
+      if (playUrl == rs.url) playUrl = effective.url;
+    }
+    final String? wid = _anime.watchId;
+    final String ek = wid == null
+        ? ''
+        : Moments.episodeKey('anime',
+            <String, String>{'watchId': wid, 'ep': '${_episode?.number ?? 1}'});
+    if (_social?.ek != ek) {
+      _social?.dispose();
+      _social = ek.isEmpty ? null : EpisodeSocial(ek);
+    }
     final VideoPlayerController controller = VideoPlayerController.networkUrl(
-      Uri.parse(effective.url),
+      Uri.parse(playUrl),
       httpHeaders: headers,
       formatHint: effective.isHls ? VideoFormat.hls : VideoFormat.other,
+      videoPlayerOptions:
+          VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
     );
     _player = controller;
     controller.addListener(() => _playerListener(controller));
@@ -309,6 +344,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         title: _anime.title, poster: _anime.poster, kind: 'anime'));
     await controller.play();
     _setKeepScreenOn(true);
+    unawaited(AudioMode.keepAlive(AppPrefs.I.audioOnly, title: _anime.title));
     _bumpControls();
     setState(() {}); // attach the (now ready) controller
     _introSkipped = false;
@@ -460,6 +496,21 @@ class _PlayerScreenState extends State<PlayerScreen>
       },
       isHls: rs.isHls,
     );
+  }
+
+  /// Sound only ⇄ video (re-opens the stream at the same position).
+  Future<void> _toggleAudioOnly() async {
+    final ResolvedStream? rs = _stream;
+    final bool on = !AppPrefs.I.audioOnly;
+    AppPrefs.I.set('audioOnly', on);
+    if (!on) unawaited(AudioMode.keepAlive(false));
+    if (rs == null || _player == null) {
+      setState(() {});
+      return;
+    }
+    final Duration pos =
+        _player!.value.isInitialized ? _player!.value.position : Duration.zero;
+    await _startPlayer(rs, resumeAt: pos);
   }
 
   Future<void> _switchQuality(String url) async {
@@ -717,6 +768,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _social?.dispose();
+    unawaited(AudioMode.keepAlive(false));
     _hideTimer?.cancel();
     _sleepTimer?.cancel();
     SystemBrightness.reset();
@@ -986,6 +1039,13 @@ class _VideoStage extends StatelessWidget {
               ),
             ),
 
+            if (AppPrefs.I.audioOnly)
+              AudioOnlyCover(
+                  poster: state._anime.poster,
+                  title: state._anime.title,
+                  onExit: state._toggleAudioOnly),
+            TimedCommentsLayer(social: state._social, controller: player),
+
             // --- Buffering spinner ---
             if (v.isBuffering)
               Center(
@@ -1099,29 +1159,58 @@ class _TopGradientBar extends StatelessWidget {
             ),
             onPressed: state._toggleMute,
           ),
-          IconButton(
-            icon: Icon(
-              state._loop ? Icons.repeat_one_rounded : Icons.repeat_rounded,
-              color: state._loop ? AppColors.accent : Colors.white,
-              size: 21,
-            ),
-            tooltip: 'تكرار الحلقة',
-            onPressed: state._toggleLoop,
+          MomentsMenuButton(
+            social: state._social,
+            controller: state._player,
+            onSeek: (Duration d) {
+              state._player?.seekTo(d);
+              state._bumpControls();
+            },
           ),
           IconButton(
+            key: const Key('audioOnlyToggle'),
+            tooltip: 'صوت فقط',
             icon: Icon(
-              Icons.nightlight_round,
-              color: state._sleepMinutes > 0 ? AppColors.accent : Colors.white,
-              size: 21,
-            ),
-            tooltip: 'مؤقت النوم',
-            onPressed: state._pickSleepTimer,
+                AppPrefs.I.audioOnly
+                    ? Icons.headphones_rounded
+                    : Icons.headset_off_rounded,
+                color: AppPrefs.I.audioOnly ? AppColors.accent : Colors.white,
+                size: 21),
+            onPressed: state._toggleAudioOnly,
           ),
-          IconButton(
-            icon: const Icon(Icons.picture_in_picture_rounded,
-                color: Colors.white, size: 20),
-            tooltip: 'صورة داخل صورة',
-            onPressed: state._enterPip,
+          PopupMenuButton<String>(
+            tooltip: 'المزيد',
+            color: AppColors.surface,
+            icon: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 22),
+            onSelected: (String v) {
+              switch (v) {
+                case 'loop':
+                  state._toggleLoop();
+                case 'sleep':
+                  state._pickSleepTimer();
+                case 'pip':
+                  state._enterPip();
+              }
+            },
+            itemBuilder: (BuildContext ctx) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'loop',
+                child: Text(state._loop ? 'إيقاف تكرار الحلقة' : 'تكرار الحلقة',
+                    style: const TextStyle(fontFamily: 'Plex')),
+              ),
+              PopupMenuItem<String>(
+                value: 'sleep',
+                child: Text(
+                    state._sleepMinutes > 0
+                        ? 'مؤقت النوم (${state._sleepMinutes} د)'
+                        : 'مؤقت النوم',
+                    style: const TextStyle(fontFamily: 'Plex')),
+              ),
+              const PopupMenuItem<String>(
+                value: 'pip',
+                child: Text('صورة داخل صورة', style: TextStyle(fontFamily: 'Plex')),
+              ),
+            ],
           ),
           IconButton(
             icon: Icon(
@@ -1224,7 +1313,21 @@ class _BottomControls extends StatelessWidget {
                       fontSize: 10.5,
                       color: Colors.white)),
               Expanded(
-                child: SliderTheme(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 13),
+                      child: HeatStrip(
+                        social: state._social,
+                        duration: dur,
+                        onSeek: (Duration d) {
+                          player.seekTo(d);
+                          state._bumpControls();
+                        },
+                      ),
+                    ),
+                    SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     trackHeight: 3.5,
                     thumbShape:
@@ -1251,6 +1354,8 @@ class _BottomControls extends StatelessWidget {
                       state.endDrag(player, ms);
                     },
                   ),
+                ),
+                  ],
                 ),
               ),
               Text(_fmt(dur),

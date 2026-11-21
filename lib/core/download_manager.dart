@@ -12,6 +12,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import 'akwam_api.dart';
 import 'app_prefs.dart';
+import 'data_budget.dart';
 import 'api_service.dart';
 import 'app_http.dart';
 import 'hh_api.dart';
@@ -802,7 +803,7 @@ class DownloadManager extends ChangeNotifier {
     }
     if (next == null) return;
     // "Wi-Fi only": hold the queue while on mobile data, re-check shortly.
-    if (AppPrefs.I.downloadWifiOnly && !await _onWifi()) {
+    if ((AppPrefs.I.downloadWifiOnly || DataBudget.I.over) && !await _onWifi()) {
       if (next.error != _waitingWifi) {
         next.error = _waitingWifi;
         _changed();

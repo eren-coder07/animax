@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 import 'app_prefs.dart';
+import 'data_budget.dart';
 
 /// Slow-connection detection ("وضع الإنترنت الضعيف").
 ///
@@ -20,10 +21,13 @@ class NetQuality {
   static DateTime _at = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Last known state (sync); refreshed by [check].
-  static bool get isSlow => AppPrefs.I.dataSaver || _slow;
+  static bool get isSlow =>
+      AppPrefs.I.dataSaver || AppPrefs.I.audioOnly || DataBudget.I.nearLimit || _slow;
 
   static Future<bool> check() async {
-    if (AppPrefs.I.dataSaver) return true;
+    if (AppPrefs.I.dataSaver || AppPrefs.I.audioOnly || DataBudget.I.nearLimit) {
+      return true;
+    }
     if (DateTime.now().difference(_at) < const Duration(minutes: 1)) {
       return _slow;
     }

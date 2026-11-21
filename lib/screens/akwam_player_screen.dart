@@ -12,6 +12,11 @@ import '../core/app_theme.dart';
 import '../core/download_manager.dart';
 import '../core/library_store.dart';
 import '../core/net_quality.dart';
+import '../core/app_prefs.dart';
+import '../core/audio_mode.dart';
+import '../core/data_budget.dart';
+import '../core/moments.dart';
+import '../widgets/player_social.dart';
 import '../widgets/player_gestures.dart';
 import '../widgets/download_button.dart';
 import '../widgets/quick_share.dart';
@@ -39,6 +44,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   int _sourceIndex = 0;
 
   VideoPlayerController? _player;
+
+  /// Hot moments + timed comments of the episode being played.
+  EpisodeSocial? _social;
 
   /// Direct stream URL of the quality being played (for downloads).
   String _streamUrl = '';
@@ -77,7 +85,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (c == null || !c.value.isInitialized) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      if (c.value.isPlaying) c.pause();
+      // Sound-only mode keeps playing with the screen off.
+      if (c.value.isPlaying && !AppPrefs.I.audioOnly) c.pause();
       _hideTimer?.cancel();
       if (mounted) setState(() => _controlsVisible = true);
     } else if (state == AppLifecycleState.resumed) {
@@ -130,6 +139,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     final VideoPlayerController? c = _player;
     _player = null;
     c?.dispose();
+    _social?.dispose();
+    unawaited(AudioMode.keepAlive(false));
     _setKeepScreenOn(false);
     SystemChrome.setPreferredOrientations(<DeviceOrientation>[
       DeviceOrientation.portraitUp,
@@ -248,18 +259,39 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     }
 
     if (!mounted) return;
+    if (!await DataBudget.I.allowStreaming(context)) {
+      if (!mounted) return;
+      setState(() {
+        _resolving = false;
+        _error = 'تم الإيقاف للحفاظ على ميزانية البيانات — اتصل بشبكة Wi-Fi.';
+      });
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _status = '';
       _streamUrl = url;
     });
     final bool isHls = url.contains('.m3u8');
+    final Map<String, String> headers = <String, String>{
+      'User-Agent': AkwamApi.ua,
+      'Referer': '${AkwamApi.base}/',
+    };
+    final String playUrl = isHls && AppPrefs.I.audioOnly
+        ? await AudioMode.lightestHls(url, headers)
+        : url;
+    final String ek = Moments.episodeKey(
+        'akwam', <String, String>{'path': _sources[index].watchPath});
+    if (_social?.ek != ek) {
+      _social?.dispose();
+      _social = ek.isEmpty ? null : EpisodeSocial(ek);
+    }
     final VideoPlayerController controller = VideoPlayerController.networkUrl(
-      Uri.parse(url),
-      httpHeaders: <String, String>{
-        'User-Agent': AkwamApi.ua,
-        'Referer': '${AkwamApi.base}/',
-      },
+      Uri.parse(playUrl),
+      httpHeaders: headers,
       formatHint: isHls ? VideoFormat.hls : VideoFormat.other,
+      videoPlayerOptions:
+          VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
     );
     _player = controller;
     controller.addListener(() => _playerListener(controller));
@@ -308,6 +340,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (_speed != 1.0) controller.setPlaybackSpeed(_speed);
     await controller.play();
     _setKeepScreenOn(true);
+    unawaited(AudioMode.keepAlive(AppPrefs.I.audioOnly, title: _title));
     Binge.started('akwam:${_item.path}#${_episode?.number ?? 0}');
     // Watch history: powers "continue watching" on Home and the Me page.
     if (_item.path.isNotEmpty) {
@@ -429,6 +462,24 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   }
 
   // ----- Controls -----
+
+  /// Sound only ⇄ video. Re-opens the stream: sound only plays the smallest
+  /// quality and keeps running in the background.
+  Future<void> _toggleAudioOnly() async {
+    final bool on = !AppPrefs.I.audioOnly;
+    AppPrefs.I.set('audioOnly', on);
+    final Duration pos = _player?.value.position ?? Duration.zero;
+    int index = _sourceIndex;
+    if (on && _sources.length > 1) {
+      int q(AkwamSource s) =>
+          int.tryParse(RegExp(r'(\d{3,4})').firstMatch(s.quality)?.group(1) ?? '') ?? 9999;
+      for (int i = 0; i < _sources.length; i++) {
+        if (q(_sources[i]) < q(_sources[index])) index = i;
+      }
+    }
+    if (!on) unawaited(AudioMode.keepAlive(false));
+    await _playSource(index, resumeAt: pos);
+  }
 
   void _bumpControls() {
     _hideTimer?.cancel();
@@ -629,6 +680,10 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
           fit: StackFit.expand,
           children: <Widget>[
             _videoArea(),
+            if (AppPrefs.I.audioOnly && _player != null)
+              AudioOnlyCover(
+                  poster: _item.poster, title: _title, onExit: _toggleAudioOnly),
+            TimedCommentsLayer(social: _social, controller: _player),
             AnimatedOpacity(
               opacity: _controlsVisible ? 1 : 0,
               duration: const Duration(milliseconds: 220),
@@ -723,6 +778,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                         ref: <String, String>{
                           'path': _sources[_sourceIndex].watchPath,
                           'item': _item.path,
+                          if (_episode != null) 'ep': '${_episode!.number}',
                         },
                       );
                     },
@@ -826,7 +882,21 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                         fontSize: 10.5,
                         color: Colors.white70)),
                 Expanded(
-                  child: SliderTheme(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: HeatStrip(
+                          social: _social,
+                          duration: duration,
+                          onSeek: (Duration d) {
+                            c?.seekTo(d);
+                            _bumpControls();
+                          },
+                        ),
+                      ),
+                      SliderTheme(
                     data: SliderThemeData(
                       trackHeight: 3,
                       thumbShape:
@@ -848,6 +918,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                           : dragTo,
                       onChangeEnd: maxMs <= 0 ? null : endDrag,
                     ),
+                  ),
+                    ],
                   ),
                 ),
                 Text(_fmt(duration),
@@ -871,6 +943,27 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                   ),
                 ),
                 const Spacer(),
+                MomentsMenuButton(
+                  social: _social,
+                  controller: c,
+                  onSeek: (Duration d) {
+                    c?.seekTo(d);
+                    _bumpControls();
+                  },
+                ),
+                IconButton(
+                  key: const Key('audioOnlyToggle'),
+                  tooltip: 'صوت فقط',
+                  icon: Icon(
+                      AppPrefs.I.audioOnly
+                          ? Icons.headphones_rounded
+                          : Icons.headset_off_rounded,
+                      color: AppPrefs.I.audioOnly
+                          ? AkwamColors.teal
+                          : Colors.white,
+                      size: 20),
+                  onPressed: _player == null ? null : _toggleAudioOnly,
+                ),
                 IconButton(
                   icon: Icon(
                     _muted

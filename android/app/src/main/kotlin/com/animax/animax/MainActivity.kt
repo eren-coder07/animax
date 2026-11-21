@@ -212,6 +212,33 @@ class MainActivity : FlutterActivity() {
                             result.success(-1L)
                         }
                     }
+                    "trafficBytes" -> {
+                        // Cumulative bytes this app sent + received since boot
+                        // (monthly data budget, data_budget.dart).
+                        try {
+                            val uid = android.os.Process.myUid()
+                            val rx = android.net.TrafficStats.getUidRxBytes(uid)
+                            val tx = android.net.TrafficStats.getUidTxBytes(uid)
+                            if (rx < 0 || tx < 0) result.success(-1L) else result.success(rx + tx)
+                        } catch (e: Exception) {
+                            result.success(-1L)
+                        }
+                    }
+                    "audioKeepAlive" -> {
+                        val on = call.argument<Boolean>("on") ?: false
+                        val i = Intent(this, AudioKeepService::class.java)
+                        try {
+                            if (on) {
+                                i.putExtra("title", call.argument<String>("title") ?: "")
+                                if (Build.VERSION.SDK_INT >= 26) startForegroundService(i) else startService(i)
+                            } else {
+                                stopService(i)
+                            }
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.success(false)
+                        }
+                    }
                     "dlKeepAlive" -> {
                         // Partial wake lock so a running download survives the
                         // screen turning off.
@@ -249,6 +276,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        try { stopService(Intent(this, AudioKeepService::class.java)) } catch (_: Exception) {}
         wakeLock?.let { if (it.isHeld) it.release() }
         super.onDestroy()
     }
