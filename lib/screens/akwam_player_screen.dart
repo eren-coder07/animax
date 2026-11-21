@@ -16,6 +16,7 @@ import '../core/app_prefs.dart';
 import '../core/audio_mode.dart';
 import '../core/data_budget.dart';
 import '../core/moments.dart';
+import '../core/fast_start.dart';
 import '../widgets/player_social.dart';
 import '../widgets/player_gestures.dart';
 import '../widgets/download_button.dart';
@@ -47,6 +48,49 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
 
   /// Hot moments + timed comments of the episode being played.
   EpisodeSocial? _social;
+
+  // ----- Fast start (slow connections) -----
+  /// Every quality's MP4 (one watch page lists them all): height → URL.
+  Map<int, String> _streams = const <int, String>{};
+
+  /// Play through FastStart windows (small index, starts in seconds).
+  bool _fastStart = true;
+
+  /// Current window (null = the plain file is playing).
+  FastWindow? _win;
+  VideoPlayerController? _next;
+  FastWindow? _nextWin;
+  bool _preparingNext = false;
+  bool _swapping = false;
+
+  /// Buffering samples (stall detection → automatic lower quality).
+  final List<DateTime> _stallTicks = <DateTime>[];
+  DateTime _lastSeekAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  static const Map<String, String> _headers = <String, String>{
+    'User-Agent': AkwamApi.ua,
+    'Referer': '${AkwamApi.base}/',
+  };
+
+  Duration get _offset => _win == null
+      ? Duration.zero
+      : Duration(milliseconds: (_win!.offset * 1000).round());
+
+  /// Real playback position in the movie / episode.
+  Duration get _pos {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized) return Duration.zero;
+    return c.value.position + _offset;
+  }
+
+  /// Real duration of the movie / episode.
+  Duration get _dur {
+    if (_win != null) return Duration(milliseconds: (_win!.total * 1000).round());
+    return _player?.value.duration ?? Duration.zero;
+  }
+
+  static int _heightOf(String q) =>
+      int.tryParse(RegExp(r'(\d{3,4})').firstMatch(q)?.group(1) ?? '') ?? 0;
 
   /// Direct stream URL of the quality being played (for downloads).
   String _streamUrl = '';
@@ -118,8 +162,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   void _saveProgress() {
     final VideoPlayerController? c = _player;
     if (c == null || !c.value.isInitialized || _item.path.isEmpty) return;
-    final int pos = c.value.position.inSeconds;
-    final int dur = c.value.duration.inSeconds;
+    final int pos = _pos.inSeconds;
+    final int dur = _dur.inSeconds;
     if (pos <= 0) return;
     LibraryStore.I.saveProgress(
       key: _progressKey,
@@ -139,6 +183,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     final VideoPlayerController? c = _player;
     _player = null;
     c?.dispose();
+    _next?.dispose();
+    _next = null;
     _social?.dispose();
     unawaited(AudioMode.keepAlive(false));
     _setKeepScreenOn(false);
@@ -204,17 +250,28 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       _sources = sources;
       _status = 'جارٍ التحميل…';
     });
-    // Slow connection → start at the lowest quality (smallest file).
-    int start = 0;
-    if (await NetQuality.check() && sources.length > 1) {
-      int lowest(AkwamSource s) =>
-          int.tryParse(RegExp(r'(\d{3,4})').firstMatch(s.quality)?.group(1) ?? '') ??
-          9999;
-      for (int i = 1; i < sources.length; i++) {
-        if (lowest(sources[i]) < lowest(sources[start])) start = i;
+    // One watch page lists the file of every quality.
+    try {
+      _streams = await AkwamApi.I.streamsOf(sources.first.watchPath);
+    } catch (_) {
+      _streams = const <int, String>{};
+    }
+    // Measure the real speed (the OS link speed is often far too
+    // optimistic) while the lowest quality's index starts loading.
+    int kbps = NetQuality.hasFreshMeasure ? NetQuality.measuredKbps : -1;
+    if (_streams.isNotEmpty) {
+      final String low = AkwamApi.pickAkwamStream(_streams, lowest: true);
+      unawaited(FastStart.index(low, _headers).then((_) {}, onError: (Object _) {}));
+      if (kbps <= 0) {
+        if (mounted) setState(() => _status = 'جارٍ قياس سرعة الإنترنت…');
+        kbps = await NetQuality.probe(low, _headers);
       }
     }
-    await _playSource(start, resumeAt: resumeAt);
+    if (!mounted) return;
+    final bool slow = await NetQuality.check();
+    // FastStart unless the line is clearly fast.
+    _fastStart = kbps <= 0 || kbps < 6000 || slow;
+    await _playSource(_startIndex(sources, kbps, slow), resumeAt: resumeAt);
 
     // 3. Episode list for prev/next (series only, best-effort).
     if (episode != null && _episodes.isEmpty) {
@@ -227,7 +284,51 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     }
   }
 
-  Future<void> _playSource(int index, {Duration? resumeAt}) async {
+  /// Quality to start with: the user's fixed choice, else the best one the
+  /// measured speed sustains (lowest in low-data / sound-only mode).
+  int _startIndex(List<AkwamSource> sources, int kbps, bool slow) {
+    final List<int> hs = sources.map((AkwamSource s) => _heightOf(s.quality)).toList();
+    int target;
+    final int? fixed = int.tryParse(AppPrefs.I.defaultQuality);
+    if (fixed != null) {
+      target = fixed;
+    } else if (AppPrefs.I.audioOnly || AppPrefs.I.dataSaver ||
+        DataBudget.I.nearLimit || (slow && kbps <= 0)) {
+      target = 0; // lowest
+    } else {
+      target = NetQuality.pickHeight(hs, kbps);
+    }
+    int best = -1;
+    for (int i = 0; i < hs.length; i++) {
+      final int h = hs[i];
+      if (target == 0) {
+        if (best < 0 || (h > 0 && h < hs[best])) best = i;
+      } else if (h > 0 && h <= target && (best < 0 || h > hs[best])) {
+        best = i;
+      }
+    }
+    if (best < 0) {
+      // Nothing at/below the target: take the smallest.
+      for (int i = 0; i < hs.length; i++) {
+        if (best < 0 || (hs[i] > 0 && hs[i] < hs[best])) best = i;
+      }
+    }
+    return best < 0 ? 0 : best;
+  }
+
+  Future<String> _urlFor(int index) async {
+    final AkwamSource s = _sources[index];
+    final int h = _heightOf(s.quality);
+    if (_streams.isNotEmpty) {
+      final String u = AkwamApi.pickAkwamStream(_streams, height: h == 0 ? null : h);
+      if (u.isNotEmpty) return u;
+    }
+    return AkwamApi.I.resolveStream(s.watchPath, quality: s.quality);
+  }
+
+  /// [exact]: [resumeAt] is a user choice (seek / quality switch) — do not
+  /// replace it with the saved resume position.
+  Future<void> _playSource(int index, {Duration? resumeAt, bool exact = false}) async {
     if (index < 0 || index >= _sources.length) return;
     _positionTicker?.cancel();
     await _disposePlayer();
@@ -241,7 +342,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
 
     String url;
     try {
-      url = await AkwamApi.I.resolveStream(_sources[index].watchPath);
+      url = await _urlFor(index);
     } on AkwamApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -286,13 +387,50 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       _social?.dispose();
       _social = ek.isEmpty ? null : EpisodeSocial(ek);
     }
-    final VideoPlayerController controller = VideoPlayerController.networkUrl(
-      Uri.parse(playUrl),
-      httpHeaders: headers,
-      formatHint: isHls ? VideoFormat.hls : VideoFormat.other,
-      videoPlayerOptions:
-          VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
-    );
+    // Where to start (real time): explicit, else the saved resume point.
+    Duration target = resumeAt ?? Duration.zero;
+    if (!exact && target == Duration.zero && _item.path.isNotEmpty) {
+      final ProgressEntry? p =
+          LibraryStore.I.progressOf(_progressKey, _progressSub);
+      if (p != null && !p.watched && p.positionSec > 15) {
+        target = Duration(seconds: p.positionSec);
+        if (mounted) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+            content: Text('استئناف من ${_fmt(target)}'),
+            duration: const Duration(seconds: 2),
+          ));
+        }
+      }
+    }
+    // Fast start: a small index for the next ~90 s instead of the whole
+    // file's (MBs) — plays within seconds on slow lines.
+    FastWindow? win;
+    if (_fastStart && !isHls) {
+      if (mounted) setState(() => _status = 'تشغيل سريع…');
+      try {
+        win = await FastStart.open(url, headers,
+            from: target.inMilliseconds / 1000, length: 90);
+      } catch (_) {
+        win = null; // unusual file → play it directly
+      }
+      if (!mounted) return;
+      setState(() => _status = '');
+    }
+    final VideoPlayerController controller = win != null
+        ? VideoPlayerController.networkUrl(
+            win.uri,
+            formatHint: VideoFormat.other,
+            videoPlayerOptions:
+                VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
+          )
+        : VideoPlayerController.networkUrl(
+            Uri.parse(playUrl),
+            httpHeaders: headers,
+            formatHint: isHls ? VideoFormat.hls : VideoFormat.other,
+            videoPlayerOptions:
+                VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
+          );
+    _win = win;
     _player = controller;
     controller.addListener(() => _playerListener(controller));
     setState(() {});
@@ -300,9 +438,15 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       await controller.initialize();
     } catch (_) {
       if (!mounted) return;
+      if (win != null) {
+        // The windowed file failed to open → play the original directly.
+        _fastStart = false;
+        await _playSource(index, resumeAt: target, exact: true);
+        return;
+      }
       // This quality failed — automatically try the next one.
       if (index + 1 < _sources.length) {
-        await _playSource(index + 1, resumeAt: resumeAt);
+        await _playSource(index + 1, resumeAt: target, exact: true);
         return;
       }
       await _disposePlayer();
@@ -316,26 +460,14 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       await controller.dispose();
       return;
     }
-    // Resume where the viewer stopped last time (unless finished).
-    if ((resumeAt == null || resumeAt == Duration.zero) &&
-        _item.path.isNotEmpty) {
-      final ProgressEntry? p =
-          LibraryStore.I.progressOf(_progressKey, _progressSub);
-      if (p != null && !p.watched && p.positionSec > 15) {
-        resumeAt = Duration(seconds: p.positionSec);
-        if (mounted) {
-          ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
-            content: Text('استئناف من ${_fmt(resumeAt)}'),
-            duration: const Duration(seconds: 2),
-          ));
-        }
-      }
-    }
-    if (resumeAt != null && resumeAt > Duration.zero) {
+    // Seek to the target inside the window (or the plain file).
+    final Duration local = target - _offset;
+    if (local > const Duration(milliseconds: 300)) {
       try {
-        await controller.seekTo(resumeAt);
+        await controller.seekTo(local);
       } catch (_) {}
     }
+    _lastSeekAt = DateTime.now();
     controller.setVolume(_muted ? 0 : 1);
     if (_speed != 1.0) controller.setPlaybackSpeed(_speed);
     await controller.play();
@@ -362,6 +494,20 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (!mounted) return;
       setState(() {});
       if (++ticks % 12 == 0) _saveProgress(); // every ~5 s
+      final FastWindow? w = _win;
+      if (w != null && !w.isLast) {
+        // Build the next window ahead of time; switch right at the edge.
+        final double left = w.end - _pos.inMilliseconds / 1000;
+        if (left < 45) unawaited(_prepareNext());
+        final VideoPlayerController? c = _player;
+        if (c != null &&
+            c.value.isInitialized &&
+            c.value.duration > Duration.zero &&
+            c.value.position >= c.value.duration - const Duration(milliseconds: 150)) {
+          unawaited(_advanceWindow());
+        }
+      }
+      _watchStalls();
     });
     _bumpControls();
     setState(() {
@@ -372,10 +518,128 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
 
   Future<void> _disposePlayer() async {
     final VideoPlayerController? c = _player;
+    final VideoPlayerController? n = _next;
     _player = null;
+    _next = null;
+    _nextWin = null;
+    _win = null;
     try {
       await c?.dispose();
+      await n?.dispose();
     } catch (_) {}
+  }
+
+  /// Prepares the window that follows the current one (paused, buffered).
+  Future<void> _prepareNext() async {
+    final FastWindow? w = _win;
+    if (w == null || w.isLast || _preparingNext || _next != null) return;
+    _preparingNext = true;
+    try {
+      final FastWindow nw =
+          await FastStart.open(_streamUrl, _headers, from: w.end, length: 300);
+      if (!mounted || _win != w) return;
+      final VideoPlayerController c = VideoPlayerController.networkUrl(
+        nw.uri,
+        formatHint: VideoFormat.other,
+        videoPlayerOptions:
+            VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
+      );
+      await c.initialize();
+      if (!mounted || _win != w) {
+        await c.dispose();
+        return;
+      }
+      await c.setVolume(_muted ? 0 : 1);
+      if (_speed != 1.0) await c.setPlaybackSpeed(_speed);
+      c.addListener(() => _playerListener(c));
+      _next = c;
+      _nextWin = nw;
+    } catch (_) {
+      // Retried on the next tick / at the edge.
+    } finally {
+      _preparingNext = false;
+    }
+  }
+
+  /// Switches to the next window exactly where the current one ends.
+  Future<void> _advanceWindow() async {
+    final FastWindow? w = _win;
+    if (w == null || w.isLast || _swapping) return;
+    _swapping = true;
+    try {
+      if (_next == null) {
+        if (mounted) setState(() => _resolving = true);
+        await _prepareNext();
+      }
+      if (!mounted || _win != w) return;
+      final VideoPlayerController? n = _next;
+      if (n == null) {
+        // Could not prepare in time → reopen at the edge.
+        await _playSource(_sourceIndex,
+            resumeAt: Duration(milliseconds: (w.end * 1000).round()), exact: true);
+        return;
+      }
+      final VideoPlayerController? old = _player;
+      setState(() {
+        _player = n;
+        _win = _nextWin;
+        _next = null;
+        _nextWin = null;
+        _resolving = false;
+      });
+      await n.play();
+      _lastSeekAt = DateTime.now();
+      await old?.dispose();
+    } finally {
+      _swapping = false;
+    }
+  }
+
+  /// Seeks in real time; outside the loaded window a new window is opened.
+  Future<void> _seekReal(Duration t) async {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized) return;
+    if (t < Duration.zero) t = Duration.zero;
+    if (_dur > Duration.zero && t > _dur) t = _dur - const Duration(seconds: 1);
+    _lastSeekAt = DateTime.now();
+    final FastWindow? w = _win;
+    if (w == null) {
+      await c.seekTo(t);
+      return;
+    }
+    final double s = t.inMilliseconds / 1000;
+    if (s >= w.offset && s < w.end - 1) {
+      await c.seekTo(t - _offset);
+      return;
+    }
+    await _playSource(_sourceIndex, resumeAt: t, exact: true);
+  }
+
+  /// ~8 s of stalling within a minute → step down to a lower quality.
+  void _watchStalls() {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized || _resolving || _swapping) return;
+    final DateTime now = DateTime.now();
+    if (now.difference(_lastSeekAt).inSeconds < 8) return;
+    if (c.value.isBuffering && c.value.isPlaying) _stallTicks.add(now);
+    _stallTicks.removeWhere((DateTime t) => now.difference(t).inSeconds > 60);
+    if (_stallTicks.length < 20) return;
+    _stallTicks.clear();
+    final int cur = _heightOf(_sources[_sourceIndex].quality);
+    int lower = -1;
+    for (int i = 0; i < _sources.length; i++) {
+      final int h = _heightOf(_sources[i].quality);
+      if (h > 0 && h < cur && (lower < 0 || h > _heightOf(_sources[lower].quality))) {
+        lower = i;
+      }
+    }
+    if (lower < 0) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+      persist: false,
+      duration: const Duration(seconds: 3),
+      content: Text('الإنترنت بطيء — تم التبديل إلى ${_sources[lower].quality} لتشغيل أسلس'),
+    ));
+    unawaited(_playSource(lower, resumeAt: _pos, exact: true));
   }
 
   /// Runtime listener: mid-playback failure recovery + auto-advance.
@@ -387,6 +651,10 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       return;
     }
     if (v.isCompleted && !_resolving) {
+      if (_win != null && !_win!.isLast) {
+        unawaited(_advanceWindow());
+        return;
+      }
       Binge.episodeEnded(context,
           episodeKey: 'akwam:${_item.path}#${_episode?.number ?? 0}',
           next: _hasNext ? _autoNextEpisode : null);
@@ -406,7 +674,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     _recovering = true;
     try {
       _streamRetries++;
-      final Duration pos = _player?.value.position ?? Duration.zero;
+      final Duration pos = _pos;
       if (_streamRetries <= 1) {
         await _disposePlayer();
         if (!mounted) return;
@@ -416,7 +684,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
         });
         await Future<void>.delayed(const Duration(milliseconds: 900));
         _recovering = false;
-        await _playSource(_sourceIndex, resumeAt: pos);
+        await _playSource(_sourceIndex, resumeAt: pos, exact: true);
         return;
       }
       _recovering = false;
@@ -468,7 +736,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   Future<void> _toggleAudioOnly() async {
     final bool on = !AppPrefs.I.audioOnly;
     AppPrefs.I.set('audioOnly', on);
-    final Duration pos = _player?.value.position ?? Duration.zero;
+    final Duration pos = _pos;
     int index = _sourceIndex;
     if (on && _sources.length > 1) {
       int q(AkwamSource s) =>
@@ -478,7 +746,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       }
     }
     if (!on) unawaited(AudioMode.keepAlive(false));
-    await _playSource(index, resumeAt: pos);
+    await _playSource(index, resumeAt: pos, exact: true);
   }
 
   void _bumpControls() {
@@ -509,15 +777,14 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
 
   void endDrag(double ms) {
     _dragging = false;
-    _player?.seekTo(Duration(milliseconds: ms.round()));
+    unawaited(_seekReal(Duration(milliseconds: ms.round())));
     _bumpControls();
   }
 
   void _seekBy(int seconds) {
     final VideoPlayerController? c = _player;
     if (c == null || !c.value.isInitialized) return;
-    final Duration target = c.value.position + Duration(seconds: seconds);
-    c.seekTo(target < Duration.zero ? Duration.zero : target);
+    unawaited(_seekReal(_pos + Duration(seconds: seconds)));
     _bumpControls();
   }
 
@@ -617,8 +884,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 onTap: () {
                   Navigator.pop(ctx);
                   if (i != _sourceIndex) {
-                    _playSource(i,
-                        resumeAt: _player?.value.position);
+                    _playSource(i, resumeAt: _pos, exact: true);
                   }
                 },
               ),
@@ -683,7 +949,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
             if (AppPrefs.I.audioOnly && _player != null)
               AudioOnlyCover(
                   poster: _item.poster, title: _title, onExit: _toggleAudioOnly),
-            TimedCommentsLayer(social: _social, controller: _player),
+            TimedCommentsLayer(
+                social: _social, controller: _player, offset: _offset),
             AnimatedOpacity(
               opacity: _controlsVisible ? 1 : 0,
               duration: const Duration(milliseconds: 220),
@@ -768,8 +1035,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                       c.pause();
                       showClipMaker(
                         context,
-                        position: c.value.position,
-                        duration: c.value.duration,
+                        position: _pos,
+                        duration: _dur,
                         title: _item.title,
                         label: _episode == null ? '' : 'الحلقة ${_episode!.number}',
                         poster: _item.poster,
@@ -864,8 +1131,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   Widget _bottomControls() {
     final VideoPlayerController? c = _player;
     final Duration position =
-        _dragging ? Duration(milliseconds: _dragValue.round()) : (c?.value.position ?? Duration.zero);
-    final Duration duration = c?.value.duration ?? Duration.zero;
+        _dragging ? Duration(milliseconds: _dragValue.round()) : _pos;
+    final Duration duration = _dur;
     final double maxMs = duration.inMilliseconds.toDouble();
     return SafeArea(
       top: false,
@@ -891,7 +1158,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                           social: _social,
                           duration: duration,
                           onSeek: (Duration d) {
-                            c?.seekTo(d);
+                            unawaited(_seekReal(d));
                             _bumpControls();
                           },
                         ),
@@ -946,8 +1213,10 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 MomentsMenuButton(
                   social: _social,
                   controller: c,
+                  offset: _offset,
+                  total: _dur,
                   onSeek: (Duration d) {
-                    c?.seekTo(d);
+                    unawaited(_seekReal(d));
                     _bumpControls();
                   },
                 ),

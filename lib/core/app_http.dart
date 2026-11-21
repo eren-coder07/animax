@@ -28,6 +28,12 @@ http.Client createHttpClient() {
   return IOClient(HttpClient(context: _context()));
 }
 
+/// Raw dart:io client with the Akwam CDN intermediate trusted (byte-range
+/// streaming through the fast-start proxy).
+HttpClient createIoHttpClient() => HttpClient(context: _context())
+  ..connectionTimeout = const Duration(seconds: 20)
+  ..idleTimeout = const Duration(seconds: 30);
+
 SecurityContext _context() {
   final SecurityContext ctx = SecurityContext(withTrustedRoots: true);
   try {

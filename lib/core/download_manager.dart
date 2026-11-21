@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:convert';
 import 'dart:io';
 
@@ -13,6 +14,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'akwam_api.dart';
 import 'app_prefs.dart';
 import 'data_budget.dart';
+import 'fast_start.dart';
 import 'api_service.dart';
 import 'app_http.dart';
 import 'hh_api.dart';
@@ -366,7 +368,7 @@ class DownloadManager extends ChangeNotifier {
   }
 
   /// Turns a details-page download into a concrete stream URL + headers.
-  Future<void> _resolve(DownloadItem it) async {
+  Future<void> _resolve(DownloadItem it, {bool lowest = false}) async {
     switch (it.source) {
       case 'akwam':
         final String page = it.ref['path'] ?? '';
@@ -380,7 +382,8 @@ class DownloadManager extends ChangeNotifier {
           }
           watch = bestAkwamSource(sources).watchPath;
         }
-        it.url = await AkwamApi.I.resolveStream(watch);
+        it.url = await AkwamApi.I.resolveStream(watch,
+            quality: it.ref['q'] ?? '', lowest: lowest);
         it.headers = <String, String>{
           'User-Agent': AkwamApi.ua,
           'Referer': '${AkwamApi.base}/',
@@ -615,11 +618,12 @@ class DownloadManager extends ChangeNotifier {
       (await resolveStream(source, ref)).url;
 
   /// Resolves a source reference into a playable stream (clips use this).
+  /// [lowest]: smallest quality where a source offers several (clips).
   Future<({String url, Map<String, String> headers, bool isHls})> resolveStream(
-      String source, Map<String, String> ref) async {
+      String source, Map<String, String> ref, {bool lowest = false}) async {
     final DownloadItem tmp = DownloadItem(
         id: 'link', kind: DownloadKind.video, title: '', source: source, ref: ref);
-    await _resolve(tmp);
+    await _resolve(tmp, lowest: lowest);
     return (url: tmp.url, headers: _headers(tmp), isHls: tmp.isHls);
   }
 
@@ -638,7 +642,7 @@ class DownloadManager extends ChangeNotifier {
   }) async {
     await load();
     final ({String url, Map<String, String> headers, bool isHls}) st =
-        await resolveStream(source, ref);
+        await resolveStream(source, ref, lowest: true);
     final String id = 'clip_${_newId()}';
     final Directory dir = await _workDir(id);
     final File out = File('${dir.path}/clip.mp4');
@@ -646,14 +650,36 @@ class DownloadManager extends ChangeNotifier {
     if (st.isHls) {
       ok = await _hlsWindow(st.url, st.headers, startMs, endMs, dir, out);
     } else {
+      // Cut through a fast-start window: only the clip's few seconds (and
+      // a tiny index) are downloaded instead of the file's whole index.
+      String cutUrl = st.url;
+      Map<String, String> cutHeaders = st.headers;
+      int off = 0;
+      try {
+        final FastWindow w = await FastStart.open(st.url, st.headers,
+            from: startMs / 1000 - 0.2, to: endMs / 1000 + 0.3);
+        cutUrl = w.uri.toString();
+        cutHeaders = const <String, String>{};
+        off = (w.offset * 1000).round();
+      } catch (_) {}
       ok = await _channel.invokeMethod<bool>('clipCut', <String, dynamic>{
-            'url': st.url,
-            'headers': st.headers,
-            'startMs': startMs,
-            'endMs': endMs,
+            'url': cutUrl,
+            'headers': cutHeaders,
+            'startMs': math.max(0, startMs - off),
+            'endMs': endMs - off,
             'output': out.path,
           }) ??
           false;
+      if (!ok && cutUrl != st.url) {
+        ok = await _channel.invokeMethod<bool>('clipCut', <String, dynamic>{
+              'url': st.url,
+              'headers': st.headers,
+              'startMs': startMs,
+              'endMs': endMs,
+              'output': out.path,
+            }) ??
+            false;
+      }
     }
     if (!ok || !out.existsSync()) {
       throw DownloadException('تعذّر قص المقطع من المصدر — حاول مرة أخرى.');

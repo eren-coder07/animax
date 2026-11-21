@@ -38,7 +38,6 @@ class AkwamApi {
   final http.Client _client = createHttpClient();
 
   /// In-memory caches (per session).
-  final Map<String, String> _watchCache = <String, String>{};
   final Map<String, List<AkwamEpisode>> _episodeCache =
       <String, List<AkwamEpisode>>{};
 
@@ -152,17 +151,77 @@ class AkwamApi {
   }
 
   /// Resolves a `/watch/{fileId}/…` page into the direct media URL.
-  /// Results are cached per watch path.
-  Future<String> resolveStream(String watchPath) async {
-    final String cached = _watchCache[watchPath] ?? '';
-    if (cached.isNotEmpty) return cached;
-    final String html = await _get(watchPath);
-    final String url = extractAkwamStreamUrl(html);
+  ///
+  /// Every watch page lists the MP4 of *each* quality
+  /// (`<source src=… size="720|480|360">`): [quality] (e.g. `360p`) picks
+  /// that file, [lowest] the smallest one, otherwise the best. Pages are
+  /// cached per watch path.
+  Future<String> resolveStream(String watchPath,
+      {String quality = '', bool lowest = false}) async {
+    final Map<int, String> streams = await streamsOf(watchPath);
+    final String url = pickAkwamStream(streams,
+        height: _heightOf(quality), lowest: lowest);
     if (url.isEmpty) {
       throw AkwamApiException(
           'لا يوجد بث قابل للتشغيل على هذا السيرفر — جرّب جودة أخرى.');
     }
-    return _watchCache[watchPath] = url;
+    return url;
+  }
+
+  /// height → MP4 URL for every quality on a watch page (best first).
+  Future<Map<int, String>> streamsOf(String watchPath) async {
+    final Map<int, String>? hit = _streamsCache[watchPath];
+    if (hit != null && hit.isNotEmpty) return hit;
+    final String html = await _get(watchPath);
+    final Map<int, String> m = extractAkwamStreams(html);
+    if (m.isEmpty) {
+      final String one = extractAkwamStreamUrl(html);
+      if (one.isNotEmpty) m[0] = one;
+    }
+    return _streamsCache[watchPath] = m;
+  }
+
+  final Map<String, Map<int, String>> _streamsCache = <String, Map<int, String>>{};
+
+  static int? _heightOf(String quality) {
+    final RegExpMatch? m = RegExp(r'(\d{3,4})').firstMatch(quality);
+    return m == null ? null : int.parse(m.group(1)!);
+  }
+
+  /// Parses `<source src="…mp4" size="480">` tags (any attribute order).
+  static Map<int, String> extractAkwamStreams(String html) {
+    final List<MapEntry<int, String>> found = <MapEntry<int, String>>[];
+    for (final RegExpMatch m in RegExp(r'<source\b[^>]*>', caseSensitive: false)
+        .allMatches(html)) {
+      final String tag = m.group(0)!;
+      final String? src = RegExp(r'''src\s*=\s*["']([^"']+)["']''').firstMatch(tag)?.group(1);
+      if (src == null || !RegExp(r'\.(mp4|m3u8)', caseSensitive: false).hasMatch(src)) continue;
+      int h = int.tryParse(
+              RegExp(r'''size\s*=\s*["']?(\d{3,4})''').firstMatch(tag)?.group(1) ?? '') ??
+          0;
+      if (h == 0) {
+        h = int.tryParse(RegExp(r'(\d{3,4})p').firstMatch(src)?.group(1) ?? '') ?? 0;
+      }
+      found.add(MapEntry<int, String>(h, src.replaceAll('&amp;', '&')));
+    }
+    found.sort((MapEntry<int, String> a, MapEntry<int, String> b) => b.key.compareTo(a.key));
+    return Map<int, String>.fromEntries(found);
+  }
+
+  /// [height] → that quality (or the nearest lower one); [lowest] → the
+  /// smallest; otherwise the best.
+  static String pickAkwamStream(Map<int, String> streams,
+      {int? height, bool lowest = false}) {
+    if (streams.isEmpty) return '';
+    final List<int> hs = streams.keys.toList()..sort();
+    if (lowest) return streams[hs.first]!;
+    if (height != null) {
+      if (streams.containsKey(height)) return streams[height]!;
+      final Iterable<int> lower = hs.where((int h) => h > 0 && h <= height);
+      if (lower.isNotEmpty) return streams[lower.last]!;
+      return streams[hs.first]!;
+    }
+    return streams[hs.last]!;
   }
 
   // -------------------------------------------------------------------------

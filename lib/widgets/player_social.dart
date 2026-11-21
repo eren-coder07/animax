@@ -100,9 +100,13 @@ class TimedCommentsLayer extends StatefulWidget {
     super.key,
     required this.social,
     required this.controller,
+    this.offset = Duration.zero,
   });
   final EpisodeSocial? social;
   final VideoPlayerController? controller;
+
+  /// Real time of the controller's 0 (fast-start windows play a slice).
+  final Duration offset;
 
   @override
   State<TimedCommentsLayer> createState() => _TimedCommentsLayerState();
@@ -131,7 +135,7 @@ class _TimedCommentsLayerState extends State<TimedCommentsLayer>
       _lastReported = p;
       _lastAt = now;
     }
-    double est = p.inMilliseconds / 1000;
+    double est = (p + widget.offset).inMilliseconds / 1000;
     if (c.value.isPlaying) {
       est +=
           math.min(1.0, now.difference(_lastAt).inMilliseconds / 1000) *
@@ -222,12 +226,18 @@ class MomentsMenuButton extends StatelessWidget {
     required this.controller,
     required this.onSeek,
     this.iconSize = 21,
+    this.offset = Duration.zero,
+    this.total,
   });
 
   final EpisodeSocial? social;
   final VideoPlayerController? controller;
   final ValueChanged<Duration> onSeek;
   final double iconSize;
+
+  /// Real time of the controller's 0 and the real duration (windows).
+  final Duration offset;
+  final Duration? total;
 
   @override
   Widget build(BuildContext context) {
@@ -246,7 +256,7 @@ class MomentsMenuButton extends StatelessWidget {
   Future<void> _open(BuildContext context) async {
     final EpisodeSocial s = social!;
     final VideoPlayerController? c = controller;
-    final int dur = c?.value.duration.inSeconds ?? 0;
+    final int dur = (total ?? c?.value.duration)?.inSeconds ?? 0;
     final int? peak = Moments.peak(s.moments, dur);
     final String? pick = await showModalBottomSheet<String>(
       context: context,
@@ -304,7 +314,7 @@ class MomentsMenuButton extends StatelessWidget {
                   color: Colors.white,
                 ),
                 title: Text(
-                  'علّق عند ${_fmt(c?.value.position.inSeconds ?? 0)}',
+                  'علّق عند ${_fmt(((c?.value.position ?? Duration.zero) + offset).inSeconds)}',
                   style: const TextStyle(
                     fontFamily: kFont,
                     color: Colors.white,
@@ -337,7 +347,7 @@ class MomentsMenuButton extends StatelessWidget {
       case 'peak':
         if (peak != null) onSeek(Duration(seconds: peak));
       case 'write':
-        await writeTimedComment(context, s, c);
+        await writeTimedComment(context, s, c, offset: offset);
       case 'list':
         await _list(context, s);
     }
@@ -422,11 +432,12 @@ class MomentsMenuButton extends StatelessWidget {
 Future<void> writeTimedComment(
   BuildContext context,
   EpisodeSocial s,
-  VideoPlayerController? c,
-) async {
+  VideoPlayerController? c, {
+  Duration offset = Duration.zero,
+}) async {
   if (!await requireLogin(context)) return;
   if (!context.mounted) return;
-  final int t = c?.value.position.inSeconds ?? 0;
+  final int t = ((c?.value.position ?? Duration.zero) + offset).inSeconds;
   final bool wasPlaying = c?.value.isPlaying ?? false;
   await c?.pause();
   if (!context.mounted) return;

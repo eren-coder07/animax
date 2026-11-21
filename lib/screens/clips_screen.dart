@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -14,6 +15,8 @@ import '../core/app_theme.dart';
 import '../core/cloud.dart';
 import '../core/download_manager.dart';
 import '../core/social.dart';
+import '../core/fast_start.dart';
+import '../core/net_quality.dart';
 import '../core/spoilers.dart';
 import '../widgets/mb_ui.dart';
 import '../widgets/social_bar.dart';
@@ -230,6 +233,9 @@ class _ClipPageState extends State<ClipPage> {
   bool _muted = false;
   bool _opening = false;
   late bool _shielded = Spoilers.hides(widget.clip);
+
+  /// Real time (ms) of the controller's 0 when playing a fast-start window.
+  int _offsetMs = 0;
   final GlobalKey<PanelClipViewState> _panel = GlobalKey<PanelClipViewState>();
   late int _replies = widget.clip.replies;
 
@@ -298,19 +304,40 @@ class _ClipPageState extends State<ClipPage> {
       return;
     }
     try {
+      // Smallest quality unless the line is measured fast.
+      final bool fastNet =
+          NetQuality.hasFreshMeasure && NetQuality.measuredKbps > 4000;
       final ({String url, Map<String, String> headers, bool isHls}) st =
           _resolved[clip.id] ??
-              await DownloadManager.I.resolveStream(clip.source, clip.ref);
+              await DownloadManager.I
+                  .resolveStream(clip.source, clip.ref, lowest: !fastNet);
       _resolved[clip.id] = st;
       if (!mounted) return;
+      // Progressive MP4 (Akwam / most anime): play a window holding just the
+      // clip — a few KB of index instead of the whole file's megabytes.
+      Uri uri = Uri.parse(st.url);
+      Map<String, String> headers = st.headers;
+      _offsetMs = 0;
+      if (!st.isHls) {
+        try {
+          final FastWindow w = await FastStart.open(st.url, st.headers,
+              from: clip.startMs / 1000 - 0.2, to: clip.endMs / 1000 + 0.4);
+          uri = w.uri;
+          headers = const <String, String>{};
+          _offsetMs = (w.offset * 1000).round();
+        } catch (_) {
+          _offsetMs = 0; // play the file directly
+        }
+      }
+      if (!mounted) return;
       final VideoPlayerController c = VideoPlayerController.networkUrl(
-        Uri.parse(st.url),
-        httpHeaders: st.headers,
+        uri,
+        httpHeaders: headers,
         formatHint: st.isHls ? VideoFormat.hls : VideoFormat.other,
       );
       _c = c;
       await c.initialize();
-      await c.seekTo(Duration(milliseconds: clip.startMs));
+      await c.seekTo(Duration(milliseconds: math.max(0, clip.startMs - _offsetMs)));
       await c.setVolume(_muted ? 0 : 1);
       c.addListener(_loop);
       if (widget.playing) await c.play();
@@ -330,9 +357,12 @@ class _ClipPageState extends State<ClipPage> {
   void _loop() {
     final VideoPlayerController? c = _c;
     if (c == null || !c.value.isInitialized) return;
-    final int pos = c.value.position.inMilliseconds;
-    if (pos >= widget.clip.endMs || pos < widget.clip.startMs - 1500) {
-      c.seekTo(Duration(milliseconds: widget.clip.startMs));
+    final int pos = c.value.position.inMilliseconds + _offsetMs;
+    if (pos >= widget.clip.endMs ||
+        pos < widget.clip.startMs - 1500 ||
+        c.value.isCompleted) {
+      c.seekTo(Duration(milliseconds: math.max(0, widget.clip.startMs - _offsetMs)));
+      if (widget.playing && !c.value.isPlaying) c.play();
     }
     if (mounted) setState(() {});
   }
@@ -414,7 +444,7 @@ class _ClipPageState extends State<ClipPage> {
     final double progress = _isPanel
         ? (_panel.currentState?.progress ?? 0)
         : ready
-            ? ((c.value.position.inMilliseconds - clip.startMs) /
+            ? ((c.value.position.inMilliseconds + _offsetMs - clip.startMs) /
                     (clip.endMs - clip.startMs))
                 .clamp(0.0, 1.0)
             : 0;
