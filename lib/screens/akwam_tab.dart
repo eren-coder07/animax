@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/library_store.dart';
+import '../widgets/download_button.dart';
 import '../widgets/mb_ui.dart';
+import '../widgets/quick_share.dart';
 
 /// Akwam section accent (site brand teal).
 class AkwamColors {
@@ -108,6 +113,9 @@ class _AkwamTabState extends State<AkwamTab>
                 parent: BouncingScrollPhysics()),
             padding: const EdgeInsets.only(bottom: 24),
             children: <Widget>[
+              if ((_rows[AkwamFeed.recent] ?? const <AkwamItem>[]).isNotEmpty)
+                _HeroCarousel(
+                    items: _rows[AkwamFeed.recent]!.take(6).toList()),
               if (recent.isNotEmpty) _ContinueStrip(rows: recent),
               if (_error != null && allEmpty && _loading.isEmpty)
                 _ErrorBox(message: _error!, onRetry: _loadAll),
@@ -385,6 +393,223 @@ class _ErrorBox extends StatelessWidget {
             GradientButton(label: 'إعادة المحاولة', height: 40, onTap: onRetry),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Auto-sliding featured banner (newest Akwam titles) with play, download
+/// and quick-share actions.
+class _HeroCarousel extends StatefulWidget {
+  const _HeroCarousel({required this.items});
+  final List<AkwamItem> items;
+
+  @override
+  State<_HeroCarousel> createState() => _HeroCarouselState();
+}
+
+class _HeroCarouselState extends State<_HeroCarousel> {
+  final PageController _pc = PageController(viewportFraction: 0.92);
+  Timer? _timer;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_pc.hasClients || widget.items.isEmpty) return;
+      final int next = (_page + 1) % widget.items.length;
+      _pc.animateToPage(next,
+          duration: const Duration(milliseconds: 500), curve: Curves.easeOutCubic);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pc.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 196,
+          child: PageView.builder(
+            controller: _pc,
+            itemCount: widget.items.length,
+            onPageChanged: (int i) => setState(() => _page = i),
+            itemBuilder: (BuildContext c, int i) =>
+                _HeroCard(item: widget.items[i]),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            for (int i = 0; i < widget.items.length; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _page ? 18 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  gradient: i == _page ? AppColors.brandGrad : null,
+                  color: i == _page ? null : AppColors.surfaceHi,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({required this.item});
+  final AkwamItem item;
+
+  void _open(BuildContext context) =>
+      Navigator.pushNamed(context, '/akwam-details', arguments: item);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: GestureDetector(
+        onTap: () => _open(context),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              // Blurred-looking backdrop: the poster scaled up + dark veil.
+              Transform.scale(scale: 1.6, child: NetImage(item.poster)),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                    colors: <Color>[Color(0xCC0F1014), Color(0xF20F1014)],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: <Widget>[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: AspectRatio(
+                          aspectRatio: 2 / 3, child: NetImage(item.poster)),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              gradient: AppColors.brandGrad,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('جديد',
+                                style: TextStyle(
+                                    fontFamily: kFont,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF07130D))),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(item.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontFamily: kFont,
+                                  fontSize: 19,
+                                  height: 1.3,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white)),
+                          const SizedBox(height: 4),
+                          MetaLine(
+                              rating: item.rating,
+                              parts: <String>[item.qualityLabel, item.kind.label]),
+                          const Spacer(),
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: GradientButton(
+                                  label: 'تشغيل',
+                                  icon: Icons.play_arrow_rounded,
+                                  height: 40,
+                                  expand: true,
+                                  onTap: () => _open(context),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              _RoundIcon(
+                                icon: Icons.download_rounded,
+                                onTap: () async {
+                                  await DownloadManager.I.addResolvable(
+                                    source: 'akwam',
+                                    ref: <String, String>{'path': item.path},
+                                    title: item.title,
+                                    poster: item.poster,
+                                  );
+                                  if (context.mounted) {
+                                    showDownloadQueuedSnack(context);
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 6),
+                              _RoundIcon(
+                                icon: Icons.share_rounded,
+                                onTap: () => showQuickShare(
+                                  context,
+                                  title: item.title,
+                                  poster: item.poster,
+                                  source: 'akwam',
+                                  ref: <String, String>{'path': item.path},
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundIcon extends StatelessWidget {
+  const _RoundIcon({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0x33FFFFFF),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+            width: 40, height: 40, child: Icon(icon, color: Colors.white, size: 21)),
       ),
     );
   }

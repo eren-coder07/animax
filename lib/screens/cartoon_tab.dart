@@ -106,6 +106,7 @@ class _CartoonTabState extends State<CartoonTab>
                 ],
               ),
             ),
+            if (!EmbeddedSection.of(context))
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
               child: Text(
@@ -116,7 +117,7 @@ class _CartoonTabState extends State<CartoonTab>
             ),
             // Inline search
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
               child: TextField(
                 controller: _searchCtl,
                 onChanged: _onSearchChanged,
@@ -133,16 +134,17 @@ class _CartoonTabState extends State<CartoonTab>
                   prefixIcon: const Icon(Icons.search_rounded,
                       size: 20, color: AppColors.muted),
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: AppColors.surfaceHi,
+                  isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
-                      vertical: 13, horizontal: 16),
+                      vertical: 11, horizontal: 12),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppColors.stroke)),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none),
                   focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide:
-                          BorderSide(color: AppColors.accent, width: 1.2)),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                          color: AppColors.brandGreen, width: 1.2)),
                 ),
               ),
             ),

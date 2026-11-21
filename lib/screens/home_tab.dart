@@ -8,7 +8,6 @@ import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/library_store.dart';
 import '../widgets/buttons.dart';
-import '../widgets/cards.dart';
 import '../widgets/common.dart';
 import '../widgets/animax_logo.dart';
 
@@ -106,129 +105,27 @@ class _HomeTabState extends State<HomeTab> {
                 const SizedBox(height: 24),
                 _buildContinueWatching(),
                 _buildMyList(),
-                SectionHeader(
-                  title: 'أنمي الأكثر مشاهدة',
-                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('أنمي الأكثر مشاهدة', state.topHits)),
-                ),
-                SizedBox(
-                  height: 306,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: state.topHits.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 16),
-                    itemBuilder: (BuildContext context, int i) {
-                      final Anime anime = state.topHits[i];
-                      return GestureDetector(
-                        onTap: () => _openAnime(anime),
-                        child: SizedBox(
-                          width: 236,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Hero(
-                                  tag: 'poster-${anime.id}',
-                                  child: PosterImage(
-                                    anime: anime,
-                                    radius: 18,
-                                    child: Stack(
-                                      children: [
-                                        Positioned(
-                                          top: 10,
-                                          left: 10,
-                                          child: ScoreBadge(score: anime.score),
-                                        ),
-                                        Positioned(
-                                          bottom: -14,
-                                          left: 14,
-                                          child: Text(
-                                            '${i + 1}',
-                                            style: TextStyle(
-                                              fontFamily: 'Plex',
-                                              fontSize: 84,
-                                              fontWeight: FontWeight.w800,
-                                              color: Colors.white,
-                                              height: 1.0,
-                                              shadows: [
-                                                Shadow(
-                                                  color: Colors.black.withValues(alpha: 0.55),
-                                                  blurRadius: 18,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                anime.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.bodyBold.copyWith(fontSize: 13.5),
-                              ),
-                              Text(anime.genres.take(3).join('. '),
-                                  style: AppText.label, maxLines: 1),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 26),
-                SectionHeader(
-                  title: 'حلقات جديدة',
-                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('حلقات جديدة', state.newEpisodes)),
-                ),
-                SizedBox(
-                  height: 250,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: state.newEpisodes.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 14),
-                    itemBuilder: (BuildContext context, int i) {
-                      final Anime anime = state.newEpisodes[i];
-                      return PosterCard(
-                        anime: anime,
-                        width: 136,
-                        subtitle:
-                            anime.isMovie ? 'فيلم • ${anime.duration}' : 'الحلقة ${anime.episodeCount}',
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 26),
-                SectionHeader(
-                  title: 'الأشهر هذا الموسم',
-                  onSeeAll: () => Navigator.pushNamed(context, '/catalog',
-                      arguments: ('الأشهر هذا الموسم', state.catalog)),
-                ),
-                SizedBox(
-                  height: 250,
-                  child: ListView.separated(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: state.catalog.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 14),
-                    itemBuilder: (BuildContext context, int i) {
-                      final Anime anime =
-                          state.catalog[(i * 5 + 3) % state.catalog.length];
-                      return PosterCard(anime: anime, width: 136, showPlay: true);
-                    },
-                  ),
-                ),
+                for (final (String title, List<Anime> list) in <(String, List<Anime>)>[
+                  ('أنمي الأكثر مشاهدة', state.topHits),
+                  ('حلقات جديدة', state.newEpisodes),
+                  ('الأشهر هذا الموسم', state.catalog),
+                ])
+                  if (list.isNotEmpty)
+                    PosterRow<Anime>(
+                      title: title,
+                      items: list,
+                      onAll: () => Navigator.pushNamed(context, '/catalog',
+                          arguments: (title, list)),
+                      itemBuilder: (BuildContext c, Anime a, double w) =>
+                          PosterTile(
+                        title: a.title,
+                        image: a.poster,
+                        width: w,
+                        rating: a.score,
+                        badge: a.isMovie ? 'فيلم' : (a.episodeCount > 0 ? 'ح ${a.episodeCount}' : ''),
+                        onTap: () => _openAnime(a),
+                      ),
+                    ),
               ],
             ],
           );

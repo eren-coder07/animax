@@ -19,7 +19,7 @@ class EmbeddedSection extends InheritedWidget {
   bool updateShouldNotify(EmbeddedSection oldWidget) => false;
 }
 
-/// Network image with a neutral placeholder and no error noise.
+/// Network image: shimmer while loading, soft fade-in, quiet failure.
 class NetImage extends StatelessWidget {
   const NetImage(this.url, {super.key, this.fit = BoxFit.cover});
   final String url;
@@ -32,9 +32,72 @@ class NetImage extends StatelessWidget {
       url,
       fit: fit,
       gaplessPlayback: true,
-      errorBuilder: (_, _, _) => ColoredBox(color: AppColors.surfaceHi),
-      loadingBuilder: (BuildContext c, Widget child, ImageChunkEvent? p) =>
-          p == null ? child : ColoredBox(color: AppColors.surfaceHi),
+      errorBuilder: (_, _, _) => ColoredBox(
+        color: AppColors.surfaceHi,
+        child: const Center(
+            child: Icon(Icons.movie_outlined, color: AppColors.muted, size: 26)),
+      ),
+      frameBuilder: (BuildContext c, Widget child, int? frame, bool sync) {
+        if (sync) return child;
+        return Stack(
+          fit: StackFit.passthrough,
+          children: <Widget>[
+            if (frame == null) const Shimmer(),
+            AnimatedOpacity(
+              opacity: frame == null ? 0 : 1,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOut,
+              child: child,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Animated loading placeholder (soft light sweep).
+class Shimmer extends StatefulWidget {
+  const Shimmer({super.key, this.radius = 0});
+  final double radius;
+
+  @override
+  State<Shimmer> createState() => _ShimmerState();
+}
+
+class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 1300))
+    ..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, _) {
+        final double x = _c.value * 3 - 1.5;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.radius),
+            gradient: LinearGradient(
+              begin: Alignment(x - 1, -0.3),
+              end: Alignment(x + 1, 0.3),
+              colors: <Color>[
+                AppColors.surface,
+                AppColors.surfaceHi,
+                AppColors.surface,
+              ],
+            ),
+          ),
+          child: const SizedBox.expand(),
+        );
+      },
     );
   }
 }
@@ -230,14 +293,10 @@ class PosterRow<T> extends StatelessWidget {
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, _) => Column(
                     children: <Widget>[
-                      Container(
-                        width: w,
-                        height: w * 1.5,
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
+                      SizedBox(
+                          width: w,
+                          height: w * 1.5,
+                          child: const Shimmer(radius: 6)),
                     ],
                   ),
                 )
