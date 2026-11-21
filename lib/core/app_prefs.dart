@@ -64,6 +64,8 @@ class AppPrefs extends ChangeNotifier {
   bool spoilerShield = true; // blur clips/comments past your progress
   bool audioOnly = false; // players: sound only (smallest stream, background)
   int dataBudgetMb = 0; // monthly mobile-data budget, 0 = off
+  bool cloudSync = true; // list / progress / history follow the account
+  double readerScrollSpeed = 1.0; // auto-scroll speed multiplier
   int skipIntroSeconds = 85;
   bool pauseOnBackground = true;
   String cinemaProvider = ''; // '' = auto (first working provider)
@@ -101,6 +103,8 @@ class AppPrefs extends ChangeNotifier {
       spoilerShield = sp.getBool('pref.spoilerShield') ?? spoilerShield;
       audioOnly = sp.getBool('pref.audioOnly') ?? audioOnly;
       dataBudgetMb = sp.getInt('pref.dataBudgetMb') ?? dataBudgetMb;
+      cloudSync = sp.getBool('pref.cloudSync') ?? cloudSync;
+      readerScrollSpeed = sp.getDouble('pref.readerScrollSpeed') ?? readerScrollSpeed;
       skipIntroSeconds = sp.getInt('pref.skipIntroSec') ?? skipIntroSeconds;
       pauseOnBackground = sp.getBool('pref.pauseOnBg') ?? pauseOnBackground;
       cinemaProvider = sp.getString('pref.cinemaProvider') ?? '';
@@ -167,6 +171,14 @@ class AppPrefs extends ChangeNotifier {
       case 'dataBudgetMb':
         dataBudgetMb = value as int;
         sp?.setInt('pref.dataBudgetMb', dataBudgetMb);
+        break;
+      case 'cloudSync':
+        cloudSync = value as bool;
+        sp?.setBool('pref.cloudSync', cloudSync);
+        break;
+      case 'readerScrollSpeed':
+        readerScrollSpeed = value as double;
+        sp?.setDouble('pref.readerScrollSpeed', readerScrollSpeed);
         break;
       case 'autoSkipIntro':
         autoSkipIntro = value as bool;

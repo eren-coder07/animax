@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -46,6 +48,10 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
   String? _pageError;
   int _pageIndex = 0;
   bool _chromeVisible = true;
+
+  /// Hands-free reading: flips to the next page on a timer.
+  Timer? _auto;
+  static const List<double> _speeds = <double>[0.5, 1.0, 1.5, 2.0];
   Map<int, List<String>> _prefetched = <int, List<String>>{};
 
   String get _key => 'manga:${widget.manga.id}';
@@ -66,8 +72,53 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
     _openChapter(_chapterIdx, resume: true);
   }
 
+  Duration get _autoInterval => Duration(
+      milliseconds: (8000 / AppPrefs.I.readerScrollSpeed).round().clamp(3000, 20000));
+
+  void _toggleAuto() {
+    if (_auto != null) {
+      _auto!.cancel();
+      setState(() => _auto = null);
+      return;
+    }
+    setState(() {
+      _auto = Timer.periodic(_autoInterval, (_) => _autoStep());
+      _chromeVisible = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      persist: false,
+      duration: const Duration(seconds: 2),
+      content: Text('قراءة تلقائية: صفحة كل ${_autoInterval.inSeconds} ثوانٍ'),
+    ));
+  }
+
+  void _autoStep() {
+    if (!mounted || _loadingPages || _pages.isEmpty || !_pageCtl.hasClients) return;
+    if (_pageIndex < _pages.length - 1) {
+      _pageCtl.nextPage(
+          duration: const Duration(milliseconds: 450), curve: Curves.easeInOut);
+    } else if (_chapterIdx + 1 < widget.chapters.length) {
+      _nextChapter();
+    } else {
+      _auto?.cancel();
+      setState(() => _auto = null);
+    }
+  }
+
+  void _cycleSpeed() {
+    final int i = _speeds.indexOf(AppPrefs.I.readerScrollSpeed);
+    final double next = _speeds[(i + 1) % _speeds.length];
+    AppPrefs.I.set('readerScrollSpeed', next);
+    if (_auto != null) {
+      _auto!.cancel();
+      _auto = Timer.periodic(_autoInterval, (_) => _autoStep());
+    }
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    _auto?.cancel();
     _pageCtl.dispose();
     const MethodChannel ch = MethodChannel('animax/app');
     ch.invokeMethod<bool>('setKeepScreenOn', <String, dynamic>{'keep': false})
@@ -446,6 +497,28 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
                     10, 8, 10, MediaQuery.of(context).padding.bottom + 8),
                 child: Row(
                   children: <Widget>[
+                    IconButton(
+                      key: const Key('readerAuto'),
+                      tooltip: _auto == null ? 'قراءة تلقائية' : 'إيقاف القراءة التلقائية',
+                      onPressed: _pages.isEmpty ? null : _toggleAuto,
+                      icon: Icon(
+                          _auto == null
+                              ? Icons.play_circle_outline_rounded
+                              : Icons.pause_circle_filled_rounded,
+                          color: _auto == null ? Colors.white : AppColors.accent,
+                          size: 24),
+                    ),
+                    GestureDetector(
+                      key: const Key('readerAutoSpeed'),
+                      onTap: _cycleSpeed,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                            '${AppPrefs.I.readerScrollSpeed.toString().replaceAll('.0', '')}×',
+                            style: const TextStyle(
+                                fontFamily: 'Plex', fontSize: 11.5, color: Colors.white70)),
+                      ),
+                    ),
                     IconButton(
                       tooltip: 'الفصل السابق',
                       onPressed: _prevChapter,

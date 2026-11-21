@@ -306,6 +306,19 @@
           ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isNumber()"
         }
+      },
+      "sync": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "!newData.exists() || newData.hasChildren(['data', 'at'])",
+          "data": {
+            ".validate": "newData.isString() && newData.val().length <= 800000"
+          },
+          "at": {
+            ".validate": "newData.isNumber()"
+          }
+        }
       }
     }
   }

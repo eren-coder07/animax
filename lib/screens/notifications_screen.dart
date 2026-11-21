@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../core/app_data.dart';
 import '../core/app_state.dart';
+import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
+import '../core/episode_alerts.dart';
 import '../widgets/cards.dart';
 import '../widgets/common.dart';
 
@@ -15,8 +17,10 @@ class NotificationsScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: state,
+          listenable: Listenable.merge(<Listenable>[state, EpisodeAlerts.I]),
           builder: (BuildContext context, _) {
+            final DateTime today = DateTime.now();
+            final List<EpisodeAlert> alerts = EpisodeAlerts.I.alerts;
             return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -29,7 +33,8 @@ class NotificationsScreen extends StatelessWidget {
                   const Spacer(),
                   const Text('الإشعارات', style: AppText.h3),
                   const Spacer(),
-                  Text('09/05/2026',
+                  Text(
+                      '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}',
                       style: AppText.label.copyWith(fontSize: 11)),
                 ],
               ),
@@ -38,20 +43,100 @@ class NotificationsScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: GestureDetector(
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('تم تعليم كل الإشعارات كمقروءة'))),
+                onTap: () {
+                  EpisodeAlerts.I.clear();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('تم تعليم كل الإشعارات كمقروءة')));
+                },
                 child: Text('تعليم الكل كمقروء',
                     style: AppText.bodyBold
                         .copyWith(color: AppColors.accent, fontSize: 12)),
               ),
             ),
+            if (alerts.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Text('حلقات جديدة من قائمتي',
+                        style: AppText.bodyBold.copyWith(fontSize: 14)),
+                    const SizedBox(height: 8),
+                    for (final EpisodeAlert a in alerts.take(6))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Material(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          child: InkWell(
+                            key: ValueKey<String>('alert:${a.key}'),
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              final AkwamItem? it = AkwamApi.itemFromPath(a.path,
+                                  title: a.title, poster: a.poster);
+                              EpisodeAlerts.I.dismiss(a);
+                              if (it != null) {
+                                Navigator.pushNamed(context, '/akwam-details',
+                                    arguments: it);
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Row(
+                                children: <Widget>[
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: SizedBox(
+                                      width: 50,
+                                      height: 70,
+                                      child: a.poster.isEmpty
+                                          ? const ColoredBox(color: Colors.black26)
+                                          : Image.network(a.poster,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, _, _) =>
+                                                  const ColoredBox(color: Colors.black26)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(a.title,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppText.bodyBold.copyWith(fontSize: 13)),
+                                        const SizedBox(height: 4),
+                                        Text('🆕 الحلقة ${a.episode} متاحة الآن',
+                                            style: AppText.label.copyWith(
+                                                fontSize: 12, color: AppColors.accent)),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: 'إخفاء',
+                                    icon: const Icon(Icons.close_rounded,
+                                        size: 18, color: AppColors.muted),
+                                    onPressed: () => EpisodeAlerts.I.dismiss(a),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             Expanded(
-              child: state.notices.isEmpty
+              child: state.notices.isEmpty && alerts.isEmpty
                   ? const EmptyState(
                       icon: Icons.notifications_none_rounded,
                       title: 'لا توجد إشعارات',
                       message: 'ستظهر تنبيهات الحلقات الجديدة هنا.',
                     )
+                  : state.notices.isEmpty
+                  ? const SizedBox.shrink()
                   : ListView.separated(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),

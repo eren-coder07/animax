@@ -4,6 +4,7 @@ import '../core/akwam_api.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
+import '../core/episode_alerts.dart';
 import '../core/app_prefs.dart';
 import '../core/cloud.dart';
 import '../core/library_store.dart';
@@ -38,6 +39,7 @@ class ProfileTab extends StatelessWidget {
             BingoStore.I,
             AppPrefs.I,
             Inbox.I,
+            EpisodeAlerts.I,
           ]),
           builder: (BuildContext context, _) {
             final LibraryStore lib = LibraryStore.I;
@@ -120,7 +122,7 @@ class ProfileTab extends StatelessWidget {
                   GroupRow(
                     icon: Icons.notifications_none_rounded,
                     label: 'الإشعارات',
-                    badge: state.notices.length,
+                    badge: state.notices.length + EpisodeAlerts.I.alerts.length,
                     onTap: () =>
                         Navigator.pushNamed(context, '/notifications'),
                   ),
@@ -158,7 +160,7 @@ class ProfileTab extends StatelessWidget {
                   const GroupRow(
                     icon: Icons.info_outline_rounded,
                     label: 'الإصدار',
-                    value: '2.5.0',
+                    value: '2.6.0',
                   ),
                 ]),
               ],

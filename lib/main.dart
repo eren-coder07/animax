@@ -1,4 +1,7 @@
+import 'core/cloud_sync.dart';
 import 'core/data_budget.dart';
+import 'core/episode_alerts.dart';
+import 'core/library_store.dart';
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
@@ -43,6 +46,10 @@ void main() {
   PaintingBinding.instance.imageCache.maximumSize = 600;
   NetQuality.check();
   AppPrefs.I.ready.then((_) => DataBudget.I.start());
+  LibraryStore.I.ready.then((_) {
+    CloudSync.I.start();
+    EpisodeAlerts.I.start();
+  });
   // video_player has no Windows backend: route it through media_kit (mpv)
   // there. Android keeps ExoPlayer untouched.
   if (Platform.isWindows) {

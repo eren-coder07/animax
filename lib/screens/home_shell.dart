@@ -4,6 +4,7 @@ import '../core/app_prefs.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
+import '../core/episode_alerts.dart';
 import '../core/social.dart';
 import '../widgets/animax_logo.dart';
 import '../widgets/mb_ui.dart';
@@ -39,7 +40,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '2.5.0';
+    const String version = '2.6.0';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -99,7 +100,7 @@ class _BottomBar extends StatelessWidget {
         child: SizedBox(
           height: 64,
           child: ListenableBuilder(
-            listenable: Listenable.merge(<Listenable>[DownloadManager.I, Inbox.I]),
+            listenable: Listenable.merge(<Listenable>[DownloadManager.I, Inbox.I, EpisodeAlerts.I]),
             builder: (BuildContext context, _) => Row(
               children: <Widget>[
                 for (int i = 0; i < items.length; i++)
@@ -110,7 +111,10 @@ class _BottomBar extends StatelessWidget {
                       label: items[i].$3,
                       active: state.navIndex == i,
                       dot: (i == 2 && DownloadManager.I.activeCount > 0) ||
-                          (i == 3 && (state.notices.isNotEmpty || Inbox.I.unread > 0)),
+                          (i == 3 &&
+                              (state.notices.isNotEmpty ||
+                                  Inbox.I.unread > 0 ||
+                                  EpisodeAlerts.I.alerts.isNotEmpty)),
                       onTap: () => state.setTab(i),
                     ),
                   ),
@@ -377,11 +381,11 @@ class WhatsNewDialog extends StatelessWidget {
   final String version;
 
   static const List<String> highlights = <String>[
-    '❤️ «النشاطات»: من أعجب أو علّق أو ردّ أو تابعك — مع تنبيه على حسابي',
-    '📝 أضف وصفًا لمقاطعك ولوحات المانغا',
-    '👥 «أتابعهم» في تبويب المقاطع',
-    '✏️ عدّل اسمك وأضف نبذة لملفك الشخصي',
-    '🌙 مؤقت النوم وصورة داخل صورة في مشغّل أكوام',
+    '☁️ قائمتك وتقدّمك وسجلك تنتقل معك لأي جهاز بتسجيل الدخول',
+    '🔔 تنبيه عند نزول حلقة جديدة لمسلسلات أكوام في قائمتك',
+    '🔥 «الرائج» في تبويب المقاطع',
+    '📖 قراءة تلقائية للمانغا بدون لمس',
+    '🛠️ إصلاح: كان التقدّم وسجل المشاهدة يضيعان بعد إعادة فتح التطبيق',
   ];
 
   @override

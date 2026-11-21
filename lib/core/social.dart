@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
@@ -313,6 +314,28 @@ class Social {
       'clips/$id/reposts': inc(repost ? 1 : -1),
     });
     if (repost) notify(ownerUid, 'repost', clipId: id, title: title);
+  }
+
+  /// Engagement score with time decay (pure; unit-tested): likes 3,
+  /// comments 2, reposts 4, replies 3, views 0.2, halved every ~day.
+  static double trendScore(VideoClip c, DateTime now) {
+    final double eng = c.likes * 3.0 +
+        c.comments * 2.0 +
+        c.reposts * 4.0 +
+        c.replies * 3.0 +
+        c.views * 0.2 +
+        1;
+    final double hours =
+        c.at == null ? 48 : now.difference(c.at!).inMinutes.clamp(0, 1 << 30) / 60;
+    return eng / math.pow(hours + 2, 1.2);
+  }
+
+  /// Most engaging recent clips.
+  static Future<List<VideoClip>> trendingFeed({int limit = 150}) async {
+    final DateTime now = DateTime.now();
+    final List<VideoClip> all = await clipsFeed(limit: limit);
+    all.sort((VideoClip a, VideoClip b) => trendScore(b, now).compareTo(trendScore(a, now)));
+    return all;
   }
 
   /// Clips by the people you follow (and their reposts), newest first.

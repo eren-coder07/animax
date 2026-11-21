@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import '../core/app_http.dart';
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
+import '../core/cloud.dart';
+import '../core/cloud_sync.dart';
 import '../core/library_store.dart';
 import '../widgets/data_budget_card.dart';
 
@@ -243,6 +245,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const DataBudgetCard(),
           _section('المجتمع والمشاهدة'),
+          ListenableBuilder(
+            listenable: Listenable.merge(<Listenable>[CloudSync.I, CloudAuth.I]),
+            builder: (BuildContext context, _) {
+              final CloudSync cs = CloudSync.I;
+              final DateTime? at = cs.lastSync;
+              final String sub = !CloudAuth.I.signedIn
+                  ? 'سجّل الدخول لحفظ قائمتك وتقدّمك في حسابك'
+                  : cs.busy
+                      ? 'جارٍ المزامنة…'
+                      : cs.error.isNotEmpty
+                          ? 'تعذّرت المزامنة: ${cs.error}'
+                          : at == null
+                              ? 'قائمتي والتقدّم والسجل تنتقل معك لأي جهاز'
+                              : 'آخر مزامنة: ${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+              return SwitchListTile(
+                key: const Key('cloudSyncSwitch'),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                value: p.cloudSync,
+                onChanged: (bool v) {
+                  p.set('cloudSync', v);
+                  if (v) cs.syncNow();
+                },
+                secondary: IconButton(
+                  tooltip: 'مزامنة الآن',
+                  icon: Icon(Icons.sync_rounded,
+                      color: cs.busy ? AppColors.muted : AppColors.accent),
+                  onPressed: cs.busy || !CloudAuth.I.signedIn ? null : cs.syncNow,
+                ),
+                title: const Text('مزامنة مع حسابي',
+                    style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+                subtitle: Text(sub,
+                    style: const TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+              );
+            },
+          ),
           SwitchListTile(
             key: const Key('spoilerShieldSwitch'),
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
@@ -396,7 +433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
-              child: Text('أنيماكس الإصدار 2.5.0 · صُنع بحب للمشاهدين العرب',
+              child: Text('أنيماكس الإصدار 2.6.0 · صُنع بحب للمشاهدين العرب',
                   style: TextStyle(
                       fontFamily: 'Plex',
                       fontSize: 11,
@@ -475,7 +512,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final String tag =
           ((jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['tag_name'] ?? '')
               .toString();
-      final String current = 'v2.5.0';
+      final String current = 'v2.6.0';
       final bool newer = _isNewer(tag, current);
       if (mounted) {
         setState(() {

@@ -48,3 +48,8 @@ still works (it sorts on the device when an index is missing).
 The activity inbox (`inbox/{uid}`) must be readable only by its owner, so the
 blanket `.read` on `/animax` became per-node public reads plus a private
 `inbox` / `inboxSeen`. Paste the new `database.rules.json` and **Publish**.
+
+## v2.6 update
+
+Adds the private `sync/{uid}` node (account library sync). Publish the new
+`database.rules.json` again.

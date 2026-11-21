@@ -1,4 +1,4 @@
-# Animax (أنيماكس) v2.5.0 — Features
+# Animax (أنيماكس) v2.6.0 — Features
 
 Arabic-first streaming app: right-to-left UI in Arabic (IBM Plex Sans
 Arabic), Akwam as the home screen.
@@ -10,7 +10,7 @@ Arabic), Akwam as the home screen.
 - **أنمي** — trending, top hits, new episodes, this season; SUB / S-SUB / DUB
   servers with automatic fallback.
 - **كرتون** — animated movies & series, inline search, multi-server player.
-- **مانغا** — MangaDex: popular, latest, new, top rated, genre chips;
+- **مانغا** — v2.6: hands-free reading (auto page turn, 0.5×–2×). MangaDex: popular, latest, new, top rated, genre chips;
   vertical / paged / right-to-left reader; Arabic chapters first with
   English fallback.
 - **+18** — age-gated section.
@@ -26,6 +26,7 @@ Arabic), Akwam as the home screen.
   when unreachable).
 
 ## Clips (مقاطع)
+- v2.6: «الرائج» feed (engagement with time decay).
 - v2.5: optional captions (clips and manga panels); "Following" feed next to
   "Everyone"; activity inbox (likes, comments, replies, reposts, comment
   likes, new followers) with an unread badge; editable name + bio.
@@ -118,6 +119,13 @@ Arabic), Akwam as the home screen.
 - Send button on every finished download and in the offline player.
 
 ## Library & profile
+- v2.6: cloud sync — My List, resume points, watched marks and history are
+  kept in your account (`sync/{uid}`, private) and merged on every phone you
+  sign in on (newest change per item wins; removals sync too).
+- v2.6: new-episode alerts for Akwam series in My List (checked at launch and
+  every 6 h) at the top of Notifications.
+- Fix: watch progress and history were lost on every app restart (saved as a
+  list, loaded as a map); each section now loads independently.
 - My List with statuses, ratings, watch history with thumbnails, stats.
 - Export / import library backup (JSON via clipboard).
 

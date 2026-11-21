@@ -42,8 +42,9 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
   List<VideoClip>? _clips;
   String? _error;
 
-  /// false = everyone, true = people you follow.
-  bool _following = false;
+  /// 0 = trending, 1 = everyone (newest), 2 = people you follow.
+  int _mode = 1;
+  bool get _following => _mode == 2;
 
   @override
   void initState() {
@@ -54,19 +55,22 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
   Future<void> _load() async {
     setState(() => _error = null);
     try {
-      final List<VideoClip> c =
-          _following ? await Social.followingFeed() : await Social.clipsFeed();
+      final List<VideoClip> c = switch (_mode) {
+        0 => await Social.trendingFeed(),
+        2 => await Social.followingFeed(),
+        _ => await Social.clipsFeed(),
+      };
       if (mounted) setState(() => _clips = c);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     }
   }
 
-  Future<void> _setMode(bool following) async {
-    if (following == _following) return;
-    if (following && !await requireLogin(context)) return;
+  Future<void> _setMode(int mode) async {
+    if (mode == _mode) return;
+    if (mode == 2 && !await requireLogin(context)) return;
     setState(() {
-      _following = following;
+      _mode = mode;
       _clips = null;
     });
     await _load();
@@ -80,9 +84,12 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                _modeTab('للجميع', !_following, () => _setMode(false)),
+                _modeTab('الرائج', _mode == 0, () => _setMode(0),
+                    key: const Key('clipsTrendingTab')),
                 const SizedBox(width: 18),
-                _modeTab('أتابعهم', _following, () => _setMode(true),
+                _modeTab('للجميع', _mode == 1, () => _setMode(1)),
+                const SizedBox(width: 18),
+                _modeTab('أتابعهم', _mode == 2, () => _setMode(2),
                     key: const Key('clipsFollowingTab')),
               ],
             ),
@@ -181,7 +188,7 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
           );
         }
         return ClipsPager(
-            key: ValueKey<bool>(_following),
+            key: ValueKey<int>(_mode),
             clips: c,
             active: visible,
             onRefresh: _load);
