@@ -8,6 +8,7 @@ import '../core/app_http.dart';
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
 import '../core/library_store.dart';
+import '../widgets/data_budget_card.dart';
 
 /// Settings hub — Appearance / Player / Comics / Data / About.
 class SettingsScreen extends StatefulWidget {
@@ -238,6 +239,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('تنتظر التحميلات حتى تتصل بشبكة Wi-Fi لتوفير باقة الإنترنت',
                 style: TextStyle(
                     fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
+
+          const DataBudgetCard(),
+          _section('المجتمع والمشاهدة'),
+          SwitchListTile(
+            key: const Key('spoilerShieldSwitch'),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.spoilerShield,
+            onChanged: (bool v) => p.set('spoilerShield', v),
+            title: const Text('درع الحرق',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            subtitle: const Text(
+                'يُخفي المقاطع من حلقات لم تصل إليها والتعليقات المعلَّمة كحرق',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.timedComments,
+            onChanged: (bool v) => p.set('timedComments', v),
+            title: const Text('تعليقات اللحظة على الفيديو',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            subtitle: const Text('تعليقات المشاهدين تظهر عند الثانية التي كُتبت فيها',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
+          ),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            value: p.audioOnly,
+            onChanged: (bool v) => p.set('audioOnly', v),
+            title: const Text('وضع الصوت فقط',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 14, color: AppColors.text)),
+            subtitle: const Text('استمع للحلقات كبودكاست بأقل استهلاك ومع إطفاء الشاشة',
+                style: TextStyle(fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
 
           _section('البيانات'),
