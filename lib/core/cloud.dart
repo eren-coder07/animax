@@ -296,7 +296,8 @@ class CloudDb {
       throw CloudException('غير مسموح — سجّل الدخول أولًا.', code: 'denied');
     }
     if (r.statusCode >= 400) {
-      throw CloudException('خطأ في الخادم (${r.statusCode}).');
+      throw CloudException('خطأ في الخادم (${r.statusCode}).',
+          code: '${r.statusCode}');
     }
     return r.body.isEmpty ? null : jsonDecode(utf8.decode(r.bodyBytes));
   }

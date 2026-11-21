@@ -29,8 +29,8 @@ class DataBudgetCard extends StatelessWidget {
         final Color barColor = b.over
             ? const Color(0xFFFF4D4D)
             : b.nearLimit
-                ? const Color(0xFFFFB020)
-                : AppColors.brandGreen;
+            ? const Color(0xFFFFB020)
+            : AppColors.brandGreen;
         return Container(
           key: const Key('dataBudgetCard'),
           margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -44,25 +44,37 @@ class DataBudgetCard extends StatelessWidget {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  const Icon(Icons.data_usage_rounded, color: AppColors.brandGreen),
+                  const Icon(
+                    Icons.data_usage_rounded,
+                    color: AppColors.brandGreen,
+                  ),
                   const SizedBox(width: 10),
                   const Expanded(
-                    child: Text('ميزانية بيانات الجوال الشهرية',
-                        style: TextStyle(
-                            fontFamily: kFont,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white)),
+                    child: Text(
+                      'ميزانية بيانات الجوال الشهرية',
+                      style: TextStyle(
+                        fontFamily: kFont,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                   DropdownButton<int>(
                     key: const Key('dataBudgetPicker'),
                     value: options.containsKey(b.budgetMb) ? b.budgetMb : 0,
                     dropdownColor: AppColors.surface,
                     underline: const SizedBox.shrink(),
-                    style: const TextStyle(fontFamily: kFont, color: Colors.white),
+                    style: const TextStyle(
+                      fontFamily: kFont,
+                      color: Colors.white,
+                    ),
                     items: <DropdownMenuItem<int>>[
                       for (final MapEntry<int, String> e in options.entries)
-                        DropdownMenuItem<int>(value: e.key, child: Text(e.value)),
+                        DropdownMenuItem<int>(
+                          value: e.key,
+                          child: Text(e.value),
+                        ),
                     ],
                     onChanged: (int? v) {
                       if (v == null) return;
@@ -75,10 +87,15 @@ class DataBudgetCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                  b.enabled
-                      ? 'استهلكت ${DataBudget.fmtMb(b.usedMb)} من ${DataBudget.fmtMb(b.budgetMb.toDouble())} هذا الشهر'
-                      : 'استهلاك التطبيق على بيانات الجوال هذا الشهر: ${DataBudget.fmtMb(b.usedMb)}',
-                  style: const TextStyle(fontFamily: kFont, fontSize: 13, color: AppColors.sub)),
+                b.enabled
+                    ? 'استهلكت ${DataBudget.fmtMb(b.usedMb)} من ${DataBudget.fmtMb(b.budgetMb.toDouble())} هذا الشهر'
+                    : 'استهلاك التطبيق على بيانات الجوال هذا الشهر: ${DataBudget.fmtMb(b.usedMb)}',
+                style: const TextStyle(
+                  fontFamily: kFont,
+                  fontSize: 13,
+                  color: AppColors.sub,
+                ),
+              ),
               if (b.enabled) ...<Widget>[
                 const SizedBox(height: 8),
                 ClipRRect(
@@ -92,23 +109,27 @@ class DataBudgetCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                    b.over
-                        ? 'تجاوزت الحد: التحميلات تنتظر Wi-Fi والمشغّل يسألك قبل استخدام البيانات.'
-                        : b.nearLimit
-                            ? 'اقتربت من الحد: تم تفعيل وضع البيانات المنخفضة تلقائيًا (أقل جودة).'
-                            : 'عند 80% يُفعَّل وضع البيانات المنخفضة، وعند 100% يتوقف الاستهلاك حتى تسمح به.',
-                    style: TextStyle(
-                        fontFamily: kFont,
-                        fontSize: 12,
-                        height: 1.5,
-                        color: b.nearLimit ? barColor : AppColors.muted)),
+                  b.over
+                      ? 'تجاوزت الحد: التحميلات تنتظر Wi-Fi والمشغّل يسألك قبل استخدام البيانات.'
+                      : b.nearLimit
+                      ? 'اقتربت من الحد: تم تفعيل وضع البيانات المنخفضة تلقائيًا (أقل جودة).'
+                      : 'عند 80% يُفعَّل وضع البيانات المنخفضة، وعند 100% يتوقف الاستهلاك حتى تسمح به.',
+                  style: TextStyle(
+                    fontFamily: kFont,
+                    fontSize: 12,
+                    height: 1.5,
+                    color: b.nearLimit ? barColor : AppColors.muted,
+                  ),
+                ),
               ],
               Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: TextButton(
                   onPressed: b.resetMonth,
-                  child: const Text('تصفير العدّاد',
-                      style: TextStyle(fontFamily: kFont, color: AppColors.sub)),
+                  child: const Text(
+                    'تصفير العدّاد',
+                    style: TextStyle(fontFamily: kFont, color: AppColors.sub),
+                  ),
                 ),
               ),
             ],

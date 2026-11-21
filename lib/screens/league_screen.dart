@@ -32,7 +32,8 @@ class _LeagueScreenState extends State<LeagueScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Duration left = BingoStore.weekEnds(DateTime.now()).difference(DateTime.now().toUtc());
+    final Duration left = BingoStore.weekEnds(DateTime.now())
+        .difference(DateTime.now().toUtc());
     final String ends = left.inDays >= 1
         ? 'ينتهي الأسبوع بعد ${left.inDays} يوم'
         : 'ينتهي الأسبوع بعد ${left.inHours} ساعة';
@@ -44,9 +45,15 @@ class _LeagueScreenState extends State<LeagueScreen> {
           backgroundColor: AppColors.bg,
           title: const Text('دوري البينغو الأسبوعي'),
           bottom: const TabBar(
-            labelStyle: TextStyle(fontFamily: kFont, fontWeight: FontWeight.w700),
+            labelStyle: TextStyle(
+              fontFamily: kFont,
+              fontWeight: FontWeight.w700,
+            ),
             indicatorColor: AppColors.brandGreen,
-            tabs: <Widget>[Tab(text: 'أنا ومن أتابعهم'), Tab(text: 'الأفضل هذا الأسبوع')],
+            tabs: <Widget>[
+              Tab(text: 'أنا ومن أتابعهم'),
+              Tab(text: 'الأفضل هذا الأسبوع'),
+            ],
           ),
         ),
         body: !CloudAuth.I.signedIn
@@ -55,8 +62,10 @@ class _LeagueScreenState extends State<LeagueScreen> {
                   onPressed: () async {
                     if (await requireLogin(context)) _refresh();
                   },
-                  child: const Text('سجّل الدخول للانضمام للدوري',
-                      style: TextStyle(fontFamily: kFont)),
+                  child: const Text(
+                    'سجّل الدخول للانضمام للدوري',
+                    style: TextStyle(fontFamily: kFont),
+                  ),
                 ),
               )
             : Column(
@@ -74,16 +83,24 @@ class _LeagueScreenState extends State<LeagueScreen> {
                       builder: (BuildContext context, _) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('نقاطك هذا الأسبوع: ${BingoStore.I.score}',
-                              key: const Key('myLeagueScore'),
-                              style: const TextStyle(
-                                  fontFamily: kFont,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF07130D))),
-                          Text('$ends · هدف = 1 · بينغو = 3 · بطاقة كاملة = 5',
-                              style: const TextStyle(
-                                  fontFamily: kFont, fontSize: 12.5, color: Color(0xFF07130D))),
+                          Text(
+                            'نقاطك هذا الأسبوع: ${BingoStore.I.score}',
+                            key: const Key('myLeagueScore'),
+                            style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF07130D),
+                            ),
+                          ),
+                          Text(
+                            '$ends · هدف = 1 · بينغو = 3 · بطاقة كاملة = 5',
+                            style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 12.5,
+                              color: Color(0xFF07130D),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -91,9 +108,14 @@ class _LeagueScreenState extends State<LeagueScreen> {
                   Expanded(
                     child: TabBarView(
                       children: <Widget>[
-                        _list(_friends,
-                            empty: 'تابع أصدقاءك لتنافسهم هنا — كل متابَع يظهر في جدولك.'),
-                        _list(_top, empty: 'لا يوجد لاعبون هذا الأسبوع بعد — كن الأول!'),
+                        _list(
+                          _friends,
+                          empty: 'تابع أصدقاءك لتنافسهم هنا — كل متابَع يظهر في جدولك.',
+                        ),
+                        _list(
+                          _top,
+                          empty: 'لا يوجد لاعبون هذا الأسبوع بعد — كن الأول!',
+                        ),
                       ],
                     ),
                   ),
@@ -112,27 +134,45 @@ class _LeagueScreenState extends State<LeagueScreen> {
         future: f,
         builder: (BuildContext context, AsyncSnapshot<List<LeagueRow>> s) {
           if (s.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.brandGreen));
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.brandGreen),
+            );
           }
           if (s.hasError) {
-            return ListView(children: const <Widget>[
-              SizedBox(height: 120),
-              Center(
-                  child: Text('تعذّر تحميل الجدول — اسحب للتحديث.',
-                      style: TextStyle(fontFamily: kFont, color: AppColors.sub))),
-            ]);
+            return ListView(
+              children: const <Widget>[
+                SizedBox(height: 120),
+                Center(
+                  child: Text(
+                    'تعذّر تحميل الجدول — اسحب للتحديث.',
+                    style: TextStyle(fontFamily: kFont, color: AppColors.sub),
+                  ),
+                ),
+              ],
+            );
           }
           final List<LeagueRow> rows = s.data ?? const <LeagueRow>[];
-          if (rows.isEmpty || (rows.length == 1 && rows.first.uid == me && rows.first.score == 0)) {
-            return ListView(children: <Widget>[
-              const SizedBox(height: 120),
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(empty,
+          if (rows.isEmpty ||
+              (rows.length == 1 &&
+                  rows.first.uid == me &&
+                  rows.first.score == 0)) {
+            return ListView(
+              children: <Widget>[
+                const SizedBox(height: 120),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    empty,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontFamily: kFont, fontSize: 15, color: AppColors.sub)),
-              ),
-            ]);
+                    style: const TextStyle(
+                      fontFamily: kFont,
+                      fontSize: 15,
+                      color: AppColors.sub,
+                    ),
+                  ),
+                ),
+              ],
+            );
           }
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 30),
@@ -143,7 +183,9 @@ class _LeagueScreenState extends State<LeagueScreen> {
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 decoration: BoxDecoration(
-                  color: isMe ? AppColors.brandGreen.withValues(alpha: 0.12) : AppColors.surface,
+                  color: isMe
+                      ? AppColors.brandGreen.withValues(alpha: 0.12)
+                      : AppColors.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListTile(
@@ -154,29 +196,47 @@ class _LeagueScreenState extends State<LeagueScreen> {
                       children: <Widget>[
                         SizedBox(
                           width: 34,
-                          child: Text(i < 3 ? <String>['🥇', '🥈', '🥉'][i] : '${i + 1}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                  fontFamily: kFont, fontSize: 18, color: Colors.white)),
+                          child: Text(
+                            i < 3 ? <String>['🥇', '🥈', '🥉'][i] : '${i + 1}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 6),
                         UserAvatar(name: r.name, size: 40),
                       ],
                     ),
                   ),
-                  title: Text(isMe ? '${r.name} (أنت)' : r.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontFamily: kFont, fontWeight: FontWeight.w600, color: Colors.white)),
-                  subtitle: Text('${r.goals}/9 أهداف · ${r.lines} بينغو',
-                      style: const TextStyle(fontFamily: kFont, color: AppColors.sub)),
-                  trailing: Text('${r.score}',
-                      style: const TextStyle(
-                          fontFamily: kFont,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.brandGreen)),
+                  title: Text(
+                    isMe ? '${r.name} (أنت)' : r.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: kFont,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${r.goals}/9 أهداف · ${r.lines} بينغو',
+                    style: const TextStyle(
+                      fontFamily: kFont,
+                      color: AppColors.sub,
+                    ),
+                  ),
+                  trailing: Text(
+                    '${r.score}',
+                    style: const TextStyle(
+                      fontFamily: kFont,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.brandGreen,
+                    ),
+                  ),
                 ),
               );
             },

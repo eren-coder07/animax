@@ -323,16 +323,36 @@ class Social {
     return r is Map ? VideoClip.fromJson(id, r) : null;
   }
 
+  /// `orderBy child + limitToLast` query. When the database has no index for
+  /// [child] (rules not published yet → HTTP 400) the node is read whole and
+  /// ordered on the device instead.
+  static Future<dynamic> getOrdered(String path, String child, int limit) async {
+    try {
+      return await CloudDb.I.get(path, query: <String, String>{
+        'orderBy': '"$child"',
+        'limitToLast': '$limit',
+      });
+    } on CloudException catch (e) {
+      if (!e.message.contains('400') && e.code != '400') rethrow;
+    }
+    final dynamic all = await CloudDb.I.get(path);
+    if (all is! Map) return all;
+    final List<MapEntry<dynamic, dynamic>> rows = all.entries.toList()
+      ..sort((MapEntry<dynamic, dynamic> a, MapEntry<dynamic, dynamic> b) {
+        num n(dynamic v) => v is Map ? (v[child] as num? ?? 0) : 0;
+        return n(a.value).compareTo(n(b.value));
+      });
+    return Map<dynamic, dynamic>.fromEntries(
+        rows.length > limit ? rows.sublist(rows.length - limit) : rows);
+  }
+
   /// Item view counts for poster badges (one request, cached 2 min).
   static Map<String, int> _viewsByKey = <String, int>{};
   static DateTime _viewsAt = DateTime.fromMillisecondsSinceEpoch(0);
   static Future<Map<String, int>> allViews() async {
     if (DateTime.now().difference(_viewsAt).inMinutes < 2) return _viewsByKey;
     try {
-      final dynamic v = await CloudDb.I.get('items', query: <String, String>{
-        'orderBy': '"views"',
-        'limitToLast': '300',
-      });
+      final dynamic v = await getOrdered('items', 'views', 300);
       final Map<String, int> m = <String, int>{};
       if (v is Map) {
         v.forEach((dynamic k, dynamic it) {
@@ -759,10 +779,7 @@ class League {
   /// Top players of the week across Animax.
   static Future<List<LeagueRow>> top({int limit = 30}) async {
     final String w = BingoStore.weekId(DateTime.now());
-    final dynamic v = await CloudDb.I.get('league/$w', query: <String, String>{
-      'orderBy': '"score"',
-      'limitToLast': '$limit',
-    });
+    final dynamic v = await Social.getOrdered('league/$w', 'score', limit);
     final List<LeagueRow> out = <LeagueRow>[];
     if (v is Map) {
       v.forEach((dynamic id, dynamic r) {

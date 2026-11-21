@@ -22,17 +22,19 @@ Future<void> showPanelCropper(
 }) async {
   if (!await requireLogin(context)) return;
   if (!context.mounted) return;
-  await Navigator.of(context).push(MaterialPageRoute<void>(
-    builder: (_) => PanelCropScreen(
-      imageUrl: imageUrl,
-      mangaId: mangaId,
-      mangaTitle: mangaTitle,
-      cover: cover,
-      chapterId: chapterId,
-      chapterLabel: chapterLabel,
-      page: page,
+  await Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => PanelCropScreen(
+        imageUrl: imageUrl,
+        mangaId: mangaId,
+        mangaTitle: mangaTitle,
+        cover: cover,
+        chapterId: chapterId,
+        chapterLabel: chapterLabel,
+        page: page,
+      ),
     ),
-  ));
+  );
 }
 
 class PanelCropScreen extends StatefulWidget {
@@ -74,12 +76,16 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
   @override
   void initState() {
     super.initState();
-    final ImageStream st =
-        NetworkImage(widget.imageUrl).resolve(ImageConfiguration.empty);
+    final ImageStream st = NetworkImage(widget.imageUrl)
+        .resolve(ImageConfiguration.empty);
     _listener = ImageStreamListener((ImageInfo info, bool _) {
       if (mounted) {
-        setState(() => _img = Size(
-            info.image.width.toDouble(), info.image.height.toDouble()));
+        setState(
+          () => _img = Size(
+            info.image.width.toDouble(),
+            info.image.height.toDouble(),
+          ),
+        );
       }
     }, onError: (Object _, StackTrace? _) {});
     st.addListener(_listener!);
@@ -104,10 +110,11 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
 
   void _start(Offset p, Rect shown) {
     final Rect c = Rect.fromLTWH(
-        shown.left + _r.left * shown.width,
-        shown.top + _r.top * shown.height,
-        _r.width * shown.width,
-        _r.height * shown.height);
+      shown.left + _r.left * shown.width,
+      shown.top + _r.top * shown.height,
+      _r.width * shown.width,
+      _r.height * shown.height,
+    );
     const double grab = 36;
     if ((p - c.topLeft).distance < grab) {
       _drag = _Drag.tl;
@@ -156,32 +163,39 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
     setState(() => _busy = true);
     final VideoClip? replyTo = ClipReply.pending;
     try {
-      await Social.createClip(VideoClip(
-        title: widget.mangaTitle,
-        label: '${widget.chapterLabel} · صفحة ${widget.page + 1}',
-        poster: widget.cover,
-        kind: 'manga',
-        source: 'manga',
-        ref: Panels.refFor(
+      await Social.createClip(
+        VideoClip(
+          title: widget.mangaTitle,
+          label: '${widget.chapterLabel} · صفحة ${widget.page + 1}',
+          poster: widget.cover,
+          kind: 'manga',
+          source: 'manga',
+          ref: Panels.refFor(
             mangaId: widget.mangaId,
             chapterId: widget.chapterId,
             page: widget.page,
-            r: _r),
-        startMs: 0,
-        endMs: Panels.showMs,
-        replyTo: replyTo?.id ?? '',
-      ));
+            r: _r,
+          ),
+          startMs: 0,
+          endMs: Panels.showMs,
+          replyTo: replyTo?.id ?? '',
+        ),
+      );
       if (replyTo != null) ClipReply.pending = null;
       if (!mounted) return;
       final ScaffoldMessengerState m = ScaffoldMessenger.of(context);
       Navigator.pop(context);
-      m.showSnackBar(SnackBar(
-        persist: false,
-        duration: const Duration(seconds: 3),
-        content: const Text('تم نشر اللوحة ✂️'),
-        action: SnackBarAction(
-            label: 'عرض', onPressed: () => AppState.I.setTab(kClipsTab)),
-      ));
+      m.showSnackBar(
+        SnackBar(
+          persist: false,
+          duration: const Duration(seconds: 3),
+          content: const Text('تم نشر اللوحة ✂️'),
+          action: SnackBarAction(
+            label: 'عرض',
+            onPressed: () => AppState.I.setTab(kClipsTab),
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _busy = false);
@@ -207,7 +221,8 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2))
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : const Text('نشر', style: TextStyle(fontFamily: kFont)),
             ),
           ),
@@ -220,49 +235,68 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(8),
               color: AppColors.brandGreen.withValues(alpha: 0.14),
-              child: Text('ردًا على @${ClipReply.pending!.name}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontFamily: kFont, color: Colors.white)),
+              child: Text(
+                'ردًا على @${ClipReply.pending!.name}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontFamily: kFont, color: Colors.white),
+              ),
             ),
           const Padding(
             padding: EdgeInsets.all(10),
-            child: Text('اسحب الإطار أو زواياه لتحديد اللوحة التي تريد مشاركتها.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: kFont, fontSize: 13.5, color: AppColors.sub)),
+            child: Text(
+              'اسحب الإطار أو زواياه لتحديد اللوحة التي تريد مشاركتها.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: kFont,
+                fontSize: 13.5,
+                color: AppColors.sub,
+              ),
+            ),
           ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: LayoutBuilder(builder: (BuildContext ctx, BoxConstraints c) {
-                if (_img == null) {
-                  return const Center(
-                      child: CircularProgressIndicator(color: AppColors.brandGreen));
-                }
-                final Size box = Size(c.maxWidth, c.maxHeight);
-                final Rect shown = _imageRect(box);
-                final Rect crop = Rect.fromLTWH(
+              child: LayoutBuilder(
+                builder: (BuildContext ctx, BoxConstraints c) {
+                  if (_img == null) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.brandGreen,
+                      ),
+                    );
+                  }
+                  final Size box = Size(c.maxWidth, c.maxHeight);
+                  final Rect shown = _imageRect(box);
+                  final Rect crop = Rect.fromLTWH(
                     shown.left + _r.left * shown.width,
                     shown.top + _r.top * shown.height,
                     _r.width * shown.width,
-                    _r.height * shown.height);
-                return GestureDetector(
-                  key: const Key('panelCropArea'),
-                  onPanStart: (DragStartDetails d) => _start(d.localPosition, shown),
-                  onPanUpdate: (DragUpdateDetails d) => _update(d.delta, shown),
-                  onPanEnd: (_) => _drag = null,
-                  child: Stack(
-                    children: <Widget>[
-                      Positioned.fromRect(
-                        rect: shown,
-                        child: Image.network(widget.imageUrl, fit: BoxFit.fill),
-                      ),
-                      Positioned.fill(
-                        child: CustomPaint(painter: _CropPainter(crop)),
-                      ),
-                    ],
-                  ),
-                );
-              }),
+                    _r.height * shown.height,
+                  );
+                  return GestureDetector(
+                    key: const Key('panelCropArea'),
+                    onPanStart: (DragStartDetails d) =>
+                        _start(d.localPosition, shown),
+                    onPanUpdate: (DragUpdateDetails d) =>
+                        _update(d.delta, shown),
+                    onPanEnd: (_) => _drag = null,
+                    child: Stack(
+                      children: <Widget>[
+                        Positioned.fromRect(
+                          rect: shown,
+                          child: Image.network(
+                            widget.imageUrl,
+                            fit: BoxFit.fill,
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: CustomPaint(painter: _CropPainter(crop)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           SafeArea(
@@ -272,19 +306,25 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
               child: Row(
                 children: <Widget>[
                   SizedBox(
-                      width: 34,
-                      height: 48,
-                      child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: NetImage(widget.cover))),
+                    width: 34,
+                    height: 48,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: NetImage(widget.cover),
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                        '${widget.mangaTitle}\n${widget.chapterLabel} · صفحة ${widget.page + 1}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontFamily: kFont, fontSize: 13, color: Colors.white70)),
+                      '${widget.mangaTitle}\n${widget.chapterLabel} · صفحة ${widget.page + 1}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: kFont,
+                        fontSize: 13,
+                        color: Colors.white70,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -308,14 +348,18 @@ class _CropPainter extends CustomPainter {
       ..addRect(crop);
     canvas.drawPath(dim, Paint()..color = const Color(0xAA000000));
     canvas.drawRect(
-        crop,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2
-          ..color = AppColors.brandGreen);
+      crop,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = AppColors.brandGreen,
+    );
     final Paint h = Paint()..color = AppColors.brandGreen;
     for (final Offset o in <Offset>[
-      crop.topLeft, crop.topRight, crop.bottomLeft, crop.bottomRight
+      crop.topLeft,
+      crop.topRight,
+      crop.bottomLeft,
+      crop.bottomRight,
     ]) {
       canvas.drawCircle(o, 9, h);
     }
@@ -328,8 +372,12 @@ class _CropPainter extends CustomPainter {
 /// A manga panel inside the Clips feed: the cropped region of the page,
 /// scaled to fit, with a slow zoom ("Ken Burns") while it is on screen.
 class PanelClipView extends StatefulWidget {
-  const PanelClipView(
-      {super.key, required this.clip, required this.playing, this.onTick});
+  const PanelClipView({
+    super.key,
+    required this.clip,
+    required this.playing,
+    this.onTick,
+  });
   final VideoClip clip;
   final bool playing;
 
@@ -343,7 +391,9 @@ class PanelClipView extends StatefulWidget {
 class PanelClipViewState extends State<PanelClipView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _a = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: Panels.showMs));
+    vsync: this,
+    duration: const Duration(milliseconds: Panels.showMs),
+  );
   String? _url;
   String? _error;
 
@@ -357,15 +407,19 @@ class PanelClipViewState extends State<PanelClipView>
       if (mounted) setState(() {});
       widget.onTick?.call();
     });
-    Panels.pageUrl(widget.clip.ref['chapterId'] ?? '',
-            int.tryParse(widget.clip.ref['page'] ?? '') ?? 0)
+    Panels.pageUrl(
+          widget.clip.ref['chapterId'] ?? '',
+          int.tryParse(widget.clip.ref['page'] ?? '') ?? 0,
+        )
         .then((String u) {
-      if (!mounted) return;
-      setState(() => _url = u);
-      if (widget.playing) _a.repeat();
-    }).catchError((Object _) {
-      if (mounted) setState(() => _error = 'تعذّر تحميل اللوحة من MangaDex حاليًا.');
-    });
+          if (!mounted) return;
+          setState(() => _url = u);
+          if (widget.playing) _a.repeat();
+        })
+        .catchError((Object _) {
+          if (mounted)
+            setState(() => _error = 'تعذّر تحميل اللوحة من MangaDex حاليًا.');
+        });
   }
 
   @override
@@ -391,11 +445,16 @@ class PanelClipViewState extends State<PanelClipView>
   Widget build(BuildContext context) {
     if (_error != null) {
       return Center(
-          child: Text(_error!,
-              style: const TextStyle(fontFamily: kFont, color: Colors.white)));
+        child: Text(
+          _error!,
+          style: const TextStyle(fontFamily: kFont, color: Colors.white),
+        ),
+      );
     }
     if (_url == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.brandGreen));
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.brandGreen),
+      );
     }
     final Rect r = Panels.rectOf(widget.clip.ref);
     // Align(widthFactor/heightFactor) keeps only the crop of the page; the
@@ -415,9 +474,14 @@ class PanelClipViewState extends State<PanelClipView>
                 alignment: Alignment(ax, ay),
                 widthFactor: r.width,
                 heightFactor: r.height,
-                child: Image.network(_url!,
-                    errorBuilder: (_, _, _) => const Icon(Icons.broken_image_rounded,
-                        color: Colors.white24, size: 64)),
+                child: Image.network(
+                  _url!,
+                  errorBuilder: (_, _, _) => const Icon(
+                    Icons.broken_image_rounded,
+                    color: Colors.white24,
+                    size: 64,
+                  ),
+                ),
               ),
             ),
           ),
@@ -430,14 +494,25 @@ class PanelClipViewState extends State<PanelClipView>
 /// Shares a panel clip as a real PNG of the cropped panel.
 Future<void> sharePanelImage(BuildContext context, VideoClip clip) async {
   final ScaffoldMessengerState m = ScaffoldMessenger.of(context);
-  m.showSnackBar(const SnackBar(
-      persist: false, duration: Duration(seconds: 2), content: Text('جارٍ تجهيز اللوحة…')));
+  m.showSnackBar(
+    const SnackBar(
+      persist: false,
+      duration: Duration(seconds: 2),
+      content: Text('جارٍ تجهيز اللوحة…'),
+    ),
+  );
   try {
     final List<int> png = await Panels.panelPng(clip);
-    final DownloadItem it = await DownloadManager.I.saveImageFile(png,
-        title: clip.title, subtitle: clip.label, poster: clip.poster);
+    final DownloadItem it = await DownloadManager.I.saveImageFile(
+      png,
+      title: clip.title,
+      subtitle: clip.label,
+      poster: clip.poster,
+    );
     await DownloadManager.I.shareFile(it);
   } catch (_) {
-    m.showSnackBar(const SnackBar(content: Text('تعذّر تجهيز اللوحة — حاول مرة أخرى.')));
+    m.showSnackBar(
+      const SnackBar(content: Text('تعذّر تجهيز اللوحة — حاول مرة أخرى.')),
+    );
   }
 }

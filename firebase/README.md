@@ -35,3 +35,10 @@ shared. `storage.rules` is ready for when you move to Blaze.
 A test account `animax.probe.<number>@gmail.com` (UID starting `rYjp4X`)
 was left from the first connectivity check — delete it in
 Console → Authentication → Users.
+
+## v2.4 update — publish the rules again
+
+v2.4 adds `moments`, `tcomments`, `clipReplies` and `league` (plus an index
+on `league/{week}/score`). Paste the new `database.rules.json` into
+Console → Realtime Database → Rules → **Publish** again. Until then the app
+still works (it sorts on the device when an index is missing).

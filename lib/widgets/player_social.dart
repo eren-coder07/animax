@@ -19,7 +19,7 @@ class HeatStrip extends StatelessWidget {
     required this.social,
     required this.duration,
     required this.onSeek,
-    this.height = 12,
+    this.height = 14,
   });
 
   final EpisodeSocial? social;
@@ -42,8 +42,13 @@ class HeatStrip extends StatelessWidget {
             key: const Key('heatStrip'),
             behavior: HitTestBehavior.opaque,
             onTapUp: (TapUpDetails d) {
-              final double f = (d.localPosition.dx / c.maxWidth).clamp(0.0, 1.0);
-              onSeek(Duration(milliseconds: (f * duration.inMilliseconds).round()));
+              final double f = (d.localPosition.dx / c.maxWidth).clamp(
+                0.0,
+                1.0,
+              );
+              onSeek(
+                Duration(milliseconds: (f * duration.inMilliseconds).round()),
+              );
             },
             child: SizedBox(
               height: height,
@@ -69,12 +74,16 @@ class _HeatPainter extends CustomPainter {
       if (v <= 0.02) continue;
       final double h = math.max(2, size.height * v);
       final Paint p = Paint()
-        ..color = Color.lerp(const Color(0xFFFFC14D), const Color(0xFFFF3D3D), v)!
-            .withValues(alpha: 0.35 + 0.6 * v);
+        ..color = Color.lerp(
+          const Color(0xFFFFC14D),
+          const Color(0xFFFF3D3D),
+          v,
+        )!.withValues(alpha: 0.35 + 0.6 * v);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-            Rect.fromLTWH(i * w + 0.5, size.height - h, w - 1, h),
-            const Radius.circular(1.5)),
+          Rect.fromLTWH(i * w + 0.5, size.height - h, w - 1, h),
+          const Radius.circular(1.5),
+        ),
         p,
       );
     }
@@ -87,7 +96,11 @@ class _HeatPainter extends CustomPainter {
 /// Danmaku-style layer: comments pinned to a second of the episode fly
 /// across the video when playback reaches them. Ignores touches.
 class TimedCommentsLayer extends StatefulWidget {
-  const TimedCommentsLayer({super.key, required this.social, required this.controller});
+  const TimedCommentsLayer({
+    super.key,
+    required this.social,
+    required this.controller,
+  });
   final EpisodeSocial? social;
   final VideoPlayerController? controller;
 
@@ -120,7 +133,8 @@ class _TimedCommentsLayerState extends State<TimedCommentsLayer>
     }
     double est = p.inMilliseconds / 1000;
     if (c.value.isPlaying) {
-      est += math.min(1.0, now.difference(_lastAt).inMilliseconds / 1000) *
+      est +=
+          math.min(1.0, now.difference(_lastAt).inMilliseconds / 1000) *
           c.value.playbackSpeed;
     }
     if ((est - _pos).abs() > 0.015 && mounted) setState(() => _pos = est);
@@ -139,17 +153,22 @@ class _TimedCommentsLayerState extends State<TimedCommentsLayer>
     final List<TimedComment> active = s.activeAt(_pos, window: _fly);
     if (active.isEmpty) return const SizedBox.shrink();
     return IgnorePointer(
-      child: LayoutBuilder(builder: (BuildContext context, BoxConstraints c) {
-        final double laneH = 30;
-        final int lanes = math.max(1, math.min(5, (c.maxHeight * 0.45 / laneH).floor()));
-        return Stack(
-          clipBehavior: Clip.hardEdge,
-          children: <Widget>[
-            for (int i = 0; i < active.length; i++)
-              _flyer(active[i], c.maxWidth, (i % lanes) * laneH + 54),
-          ],
-        );
-      }),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints c) {
+          final double laneH = 30;
+          final int lanes = math.max(
+            1,
+            math.min(5, (c.maxHeight * 0.45 / laneH).floor()),
+          );
+          return Stack(
+            clipBehavior: Clip.hardEdge,
+            children: <Widget>[
+              for (int i = 0; i < active.length; i++)
+                _flyer(active[i], c.maxWidth, (i % lanes) * laneH + 54),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -167,19 +186,26 @@ class _TimedCommentsLayerState extends State<TimedCommentsLayer>
             borderRadius: BorderRadius.circular(14),
           ),
           child: Text.rich(
-            TextSpan(children: <InlineSpan>[
-              TextSpan(
+            TextSpan(
+              children: <InlineSpan>[
+                TextSpan(
                   text: '${tc.name.isEmpty ? 'مستخدم' : tc.name}: ',
-                  style: const TextStyle(color: AppColors.brandGreen, fontWeight: FontWeight.w700)),
-              TextSpan(text: tc.text),
-            ]),
+                  style: const TextStyle(
+                    color: AppColors.brandGreen,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                TextSpan(text: tc.text),
+              ],
+            ),
             textDirection: TextDirection.rtl,
             maxLines: 1,
             style: const TextStyle(
-                fontFamily: kFont,
-                fontSize: 14,
-                color: Colors.white,
-                shadows: <Shadow>[Shadow(blurRadius: 3, color: Colors.black)]),
+              fontFamily: kFont,
+              fontSize: 14,
+              color: Colors.white,
+              shadows: <Shadow>[Shadow(blurRadius: 3, color: Colors.black)],
+            ),
           ),
         ),
       ),
@@ -208,8 +234,11 @@ class MomentsMenuButton extends StatelessWidget {
     return IconButton(
       key: const Key('momentsMenu'),
       tooltip: 'لحظات الحلقة',
-      icon: Icon(Icons.local_fire_department_rounded,
-          color: Colors.white, size: iconSize),
+      icon: Icon(
+        Icons.local_fire_department_rounded,
+        color: Colors.white,
+        size: iconSize,
+      ),
       onPressed: social == null ? null : () => _open(context),
     );
   }
@@ -230,11 +259,26 @@ class MomentsMenuButton extends StatelessWidget {
             children: <Widget>[
               const SizedBox(height: 8),
               ListTile(
-                leading: const Icon(Icons.local_fire_department_rounded, color: Color(0xFFFF7A45)),
-                title: Text(peak == null ? 'لا توجد لحظات رائجة بعد' : 'اقفز لأبرز لحظة (${_fmt(peak)})',
-                    style: const TextStyle(fontFamily: kFont, color: Colors.white)),
-                subtitle: Text('${s.moments.length} مقطع من هذه الحلقة',
-                    style: const TextStyle(fontFamily: kFont, color: AppColors.sub)),
+                leading: const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Color(0xFFFF7A45),
+                ),
+                title: Text(
+                  peak == null
+                      ? 'لا توجد لحظات رائجة بعد'
+                      : 'اقفز لأبرز لحظة (${_fmt(peak)})',
+                  style: const TextStyle(
+                    fontFamily: kFont,
+                    color: Colors.white,
+                  ),
+                ),
+                subtitle: Text(
+                  '${s.moments.length} مقطع من هذه الحلقة',
+                  style: const TextStyle(
+                    fontFamily: kFont,
+                    color: AppColors.sub,
+                  ),
+                ),
                 enabled: peak != null,
                 onTap: () => Navigator.pop(ctx, 'peak'),
               ),
@@ -244,21 +288,42 @@ class MomentsMenuButton extends StatelessWidget {
                   AppPrefs.I.set('timedComments', v);
                   Navigator.pop(ctx);
                 },
-                secondary: const Icon(Icons.subtitles_rounded, color: Colors.white),
-                title: const Text('تعليقات اللحظة على الفيديو',
-                    style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                secondary: const Icon(
+                  Icons.subtitles_rounded,
+                  color: Colors.white,
+                ),
+                title: const Text(
+                  'تعليقات اللحظة على الفيديو',
+                  style: TextStyle(fontFamily: kFont, color: Colors.white),
+                ),
               ),
               ListTile(
                 key: const Key('writeTimedComment'),
-                leading: const Icon(Icons.add_comment_rounded, color: Colors.white),
-                title: Text('علّق عند ${_fmt(c?.value.position.inSeconds ?? 0)}',
-                    style: const TextStyle(fontFamily: kFont, color: Colors.white)),
+                leading: const Icon(
+                  Icons.add_comment_rounded,
+                  color: Colors.white,
+                ),
+                title: Text(
+                  'علّق عند ${_fmt(c?.value.position.inSeconds ?? 0)}',
+                  style: const TextStyle(
+                    fontFamily: kFont,
+                    color: Colors.white,
+                  ),
+                ),
                 onTap: () => Navigator.pop(ctx, 'write'),
               ),
               ListTile(
-                leading: const Icon(Icons.format_list_bulleted_rounded, color: Colors.white),
-                title: Text('كل تعليقات الحلقة (${s.comments.length})',
-                    style: const TextStyle(fontFamily: kFont, color: Colors.white)),
+                leading: const Icon(
+                  Icons.format_list_bulleted_rounded,
+                  color: Colors.white,
+                ),
+                title: Text(
+                  'كل تعليقات الحلقة (${s.comments.length})',
+                  style: const TextStyle(
+                    fontFamily: kFont,
+                    color: Colors.white,
+                  ),
+                ),
                 onTap: () => Navigator.pop(ctx, 'list'),
               ),
               const SizedBox(height: 8),
@@ -289,34 +354,59 @@ class MomentsMenuButton extends StatelessWidget {
           height: MediaQuery.of(ctx).size.height * 0.6,
           child: s.comments.isEmpty
               ? const Center(
-                  child: Text('لا توجد تعليقات لحظية بعد — كن الأول!',
-                      style: TextStyle(fontFamily: kFont, color: AppColors.sub)))
+                  child: Text(
+                    'لا توجد تعليقات لحظية بعد — كن الأول!',
+                    style: TextStyle(fontFamily: kFont, color: AppColors.sub),
+                  ),
+                )
               : ListView(
                   children: <Widget>[
                     for (final TimedComment tc in s.comments)
                       ListTile(
                         onTap: () => Navigator.pop(ctx, tc.t),
                         leading: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                              color: AppColors.brandGreen.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8)),
-                          child: Text(_fmt(tc.t),
-                              textDirection: TextDirection.ltr,
-                              style: const TextStyle(
-                                  fontFamily: kFont, color: AppColors.brandGreen)),
+                            color: AppColors.brandGreen.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _fmt(tc.t),
+                            textDirection: TextDirection.ltr,
+                            style: const TextStyle(
+                              fontFamily: kFont,
+                              color: AppColors.brandGreen,
+                            ),
+                          ),
                         ),
-                        title: Text(tc.text,
-                            style: const TextStyle(fontFamily: kFont, color: Colors.white)),
-                        subtitle: Text(tc.name,
-                            style: const TextStyle(fontFamily: kFont, color: AppColors.sub)),
+                        title: Text(
+                          tc.text,
+                          style: const TextStyle(
+                            fontFamily: kFont,
+                            color: Colors.white,
+                          ),
+                        ),
+                        subtitle: Text(
+                          tc.name,
+                          style: const TextStyle(
+                            fontFamily: kFont,
+                            color: AppColors.sub,
+                          ),
+                        ),
                         trailing: tc.uid == CloudAuth.I.user?.uid
                             ? IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, color: AppColors.sub),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: AppColors.sub,
+                                ),
                                 onPressed: () {
                                   s.delete(tc);
                                   Navigator.pop(ctx);
-                                })
+                                },
+                              )
                             : null,
                       ),
                   ],
@@ -330,7 +420,10 @@ class MomentsMenuButton extends StatelessWidget {
 
 /// Composer for a comment pinned to the controller's current second.
 Future<void> writeTimedComment(
-    BuildContext context, EpisodeSocial s, VideoPlayerController? c) async {
+  BuildContext context,
+  EpisodeSocial s,
+  VideoPlayerController? c,
+) async {
   if (!await requireLogin(context)) return;
   if (!context.mounted) return;
   final int t = c?.value.position.inSeconds ?? 0;
@@ -345,17 +438,34 @@ Future<void> writeTimedComment(
     builder: (BuildContext ctx) => Directionality(
       textDirection: TextDirection.rtl,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('تعليق عند ${_fmt(t)}',
-                style: const TextStyle(
-                    fontFamily: kFont, fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+            Text(
+              'تعليق عند ${_fmt(t)}',
+              style: const TextStyle(
+                fontFamily: kFont,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 4),
-            const Text('سيظهر لكل من يشاهد الحلقة عند هذه الثانية بالضبط.',
-                style: TextStyle(fontFamily: kFont, fontSize: 12.5, color: AppColors.sub)),
+            const Text(
+              'سيظهر لكل من يشاهد الحلقة عند هذه الثانية بالضبط.',
+              style: TextStyle(
+                fontFamily: kFont,
+                fontSize: 12.5,
+                color: AppColors.sub,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               key: const Key('timedCommentField'),
@@ -385,7 +495,8 @@ Future<void> writeTimedComment(
       if (!AppPrefs.I.timedComments) AppPrefs.I.set('timedComments', true);
     } on CloudException catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
       }
     }
   }

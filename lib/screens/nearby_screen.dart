@@ -8,15 +8,19 @@ import '../widgets/mb_ui.dart' show kFont, NetImage;
 /// Sends a finished download to a nearby phone — no internet needed.
 Future<void> openNearbySend(BuildContext context, DownloadItem item) {
   NearbyShare.I.send(item);
-  return Navigator.of(context).push(MaterialPageRoute<void>(
-      builder: (_) => NearbyScreen(sending: true, item: item)));
+  return Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => NearbyScreen(sending: true, item: item),
+    ),
+  );
 }
 
 /// Receives a file from a nearby phone.
 Future<void> openNearbyReceive(BuildContext context) {
   NearbyShare.I.receive();
   return Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const NearbyScreen(sending: false)));
+    MaterialPageRoute<void>(builder: (_) => const NearbyScreen(sending: false)),
+  );
 }
 
 class NearbyScreen extends StatefulWidget {
@@ -46,7 +50,9 @@ class _NearbyScreenState extends State<NearbyScreen> {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        title: Text(widget.sending ? 'إرسال لجهاز قريب' : 'استلام من جهاز قريب'),
+        title: Text(
+          widget.sending ? 'إرسال لجهاز قريب' : 'استلام من جهاز قريب',
+        ),
       ),
       body: ListenableBuilder(
         listenable: NearbyShare.I,
@@ -59,21 +65,25 @@ class _NearbyScreenState extends State<NearbyScreen> {
               const SizedBox(height: 18),
               if (n.phase == NearbyPhase.confirm) _confirm(n),
               if (n.phase == NearbyPhase.waiting && !widget.sending) _peers(n),
-              if (n.phase == NearbyPhase.transferring || n.phase == NearbyPhase.done)
+              if (n.phase == NearbyPhase.transferring ||
+                  n.phase == NearbyPhase.done)
                 _progress(n),
               if (n.message.isNotEmpty && n.phase != NearbyPhase.confirm)
                 Padding(
                   padding: const EdgeInsets.only(top: 14),
-                  child: Text(n.message,
-                      key: const Key('nearbyMessage'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontFamily: kFont,
-                          fontSize: 14.5,
-                          height: 1.6,
-                          color: n.phase == NearbyPhase.error
-                              ? const Color(0xFFFF6B6B)
-                              : AppColors.sub)),
+                  child: Text(
+                    n.message,
+                    key: const Key('nearbyMessage'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: kFont,
+                      fontSize: 14.5,
+                      height: 1.6,
+                      color: n.phase == NearbyPhase.error
+                          ? const Color(0xFFFF6B6B)
+                          : AppColors.sub,
+                    ),
+                  ),
                 ),
               if (n.phase == NearbyPhase.error)
                 Padding(
@@ -82,7 +92,10 @@ class _NearbyScreenState extends State<NearbyScreen> {
                     onPressed: () => widget.sending && widget.item != null
                         ? n.send(widget.item!)
                         : n.receive(),
-                    child: const Text('حاول مجددًا', style: TextStyle(fontFamily: kFont)),
+                    child: const Text(
+                      'حاول مجددًا',
+                      style: TextStyle(fontFamily: kFont),
+                    ),
                   ),
                 ),
               if (n.phase == NearbyPhase.done)
@@ -90,7 +103,10 @@ class _NearbyScreenState extends State<NearbyScreen> {
                   padding: const EdgeInsets.only(top: 16),
                   child: FilledButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('تم', style: TextStyle(fontFamily: kFont)),
+                    child: const Text(
+                      'تم',
+                      style: TextStyle(fontFamily: kFont),
+                    ),
                   ),
                 ),
               const SizedBox(height: 26),
@@ -109,9 +125,15 @@ class _NearbyScreenState extends State<NearbyScreen> {
         Container(
           width: 64,
           height: 64,
-          decoration: const BoxDecoration(gradient: AppColors.brandGrad, shape: BoxShape.circle),
-          child: Icon(widget.sending ? Icons.wifi_tethering_rounded : Icons.radar_rounded,
-              color: const Color(0xFF07130D), size: 34),
+          decoration: const BoxDecoration(
+            gradient: AppColors.brandGrad,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            widget.sending ? Icons.wifi_tethering_rounded : Icons.radar_rounded,
+            color: const Color(0xFF07130D),
+            size: 34,
+          ),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -119,28 +141,39 @@ class _NearbyScreenState extends State<NearbyScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                  widget.sending
-                      ? (it?.title ?? '')
-                      : (n.fileTitle.isEmpty ? 'بانتظار ملف' : n.fileTitle),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontFamily: kFont,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white)),
+                widget.sending
+                    ? (it?.title ?? '')
+                    : (n.fileTitle.isEmpty ? 'بانتظار ملف' : n.fileTitle),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: kFont,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
               const SizedBox(height: 4),
-              const Text('بدون إنترنت — عبر البلوتوث و Wi-Fi المباشر',
-                  style: TextStyle(fontFamily: kFont, fontSize: 12.5, color: AppColors.sub)),
+              const Text(
+                'بدون إنترنت — عبر البلوتوث و Wi-Fi المباشر',
+                style: TextStyle(
+                  fontFamily: kFont,
+                  fontSize: 12.5,
+                  color: AppColors.sub,
+                ),
+              ),
             ],
           ),
         ),
         if (it != null && it.poster.isNotEmpty)
           SizedBox(
-              width: 46,
-              height: 64,
-              child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6), child: NetImage(it.poster))),
+            width: 46,
+            height: 64,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: NetImage(it.poster),
+            ),
+          ),
       ],
     );
   }
@@ -157,18 +190,34 @@ class _NearbyScreenState extends State<NearbyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const Text('أجهزة قريبة ترسل الآن — اختر جهاز صديقك:',
-            style: TextStyle(fontFamily: kFont, fontSize: 14, color: Colors.white)),
+        const Text(
+          'أجهزة قريبة ترسل الآن — اختر جهاز صديقك:',
+          style: TextStyle(
+            fontFamily: kFont,
+            fontSize: 14,
+            color: Colors.white,
+          ),
+        ),
         const SizedBox(height: 8),
         for (final NearbyPeer p in n.peers)
           Card(
             color: AppColors.surface,
             child: ListTile(
-              leading: const Icon(Icons.smartphone_rounded, color: AppColors.brandGreen),
-              title: Text(p.name,
-                  style: const TextStyle(fontFamily: kFont, color: Colors.white)),
-              trailing: const Text('استلام',
-                  style: TextStyle(fontFamily: kFont, color: AppColors.brandGreen)),
+              leading: const Icon(
+                Icons.smartphone_rounded,
+                color: AppColors.brandGreen,
+              ),
+              title: Text(
+                p.name,
+                style: const TextStyle(fontFamily: kFont, color: Colors.white),
+              ),
+              trailing: const Text(
+                'استلام',
+                style: TextStyle(
+                  fontFamily: kFont,
+                  color: AppColors.brandGreen,
+                ),
+              ),
               onTap: () => n.connect(p),
             ),
           ),
@@ -186,29 +235,46 @@ class _NearbyScreenState extends State<NearbyScreen> {
       ),
       child: Column(
         children: <Widget>[
-          Text('الاتصال بـ ${n.pendingName}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontFamily: kFont, fontSize: 15, color: Colors.white)),
+          Text(
+            'الاتصال بـ ${n.pendingName}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: kFont,
+              fontSize: 15,
+              color: Colors.white,
+            ),
+          ),
           const SizedBox(height: 10),
-          const Text('تأكد أن هذا الرمز ظاهر على الجهازين:',
-              style: TextStyle(fontFamily: kFont, fontSize: 13, color: AppColors.sub)),
+          const Text(
+            'تأكد أن هذا الرمز ظاهر على الجهازين:',
+            style: TextStyle(
+              fontFamily: kFont,
+              fontSize: 13,
+              color: AppColors.sub,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(n.code,
-              textDirection: TextDirection.ltr,
-              style: const TextStyle(
-                  fontFamily: kFont,
-                  fontSize: 38,
-                  letterSpacing: 8,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.brandGreen)),
+          Text(
+            n.code,
+            textDirection: TextDirection.ltr,
+            style: const TextStyle(
+              fontFamily: kFont,
+              fontSize: 38,
+              letterSpacing: 8,
+              fontWeight: FontWeight.w800,
+              color: AppColors.brandGreen,
+            ),
+          ),
           const SizedBox(height: 14),
           Row(
             children: <Widget>[
               Expanded(
                 child: OutlinedButton(
                   onPressed: n.reject,
-                  child: const Text('رفض',
-                      style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                  child: const Text(
+                    'رفض',
+                    style: TextStyle(fontFamily: kFont, color: Colors.white),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -216,7 +282,10 @@ class _NearbyScreenState extends State<NearbyScreen> {
                 child: FilledButton(
                   key: const Key('nearbyAccept'),
                   onPressed: n.accept,
-                  child: const Text('قبول', style: TextStyle(fontFamily: kFont)),
+                  child: const Text(
+                    'قبول',
+                    style: TextStyle(fontFamily: kFont),
+                  ),
                 ),
               ),
             ],
@@ -239,8 +308,10 @@ class _NearbyScreenState extends State<NearbyScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(n.total > 0 ? '${_mb(n.bytes)} / ${_mb(n.total)}' : '',
-            style: const TextStyle(fontFamily: kFont, color: AppColors.sub)),
+        Text(
+          n.total > 0 ? '${_mb(n.bytes)} / ${_mb(n.total)}' : '',
+          style: const TextStyle(fontFamily: kFont, color: AppColors.sub),
+        ),
       ],
     );
   }
@@ -251,7 +322,12 @@ class _Tips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const TextStyle t = TextStyle(fontFamily: kFont, fontSize: 13, height: 1.7, color: AppColors.muted);
+    const TextStyle t = TextStyle(
+      fontFamily: kFont,
+      fontSize: 13,
+      height: 1.7,
+      color: AppColors.muted,
+    );
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -261,12 +337,31 @@ class _Tips extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('كيف يعمل؟', style: TextStyle(fontFamily: kFont, fontSize: 14.5, color: Colors.white)),
+          Text(
+            'كيف يعمل؟',
+            style: TextStyle(
+              fontFamily: kFont,
+              fontSize: 14.5,
+              color: Colors.white,
+            ),
+          ),
           SizedBox(height: 6),
-          Text('١. المرسل: التحميلات ← ⋮ ← «إرسال لجهاز قريب».', style: t),
-          Text('٢. المستلم: التحميلات ← «استلام من جهاز قريب» ثم يختار جهاز المرسل.', style: t),
-          Text('٣. تأكدا أن الرمز نفسه ظاهر على الجهازين واضغطا «قبول».', style: t),
-          Text('شغّل البلوتوث وابقِ الجهازين قريبين. يعمل بدون إنترنت ولا يستهلك باقتك.', style: t),
+          Text(
+            '١. المرسل: التحميلات ← قائمة الملف ← «إرسال لجهاز قريب».',
+            style: t,
+          ),
+          Text(
+            '٢. المستلم: التحميلات ← «استلام من جهاز قريب» ثم يختار جهاز المرسل.',
+            style: t,
+          ),
+          Text(
+            '٣. تأكدا أن الرمز نفسه ظاهر على الجهازين واضغطا «قبول».',
+            style: t,
+          ),
+          Text(
+            'شغّل البلوتوث وابقِ الجهازين قريبين. يعمل بدون إنترنت ولا يستهلك باقتك.',
+            style: t,
+          ),
         ],
       ),
     );

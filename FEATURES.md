@@ -1,4 +1,4 @@
-# Animax (أنيماكس) v2.3.0 — Features
+# Animax (أنيماكس) v2.4.0 — Features
 
 Arabic-first streaming app: right-to-left UI in Arabic (IBM Plex Sans
 Arabic), Akwam as the home screen.
@@ -36,6 +36,31 @@ Arabic), Akwam as the home screen.
   marathon); rows / columns / diagonals count as BINGO; new rounds.
 - Marathon mode: next episode after a 5 s cancellable countdown, intros
   skipped, streak counter.
+
+## Watch together (v2.4)
+- **Hot moments**: the seek bar glows where the community clipped the most;
+  tap the strip or "jump to the top moment" (Akwam, anime, +18 players).
+- **Timed comments**: comments pinned to a second of the episode fly across
+  the video when playback reaches it; write one at the current second, list
+  all of them and jump to any.
+- **Spoiler shield**: clips from episodes past your progress are blurred
+  until revealed; comments can be marked as spoilers.
+- **Clip replies**: answer a clip with a new clip (or one of yours) — reply
+  chains with "in reply to" links.
+- **Manga panel clips**: crop a panel in the reader and post it to Clips;
+  shared as a real PNG.
+- **Weekly Bingo league**: the card resets every Monday; points (goal 1,
+  bingo 3, full card 5) ranked against the people you follow and globally.
+
+## Data & offline
+- **Sound only**: audio rendition / lowest quality, keeps playing with the
+  screen off (media notification).
+- **Monthly mobile-data budget**: counts the app's cellular traffic; at 80 %
+  switches to low-data mode, at 100 % asks before streaming and holds
+  downloads for Wi-Fi.
+- **Phone-to-phone without internet**: send any download to a nearby phone
+  over Google Nearby Connections (Bluetooth + Wi-Fi Direct), confirmed with
+  a 4-digit code; received files land in Downloads.
 
 ## Slow internet
 - Automatic low-data mode on slow connections: small covers, lowest video
@@ -86,5 +111,5 @@ Arabic), Akwam as the home screen.
   Windows.
 
 ## Platforms
-- Android: universal APK (32/64-bit ARM + x86_64).
+- Android: 32-bit ARM APK (armeabi-v7a) sent to Telegram; universal build available.
 - Windows: installer + portable zip (GitHub Actions).

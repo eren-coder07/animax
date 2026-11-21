@@ -6,7 +6,15 @@ import 'package:flutter/services.dart';
 import 'cloud.dart';
 import 'download_manager.dart';
 
-enum NearbyPhase { idle, waiting, confirm, connecting, transferring, done, error }
+enum NearbyPhase {
+  idle,
+  waiting,
+  confirm,
+  connecting,
+  transferring,
+  done,
+  error,
+}
 
 class NearbyPeer {
   const NearbyPeer(this.id, this.name);
@@ -72,12 +80,17 @@ class NearbyShare extends ChangeNotifier {
     try {
       final bool ok = await _ch.invokeMethod<bool>('permissions') ?? false;
       if (!ok) {
-        _set(NearbyPhase.error,
-            msg: 'يلزم السماح بأذونات «الأجهزة القريبة» (والموقع في الإصدارات الأقدم) للإرسال بدون إنترنت.');
+        _set(
+          NearbyPhase.error,
+          msg: 'يلزم السماح بأذونات «الأجهزة القريبة» (والموقع في الإصدارات الأقدم) للإرسال بدون إنترنت.',
+        );
       }
       return ok;
     } on MissingPluginException {
-      _set(NearbyPhase.error, msg: 'الإرسال للأجهزة القريبة متاح على أندرويد فقط.');
+      _set(
+        NearbyPhase.error,
+        msg: 'الإرسال للأجهزة القريبة متاح على أندرويد فقط.',
+      );
       return false;
     } catch (e) {
       _set(NearbyPhase.error, msg: e.toString());
@@ -100,8 +113,8 @@ class NearbyShare extends ChangeNotifier {
       final String ext = item.mime == 'application/pdf'
           ? 'pdf'
           : item.mime.startsWith('image/')
-              ? 'png'
-              : 'mp4';
+          ? 'png'
+          : 'mp4';
       await _ch.invokeMethod<bool>('send', <String, dynamic>{
         'name': '$_myName · ${item.title}',
         'uri': item.resultUri,
@@ -115,8 +128,10 @@ class NearbyShare extends ChangeNotifier {
           'kind': item.kind.name,
         },
       });
-      _set(NearbyPhase.waiting,
-          msg: 'بانتظار جهاز قريب… اطلب من صديقك فتح أنيماكس ← التحميلات ← «استلام من جهاز قريب».');
+      _set(
+        NearbyPhase.waiting,
+        msg: 'بانتظار جهاز قريب… اطلب من صديقك فتح أنيماكس ← التحميلات ← «استلام من جهاز قريب».',
+      );
     } on PlatformException catch (e) {
       _set(NearbyPhase.error, msg: e.message ?? e.code);
     }
@@ -139,7 +154,10 @@ class NearbyShare extends ChangeNotifier {
   Future<void> connect(NearbyPeer p) async {
     try {
       _set(NearbyPhase.connecting, msg: 'جارٍ الاتصال بـ ${p.name}…');
-      await _ch.invokeMethod<bool>('connect', <String, dynamic>{'name': _myName, 'id': p.id});
+      await _ch.invokeMethod<bool>('connect', <String, dynamic>{
+        'name': _myName,
+        'id': p.id,
+      });
     } on PlatformException catch (e) {
       _set(NearbyPhase.error, msg: e.message ?? e.code);
     }
@@ -148,7 +166,9 @@ class NearbyShare extends ChangeNotifier {
   Future<void> accept() async {
     try {
       _set(NearbyPhase.connecting, msg: 'بانتظار موافقة الجهاز الآخر…');
-      await _ch.invokeMethod<bool>('accept', <String, dynamic>{'id': pendingId});
+      await _ch.invokeMethod<bool>('accept', <String, dynamic>{
+        'id': pendingId,
+      });
     } on PlatformException catch (e) {
       _set(NearbyPhase.error, msg: e.message ?? e.code);
     }
@@ -156,7 +176,9 @@ class NearbyShare extends ChangeNotifier {
 
   Future<void> reject() async {
     try {
-      await _ch.invokeMethod<bool>('reject', <String, dynamic>{'id': pendingId});
+      await _ch.invokeMethod<bool>('reject', <String, dynamic>{
+        'id': pendingId,
+      });
     } catch (_) {}
     pendingId = '';
     _set(NearbyPhase.waiting, msg: 'تم الرفض. ما زال البحث مستمرًا…');
@@ -174,7 +196,8 @@ class NearbyShare extends ChangeNotifier {
 
   Future<dynamic> _onEvent(MethodCall call) async {
     final Map<dynamic, dynamic> a =
-        (call.arguments as Map<dynamic, dynamic>?) ?? const <dynamic, dynamic>{};
+        (call.arguments as Map<dynamic, dynamic>?) ??
+        const <dynamic, dynamic>{};
     switch (call.method) {
       case 'found':
         final String id = (a['id'] ?? '').toString();
@@ -191,8 +214,10 @@ class NearbyShare extends ChangeNotifier {
         code = (a['code'] ?? '').toString();
         _set(NearbyPhase.confirm);
       case 'connected':
-        _set(NearbyPhase.transferring,
-            msg: sending ? 'جارٍ الإرسال…' : 'جارٍ الاستلام…');
+        _set(
+          NearbyPhase.transferring,
+          msg: sending ? 'جارٍ الإرسال…' : 'جارٍ الاستلام…',
+        );
       case 'meta':
         fileTitle = (a['title'] ?? '').toString();
         total = (a['size'] as num?)?.toInt() ?? total;
@@ -207,9 +232,11 @@ class NearbyShare extends ChangeNotifier {
         _set(NearbyPhase.done, msg: 'تم إرسال «$fileTitle» بنجاح ✅');
         final String doneMsg = message;
         // Let the receiver finish saving before tearing the link down.
-        unawaited(Future<void>.delayed(const Duration(seconds: 4))
-            .then((_) => stop())
-            .then((_) => _set(NearbyPhase.done, msg: doneMsg)));
+        unawaited(
+          Future<void>.delayed(const Duration(seconds: 4))
+              .then((_) => stop())
+              .then((_) => _set(NearbyPhase.done, msg: doneMsg)),
+        );
       case 'received':
         received = await DownloadManager.I.addReceivedFile(
           title: (a['title'] ?? 'ملف مستلم').toString(),
@@ -221,7 +248,10 @@ class NearbyShare extends ChangeNotifier {
           size: (a['size'] as num?)?.toInt() ?? 0,
         );
         bytes = total;
-        _set(NearbyPhase.done, msg: 'تم استلام «$fileTitle» وحُفظ في التحميلات ✅');
+        _set(
+          NearbyPhase.done,
+          msg: 'تم استلام «$fileTitle» وحُفظ في التحميلات ✅',
+        );
         final String doneMsg = message;
         unawaited(stop().then((_) => _set(NearbyPhase.done, msg: doneMsg)));
       case 'error':

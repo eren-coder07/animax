@@ -38,7 +38,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '2.3.0';
+    const String version = '2.4.0';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -376,11 +376,12 @@ class WhatsNewDialog extends StatelessWidget {
   final String version;
 
   static const List<String> highlights = <String>[
-    'حسابات بالبريد: أعجب وعلّق وتابع الآخرين',
-    'تبويب «مقاطع»: قص 10 ثوانٍ من أي حلقة وشاركها مع الجميع',
-    'عدد المشاهدات والقراءات في كل الأقسام',
-    'بينغو المشاهدة + وضع الماراثون',
-    'إصلاح قسم المانغا ووضع الإنترنت الضعيف',
+    '🔥 أبرز اللحظات على شريط التشغيل + تعليقات تظهر عند ثانيتها',
+    '🛡️ درع الحرق: لا مقاطع ولا تعليقات من حلقات لم تصلها',
+    '🎧 وضع الصوت فقط + ميزانية بيانات شهرية',
+    '📡 أرسل الحلقات لصديقك القريب بدون إنترنت',
+    '✂️ لوحات المانغا في «مقاطع» + الرد على مقطع بمقطع',
+    '🏆 دوري البينغو الأسبوعي مع من تتابعهم',
   ];
 
   @override

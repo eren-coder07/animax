@@ -25,7 +25,7 @@ class MangaApi {
 
   static const String base = 'https://api.mangadex.org';
   static const String uploadsBase = 'https://uploads.mangadex.org';
-  static const String ua = 'Animax/2.3.1 (Android; Flutter)';
+  static const String ua = 'Animax/2.4.0 (Android; Flutter)';
 
   final http.Client _client = createHttpClient();
 

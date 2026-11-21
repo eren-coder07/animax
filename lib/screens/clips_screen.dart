@@ -499,7 +499,7 @@ class _ClipPageState extends State<ClipPage> {
                   _action(Icons.chat_bubble_rounded, compactCount(_comments), _comment),
                   _action(Icons.repeat_rounded, compactCount(_reposts), _repost,
                       color: _reposted ? AppColors.brandGreen : Colors.white),
-                  _action(Icons.reply_rounded,
+                  _action(Icons.quickreply_rounded,
                       _replies > 0 ? compactCount(_replies) : 'رد', _openReplies,
                       key: const Key('clipReplies')),
                   _action(Icons.share_rounded, 'مشاركة', _share),
@@ -1181,7 +1181,8 @@ class _SpoilerShield extends StatelessWidget {
         const ColoredBox(color: Color(0x99000000)),
         Center(
           child: Padding(
-            padding: const EdgeInsets.all(28),
+            // Clear of the action column on the side.
+            padding: const EdgeInsets.symmetric(horizontal: 76, vertical: 28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[

@@ -28,15 +28,20 @@ class AudioMode {
   /// Starts / stops the playback keep-alive service.
   static Future<void> keepAlive(bool active, {String title = ''}) async {
     try {
-      await _ch.invokeMethod<bool>(
-          'audioKeepAlive', <String, dynamic>{'on': active, 'title': title});
+      await _ch.invokeMethod<bool>('audioKeepAlive', <String, dynamic>{
+        'on': active,
+        'title': title,
+      });
     } catch (_) {}
   }
 
   /// For an HLS master playlist: the URL of its audio-only rendition, else
   /// its lowest-bandwidth variant. Returns [url] unchanged when it is not a
   /// master playlist or cannot be read.
-  static Future<String> lightestHls(String url, Map<String, String> headers) async {
+  static Future<String> lightestHls(
+    String url,
+    Map<String, String> headers,
+  ) async {
     try {
       final http.Response r = await _http
           .get(Uri.parse(url), headers: headers)
@@ -67,10 +72,13 @@ class AudioMode {
     for (int i = 0; i < lines.length - 1; i++) {
       final String l = lines[i];
       if (!l.startsWith('#EXT-X-STREAM-INF')) continue;
-      final int bw = int.tryParse(
-              RegExp(r'[^-]BANDWIDTH=(\d+)').firstMatch(',$l')?.group(1) ?? '') ??
+      final int bw =
+          int.tryParse(
+            RegExp(r'[^-]BANDWIDTH=(\d+)').firstMatch(',$l')?.group(1) ?? '',
+          ) ??
           (1 << 61);
-      final bool audioOnly = !l.contains('RESOLUTION=') &&
+      final bool audioOnly =
+          !l.contains('RESOLUTION=') &&
           (l.contains('mp4a') && !l.contains('avc') && !l.contains('hvc'));
       String next = '';
       for (int j = i + 1; j < lines.length; j++) {
@@ -112,9 +120,11 @@ class AudioOnlyCover extends StatelessWidget {
         if (poster.isNotEmpty)
           Opacity(
             opacity: 0.35,
-            child: Image.network(poster,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const ColoredBox(color: Colors.black)),
+            child: Image.network(
+              poster,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const ColoredBox(color: Colors.black),
+            ),
           ),
         const ColoredBox(color: Color(0x88000000)),
         Center(
@@ -125,29 +135,45 @@ class AudioOnlyCover extends StatelessWidget {
                 width: 88,
                 height: 88,
                 decoration: const BoxDecoration(
-                    gradient: AppColors.brandGrad, shape: BoxShape.circle),
-                child: const Icon(Icons.headphones_rounded,
-                    size: 46, color: Color(0xFF07130D)),
+                  gradient: AppColors.brandGrad,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.headphones_rounded,
+                  size: 46,
+                  color: Color(0xFF07130D),
+                ),
               ),
               const SizedBox(height: 14),
-              const Text('وضع الصوت فقط',
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(
-                      fontFamily: kFont,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white)),
+              const Text(
+                'وضع الصوت فقط',
+                textDirection: TextDirection.rtl,
+                style: TextStyle(
+                  fontFamily: kFont,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
               const SizedBox(height: 4),
-              const Text('أقل استهلاك للبيانات — يستمر مع إطفاء الشاشة',
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(fontFamily: kFont, fontSize: 13, color: Colors.white70)),
+              const Text(
+                'أقل استهلاك للبيانات — يستمر مع إطفاء الشاشة',
+                textDirection: TextDirection.rtl,
+                style: TextStyle(
+                  fontFamily: kFont,
+                  fontSize: 13,
+                  color: Colors.white70,
+                ),
+              ),
               if (onExit != null) ...<Widget>[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: onExit,
                   icon: const Icon(Icons.videocam_rounded, color: Colors.white),
-                  label: const Text('عرض الفيديو',
-                      style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                  label: const Text(
+                    'عرض الفيديو',
+                    style: TextStyle(fontFamily: kFont, color: Colors.white),
+                  ),
                 ),
               ],
             ],

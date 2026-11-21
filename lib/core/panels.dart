@@ -53,42 +53,52 @@ class Panels {
     required String chapterId,
     required int page,
     required Rect r,
-  }) =>
-      <String, String>{
-        'mangaId': mangaId,
-        'chapterId': chapterId,
-        'page': '$page',
-        'x': r.left.toStringAsFixed(4),
-        'y': r.top.toStringAsFixed(4),
-        'w': r.width.toStringAsFixed(4),
-        'h': r.height.toStringAsFixed(4),
-      };
+  }) => <String, String>{
+    'mangaId': mangaId,
+    'chapterId': chapterId,
+    'page': '$page',
+    'x': r.left.toStringAsFixed(4),
+    'y': r.top.toStringAsFixed(4),
+    'w': r.width.toStringAsFixed(4),
+    'h': r.height.toStringAsFixed(4),
+  };
 
   /// Crop rectangle in pixels of an image of [size] (pure, unit-tested).
   static Rect pixelRect(Rect norm, Size size) => Rect.fromLTWH(
-        (norm.left * size.width).floorToDouble(),
-        (norm.top * size.height).floorToDouble(),
-        (norm.width * size.width).ceilToDouble().clamp(1, size.width),
-        (norm.height * size.height).ceilToDouble().clamp(1, size.height),
-      );
+    (norm.left * size.width).floorToDouble(),
+    (norm.top * size.height).floorToDouble(),
+    (norm.width * size.width).ceilToDouble().clamp(1, size.width),
+    (norm.height * size.height).ceilToDouble().clamp(1, size.height),
+  );
 
   /// Downloads the page of [clip] and renders just the panel as PNG.
   static Future<Uint8List> panelPng(VideoClip clip) async {
-    final String url =
-        await pageUrl(clip.ref['chapterId'] ?? '', int.tryParse(clip.ref['page'] ?? '') ?? 0);
-    final http.Response r =
-        await _http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
+    final String url = await pageUrl(
+      clip.ref['chapterId'] ?? '',
+      int.tryParse(clip.ref['page'] ?? '') ?? 0,
+    );
+    final http.Response r = await _http
+        .get(Uri.parse(url))
+        .timeout(const Duration(seconds: 30));
     if (r.statusCode >= 400) throw StateError('HTTP ${r.statusCode}');
     final ui.Codec codec = await ui.instantiateImageCodec(r.bodyBytes);
     final ui.Image img = (await codec.getNextFrame()).image;
-    final Rect src = pixelRect(rectOf(clip.ref),
-        Size(img.width.toDouble(), img.height.toDouble()));
+    final Rect src = pixelRect(
+      rectOf(clip.ref),
+      Size(img.width.toDouble(), img.height.toDouble()),
+    );
     final ui.PictureRecorder rec = ui.PictureRecorder();
     final Canvas c = Canvas(rec);
-    c.drawImageRect(img, src, Rect.fromLTWH(0, 0, src.width, src.height),
-        Paint()..filterQuality = FilterQuality.high);
-    final ui.Image out =
-        await rec.endRecording().toImage(src.width.round(), src.height.round());
+    c.drawImageRect(
+      img,
+      src,
+      Rect.fromLTWH(0, 0, src.width, src.height),
+      Paint()..filterQuality = FilterQuality.high,
+    );
+    final ui.Image out = await rec.endRecording().toImage(
+      src.width.round(),
+      src.height.round(),
+    );
     final ByteData? png = await out.toByteData(format: ui.ImageByteFormat.png);
     img.dispose();
     out.dispose();

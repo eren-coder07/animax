@@ -106,16 +106,32 @@ class DataBudget extends ChangeNotifier {
     _month = r.month;
     usedBytes = r.used;
     _lastTotal = r.last;
-    unawaited(_sp?.setString(_prefKey,
-        jsonEncode(<String, dynamic>{'month': _month, 'used': usedBytes, 'last': _lastTotal})));
+    unawaited(
+      _sp?.setString(
+        _prefKey,
+        jsonEncode(<String, dynamic>{
+          'month': _month,
+          'used': usedBytes,
+          'last': _lastTotal,
+        }),
+      ),
+    );
     if (wasNear != nearLimit || wasOver != over || enabled) notifyListeners();
   }
 
   void resetMonth() {
     usedBytes = 0;
     overrideThisSession = false;
-    unawaited(_sp?.setString(_prefKey,
-        jsonEncode(<String, dynamic>{'month': _month, 'used': 0, 'last': _lastTotal})));
+    unawaited(
+      _sp?.setString(
+        _prefKey,
+        jsonEncode(<String, dynamic>{
+          'month': _month,
+          'used': 0,
+          'last': _lastTotal,
+        }),
+      ),
+    );
     notifyListeners();
   }
 
@@ -130,15 +146,18 @@ class DataBudget extends ChangeNotifier {
         child: AlertDialog(
           title: const Text('تجاوزت ميزانية البيانات'),
           content: Text(
-              'استهلكت ${usedMb.toStringAsFixed(0)} م.ب من ميزانيتك الشهرية ($budgetMb م.ب) على بيانات الجوال.\n'
-              'يمكنك الانتظار حتى تتصل بشبكة Wi-Fi أو المتابعة على أي حال.'),
+            'استهلكت ${usedMb.toStringAsFixed(0)} م.ب من ميزانيتك الشهرية ($budgetMb م.ب) على بيانات الجوال.\n'
+            'يمكنك الانتظار حتى تتصل بشبكة Wi-Fi أو المتابعة على أي حال.',
+          ),
           actions: <Widget>[
             TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('انتظار Wi-Fi')),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('انتظار Wi-Fi'),
+            ),
             TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('متابعة على أي حال')),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('متابعة على أي حال'),
+            ),
           ],
         ),
       ),
@@ -147,6 +166,7 @@ class DataBudget extends ChangeNotifier {
     return ok == true;
   }
 
-  static String fmtMb(double mb) =>
-      mb >= 1024 ? '${(mb / 1024).toStringAsFixed(2)} ج.ب' : '${mb.toStringAsFixed(0)} م.ب';
+  static String fmtMb(double mb) => mb >= 1024
+      ? '${(mb / 1024).toStringAsFixed(2)} ج.ب'
+      : '${mb.toStringAsFixed(0)} م.ب';
 }

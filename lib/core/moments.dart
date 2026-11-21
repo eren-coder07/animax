@@ -23,8 +23,8 @@ class Moments {
   static String episodeKey(String source, Map<String, String> ref) {
     switch (source) {
       case 'akwam':
-        final RegExpMatch? m =
-            RegExp(r'^/watch/\d+/(\d+)').firstMatch(ref['path'] ?? '');
+        final RegExpMatch? m = RegExp(r'^/watch/\d+/(\d+)')
+            .firstMatch(ref['path'] ?? '');
         return m == null ? '' : 'akwam:${m.group(1)}';
       case 'anime':
         final String w = ref['watchId'] ?? '';
@@ -43,7 +43,9 @@ class Moments {
   static Future<List<int>> load(String ek, {bool fresh = false}) async {
     if (ek.isEmpty) return const <int>[];
     final ({List<int> secs, DateTime at})? hit = _cache[ek];
-    if (!fresh && hit != null && DateTime.now().difference(hit.at).inSeconds < 60) {
+    if (!fresh &&
+        hit != null &&
+        DateTime.now().difference(hit.at).inSeconds < 60) {
       return hit.secs;
     }
     final dynamic v = await CloudDb.I.get('moments/${CloudDb.key(ek)}');
@@ -109,7 +111,8 @@ class TimedComment {
   final String text;
   final int t;
 
-  static TimedComment fromJson(String id, Map<dynamic, dynamic> j) => TimedComment(
+  static TimedComment fromJson(String id, Map<dynamic, dynamic> j) =>
+      TimedComment(
         id: id,
         uid: (j['uid'] ?? '').toString(),
         name: (j['name'] ?? '').toString(),
@@ -137,10 +140,10 @@ class EpisodeSocial extends ChangeNotifier {
     try {
       final List<dynamic> r = await Future.wait(<Future<dynamic>>[
         Moments.load(ek),
-        CloudDb.I.get('tcomments/${CloudDb.key(ek)}', query: <String, String>{
-          'orderBy': '"\$key"',
-          'limitToLast': '400',
-        }),
+        CloudDb.I.get(
+          'tcomments/${CloudDb.key(ek)}',
+          query: <String, String>{'orderBy': '"\$key"', 'limitToLast': '400'},
+        ),
       ]);
       moments = r[0] as List<int>;
       final List<TimedComment> cs = <TimedComment>[];
@@ -167,14 +170,16 @@ class EpisodeSocial extends ChangeNotifier {
     if (s.length > maxText) {
       throw CloudException('التعليق طويل جدًا ($maxText حرفًا كحد أقصى).');
     }
-    final String id = await CloudDb.I.push('tcomments/${CloudDb.key(ek)}',
-        <String, dynamic>{
-          'uid': u.uid,
-          'name': u.name,
-          'text': s,
-          't': t,
-          'at': serverTime,
-        });
+    final String id = await CloudDb.I.push(
+      'tcomments/${CloudDb.key(ek)}',
+      <String, dynamic>{
+        'uid': u.uid,
+        'name': u.name,
+        'text': s,
+        't': t,
+        'at': serverTime,
+      },
+    );
     comments = <TimedComment>[
       ...comments,
       TimedComment(id: id, uid: u.uid, name: u.name, text: s, t: t),
