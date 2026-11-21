@@ -13,6 +13,7 @@ import '../widgets/mb_ui.dart';
 import '../widgets/social_bar.dart';
 import 'auth_screen.dart';
 import 'bingo_screen.dart';
+import 'league_screen.dart';
 import 'user_profile_screen.dart';
 
 /// "حسابي" — grouped cards: list, watch history (with thumbnails),
@@ -60,6 +61,14 @@ class ProfileTab extends StatelessWidget {
                     onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                             builder: (_) => const BingoScreen())),
+                  ),
+                  GroupRow(
+                    icon: Icons.emoji_events_outlined,
+                    label: 'دوري البينغو الأسبوعي',
+                    value: '${BingoStore.I.score} نقطة',
+                    onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: (_) => const LeagueScreen())),
                   ),
                   GroupRow(
                     icon: Icons.bolt_rounded,

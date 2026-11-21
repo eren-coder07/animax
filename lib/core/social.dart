@@ -580,6 +580,33 @@ class BingoStore extends ChangeNotifier {
   final Set<BingoGoal> done = <BingoGoal>{};
   bool _loaded = false;
 
+  /// Points from cards already completed earlier this week.
+  int weekBase = 0;
+
+  /// Week the card belongs to ([weekId]); the card resets every Monday.
+  String week = '';
+
+  /// Monday (UTC) of [d]'s week, e.g. `w20261116`.
+  static String weekId(DateTime d) {
+    final DateTime u = DateTime.utc(d.toUtc().year, d.toUtc().month, d.toUtc().day);
+    final DateTime mon = u.subtract(Duration(days: u.weekday - 1));
+    return 'w${mon.year}${mon.month.toString().padLeft(2, '0')}${mon.day.toString().padLeft(2, '0')}';
+  }
+
+  /// When the current league week ends.
+  static DateTime weekEnds(DateTime now) {
+    final DateTime u = DateTime.utc(now.toUtc().year, now.toUtc().month, now.toUtc().day);
+    return u.add(Duration(days: 8 - u.weekday));
+  }
+
+  /// League points: 1 per goal, 3 per bingo line, 5 for a full card,
+  /// plus cards finished earlier in the week.
+  static int scoreOf(int goals, int lines, bool full) =>
+      goals + 3 * lines + (full ? 5 : 0);
+
+  int get cardScore => scoreOf(done.length, lineCount, full);
+  int get score => weekBase + cardScore;
+
   static const List<List<int>> lines = <List<int>>[
     <int>[0, 1, 2], <int>[3, 4, 5], <int>[6, 7, 8],
     <int>[0, 3, 6], <int>[1, 4, 7], <int>[2, 5, 8],
@@ -597,32 +624,78 @@ class BingoStore extends ChangeNotifier {
     final String uid = CloudAuth.I.user?.uid ?? '';
     if (uid.isEmpty) return;
     try {
-      final dynamic v = await CloudDb.I.get('bingo/$uid/cells');
+      final dynamic all = await CloudDb.I.get('bingo/$uid');
+      final dynamic v = all is Map ? all['cells'] : null;
       done.clear();
-      if (v is Map) {
-        for (final BingoGoal g in BingoGoal.values) {
-          if (v[g.name] == true) done.add(g);
+      final String now = weekId(DateTime.now());
+      final String stored = all is Map ? (all['week'] ?? '').toString() : '';
+      if (stored == now) {
+        weekBase = all is Map ? ((all['weekBase'] as num?)?.toInt() ?? 0) : 0;
+        if (v is Map) {
+          for (final BingoGoal g in BingoGoal.values) {
+            if (v[g.name] == true) done.add(g);
+          }
         }
+      } else {
+        // New week → fresh card for the league.
+        weekBase = 0;
+        await CloudDb.I.update(<String, dynamic>{
+          'bingo/$uid/cells': null,
+          'bingo/$uid/week': now,
+          'bingo/$uid/weekBase': 0,
+        });
       }
+      week = now;
       _loaded = true;
       notifyListeners();
+      unawaited(_pushLeague());
+    } catch (_) {}
+  }
+
+  /// Publishes this week's score to `league/{week}/{uid}`.
+  Future<void> _pushLeague() async {
+    final CloudUser? u = CloudAuth.I.user;
+    if (u == null) return;
+    final String w = week.isEmpty ? weekId(DateTime.now()) : week;
+    try {
+      await CloudDb.I.put('league/$w/${u.uid}', <String, dynamic>{
+        'name': u.name.isEmpty ? 'مستخدم' : u.name,
+        'score': score.clamp(0, 1000),
+        'goals': done.length,
+        'lines': lineCount,
+      });
     } catch (_) {}
   }
 
   void record(BingoGoal g) {
     final String uid = CloudAuth.I.user?.uid ?? '';
-    if (uid.isEmpty || done.contains(g)) return;
+    if (uid.isEmpty) return;
+    final String now = weekId(DateTime.now());
+    // The week rolled over while the app was open → fresh card.
+    final bool rolled = week.isNotEmpty && week != now;
+    if (rolled) {
+      weekBase = 0;
+      done.clear();
+    }
+    week = now;
+    if (done.contains(g)) return;
     final int before = lineCount;
     done.add(g);
     notifyListeners();
     unawaited(CloudDb.I.update(<String, dynamic>{
-      'bingo/$uid/cells/${g.name}': true,
+      if (rolled) 'bingo/$uid/cells': <String, bool>{g.name: true}
+      else 'bingo/$uid/cells/${g.name}': true,
+      if (rolled) 'bingo/$uid/weekBase': 0,
+      'bingo/$uid/week': now,
       if (lineCount > before) 'bingo/$uid/lines': lineCount,
     }).catchError((Object _) {}));
+    unawaited(_pushLeague());
   }
 
   Future<void> reset() async {
     final String uid = CloudAuth.I.user?.uid ?? '';
+    // A finished card's points stay in this week's league score.
+    weekBase += cardScore;
     done.clear();
     notifyListeners();
     if (uid.isEmpty) return;
@@ -630,11 +703,75 @@ class BingoStore extends ChangeNotifier {
       await CloudDb.I.update(<String, dynamic>{
         'bingo/$uid/cells': null,
         'bingo/$uid/rounds': inc(),
+        'bingo/$uid/weekBase': weekBase,
+        'bingo/$uid/week': week.isEmpty ? weekId(DateTime.now()) : week,
       });
     } catch (_) {}
+    unawaited(_pushLeague());
   }
 
   bool get loaded => _loaded;
+}
+
+/// One row of the weekly Bingo league.
+class LeagueRow {
+  const LeagueRow({required this.uid, required this.name, required this.score, this.goals = 0, this.lines = 0});
+  final String uid;
+  final String name;
+  final int score;
+  final int goals;
+  final int lines;
+
+  static LeagueRow fromJson(String uid, Map<dynamic, dynamic> j) => LeagueRow(
+        uid: uid,
+        name: (j['name'] ?? 'مستخدم').toString(),
+        score: ((j['score'] as num?)?.toInt() ?? 0).clamp(0, 1000),
+        goals: ((j['goals'] as num?)?.toInt() ?? 0).clamp(0, 9),
+        lines: ((j['lines'] as num?)?.toInt() ?? 0).clamp(0, 8),
+      );
+}
+
+class League {
+  League._();
+
+  /// You + everyone you follow, best first.
+  static Future<List<LeagueRow>> friends() async {
+    final String me = CloudAuth.I.user?.uid ?? '';
+    if (me.isEmpty) return const <LeagueRow>[];
+    final String w = BingoStore.weekId(DateTime.now());
+    final dynamic f = await CloudDb.I.get('following/$me');
+    final List<String> ids = <String>[me, if (f is Map) ...f.keys.map((dynamic k) => k.toString()).take(80)];
+    final List<dynamic> rows = await Future.wait(<Future<dynamic>>[
+      for (final String id in ids) CloudDb.I.get('league/$w/$id'),
+    ]);
+    final List<LeagueRow> out = <LeagueRow>[];
+    for (int i = 0; i < ids.length; i++) {
+      if (rows[i] is Map) {
+        out.add(LeagueRow.fromJson(ids[i], rows[i] as Map<dynamic, dynamic>));
+      } else if (ids[i] == me) {
+        out.add(LeagueRow(uid: me, name: CloudAuth.I.user?.name ?? '', score: BingoStore.I.score));
+      }
+    }
+    out.sort((LeagueRow a, LeagueRow b) => b.score.compareTo(a.score));
+    return out;
+  }
+
+  /// Top players of the week across Animax.
+  static Future<List<LeagueRow>> top({int limit = 30}) async {
+    final String w = BingoStore.weekId(DateTime.now());
+    final dynamic v = await CloudDb.I.get('league/$w', query: <String, String>{
+      'orderBy': '"score"',
+      'limitToLast': '$limit',
+    });
+    final List<LeagueRow> out = <LeagueRow>[];
+    if (v is Map) {
+      v.forEach((dynamic id, dynamic r) {
+        if (r is Map) out.add(LeagueRow.fromJson(id.toString(), r));
+      });
+    }
+    out.sort((LeagueRow a, LeagueRow b) => b.score.compareTo(a.score));
+    return out;
+  }
 }
 
 // =============================================================================

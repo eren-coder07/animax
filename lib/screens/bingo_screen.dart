@@ -6,6 +6,7 @@ import '../core/cloud.dart';
 import '../core/social.dart';
 import '../widgets/mb_ui.dart';
 import 'auth_screen.dart';
+import 'league_screen.dart';
 
 /// Watch Bingo: a 3×3 card of goals across the app. Complete a row,
 /// column or diagonal for a "BINGO"; fill the card to win a round.
@@ -117,11 +118,32 @@ class BingoScreen extends StatelessWidget {
                 )
               else
                 const Text(
-                    'أكمل صفًا أو عمودًا أو قطرًا لتحصل على «بينغو». تُسجَّل الأهداف تلقائيًا أثناء استخدامك للتطبيق.',
+                    'أكمل صفًا أو عمودًا أو قطرًا لتحصل على «بينغو». تُسجَّل الأهداف تلقائيًا أثناء استخدامك للتطبيق، وتتجدد البطاقة كل أسبوع.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontFamily: kFont, fontSize: 13.5, height: 1.6, color: AppColors.sub)),
-              const SizedBox(height: 22),
+              const SizedBox(height: 16),
+              Material(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                child: ListTile(
+                  key: const Key('openLeague'),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  leading: const Icon(Icons.emoji_events_rounded, color: AppColors.star, size: 30),
+                  title: const Text('دوري البينغو الأسبوعي',
+                      style: TextStyle(
+                          fontFamily: kFont,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white)),
+                  subtitle: Text('نقاطك هذا الأسبوع: ${b.score} — نافس من تتابعهم',
+                      style: const TextStyle(fontFamily: kFont, fontSize: 12.5, color: AppColors.sub)),
+                  trailing: const Icon(Icons.chevron_left_rounded, color: AppColors.sub),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => const LeagueScreen())),
+                ),
+              ),
+              const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
