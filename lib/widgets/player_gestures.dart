@@ -163,8 +163,8 @@ class _PlayerGestureOverlayState extends State<PlayerGestureOverlay> {
         if (_seekDir != null)
           Align(
             alignment: _seekDir! < 0
-                ? Alignment.centerLeft
-                : Alignment.centerRight,
+                ? AlignmentDirectional.centerStart
+                : AlignmentDirectional.centerEnd,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 34),
               child: Container(
@@ -185,9 +185,9 @@ class _PlayerGestureOverlayState extends State<PlayerGestureOverlay> {
                       size: 26,
                     ),
                     const SizedBox(height: 2),
-                    Text('${_seekDir! < 0 ? '-' : '+'}10s',
+                    Text('${_seekDir! < 0 ? '-' : '+'}10 ث',
                         style: const TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Plex',
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: Colors.white)),
@@ -206,9 +206,9 @@ class _PlayerGestureOverlayState extends State<PlayerGestureOverlay> {
                 color: Colors.black.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(30),
               ),
-              child: const Text('2× speed',
+              child: const Text('سرعة 2×',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: Colors.white)),
@@ -217,13 +217,13 @@ class _PlayerGestureOverlayState extends State<PlayerGestureOverlay> {
         // Brightness HUD (left edge)
         if (_brightHud != null)
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: AlignmentDirectional.centerStart,
             child: _hud(Icons.brightness_6_rounded, _brightHud!),
           ),
         // Volume HUD (right edge)
         if (_volHud != null)
           Align(
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             child: _hud(
                 _volHud! <= 0
                     ? Icons.volume_off_rounded

@@ -4,9 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
+import 'clips_screen.dart';
+import '../core/social.dart';
+import '../core/binge.dart';
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
+import '../core/library_store.dart';
+import '../core/net_quality.dart';
+import '../core/app_prefs.dart';
+import '../core/audio_mode.dart';
+import '../core/data_budget.dart';
+import '../core/moments.dart';
+import '../widgets/player_social.dart';
 import '../widgets/player_gestures.dart';
+import '../widgets/download_button.dart';
+import '../widgets/quick_share.dart';
 import 'akwam_tab.dart';
 
 /// Native (ExoPlayer) player for the Akwam section.
@@ -31,6 +44,12 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   int _sourceIndex = 0;
 
   VideoPlayerController? _player;
+
+  /// Hot moments + timed comments of the episode being played.
+  EpisodeSocial? _social;
+
+  /// Direct stream URL of the quality being played (for downloads).
+  String _streamUrl = '';
   bool _resolving = true;
   String? _error;
   String _status = '';
@@ -66,7 +85,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (c == null || !c.value.isInitialized) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      if (c.value.isPlaying) c.pause();
+      // Sound-only mode keeps playing with the screen off.
+      if (c.value.isPlaying && !AppPrefs.I.audioOnly) c.pause();
       _hideTimer?.cancel();
       if (mounted) setState(() => _controlsVisible = true);
     } else if (state == AppLifecycleState.resumed) {
@@ -91,14 +111,36 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     }
   }
 
+  String get _progressKey => 'akwam:${_item.path}';
+  String get _progressSub => '${_episode?.number ?? 0}';
+
+  /// Stores the playback position (resume + progress bars + watched marks).
+  void _saveProgress() {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized || _item.path.isEmpty) return;
+    final int pos = c.value.position.inSeconds;
+    final int dur = c.value.duration.inSeconds;
+    if (pos <= 0) return;
+    LibraryStore.I.saveProgress(
+      key: _progressKey,
+      sub: _progressSub,
+      positionSec: pos,
+      durationSec: dur,
+      watched: dur > 0 && pos >= dur * 0.92,
+    );
+  }
+
   @override
   void dispose() {
+    _saveProgress();
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
     _positionTicker?.cancel();
     final VideoPlayerController? c = _player;
     _player = null;
     c?.dispose();
+    _social?.dispose();
+    unawaited(AudioMode.keepAlive(false));
     _setKeepScreenOn(false);
     SystemChrome.setPreferredOrientations(<DeviceOrientation>[
       DeviceOrientation.portraitUp,
@@ -122,8 +164,8 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       _sources = const <AkwamSource>[];
       _sourceIndex = 0;
       _status = episode == null
-          ? 'Loading qualities…'
-          : 'Loading episode ${episode.number}…';
+          ? 'جارٍ تحميل الجودات…'
+          : 'جارٍ تحميل الحلقة ${episode.number}…';
     });
 
     // 1. Sources (qualities) from the episode page — or the movie page.
@@ -143,7 +185,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (!mounted) return;
       setState(() {
         _resolving = false;
-        _error = 'Cannot reach Akwam — check your connection.';
+        _error = 'تعذّر الوصول إلى أكوام — تحقّق من اتصالك.';
       });
       return;
     }
@@ -151,7 +193,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (!mounted) return;
       setState(() {
         _resolving = false;
-        _error = 'No playable quality found for this title.';
+        _error = 'لا توجد جودة قابلة للتشغيل لهذا العنوان.';
       });
       return;
     }
@@ -160,9 +202,19 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (!mounted) return;
     setState(() {
       _sources = sources;
-      _status = 'Loading…';
+      _status = 'جارٍ التحميل…';
     });
-    await _playSource(0, resumeAt: resumeAt);
+    // Slow connection → start at the lowest quality (smallest file).
+    int start = 0;
+    if (await NetQuality.check() && sources.length > 1) {
+      int lowest(AkwamSource s) =>
+          int.tryParse(RegExp(r'(\d{3,4})').firstMatch(s.quality)?.group(1) ?? '') ??
+          9999;
+      for (int i = 1; i < sources.length; i++) {
+        if (lowest(sources[i]) < lowest(sources[start])) start = i;
+      }
+    }
+    await _playSource(start, resumeAt: resumeAt);
 
     // 3. Episode list for prev/next (series only, best-effort).
     if (episode != null && _episodes.isEmpty) {
@@ -184,7 +236,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       _sourceIndex = index;
       _resolving = true;
       _error = null;
-      _status = 'Loading…';
+      _status = 'جارٍ التحميل…';
     });
 
     String url;
@@ -201,21 +253,45 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (!mounted) return;
       setState(() {
         _resolving = false;
-        _error = 'Cannot reach Akwam — check your connection.';
+        _error = 'تعذّر الوصول إلى أكوام — تحقّق من اتصالك.';
       });
       return;
     }
 
     if (!mounted) return;
-    setState(() => _status = '');
+    if (!await DataBudget.I.allowStreaming(context)) {
+      if (!mounted) return;
+      setState(() {
+        _resolving = false;
+        _error = 'تم الإيقاف للحفاظ على ميزانية البيانات — اتصل بشبكة Wi-Fi.';
+      });
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _status = '';
+      _streamUrl = url;
+    });
     final bool isHls = url.contains('.m3u8');
+    final Map<String, String> headers = <String, String>{
+      'User-Agent': AkwamApi.ua,
+      'Referer': '${AkwamApi.base}/',
+    };
+    final String playUrl = isHls && AppPrefs.I.audioOnly
+        ? await AudioMode.lightestHls(url, headers)
+        : url;
+    final String ek = Moments.episodeKey(
+        'akwam', <String, String>{'path': _sources[index].watchPath});
+    if (_social?.ek != ek) {
+      _social?.dispose();
+      _social = ek.isEmpty ? null : EpisodeSocial(ek);
+    }
     final VideoPlayerController controller = VideoPlayerController.networkUrl(
-      Uri.parse(url),
-      httpHeaders: <String, String>{
-        'User-Agent': AkwamApi.ua,
-        'Referer': '${AkwamApi.base}/',
-      },
+      Uri.parse(playUrl),
+      httpHeaders: headers,
       formatHint: isHls ? VideoFormat.hls : VideoFormat.other,
+      videoPlayerOptions:
+          VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
     );
     _player = controller;
     controller.addListener(() => _playerListener(controller));
@@ -232,13 +308,28 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       await _disposePlayer();
       setState(() {
         _resolving = false;
-        _error = 'Player failed to open the stream. Try another quality.';
+        _error = 'تعذّر على المشغّل فتح البث. جرّب جودة أخرى.';
       });
       return;
     }
     if (!mounted) {
       await controller.dispose();
       return;
+    }
+    // Resume where the viewer stopped last time (unless finished).
+    if ((resumeAt == null || resumeAt == Duration.zero) &&
+        _item.path.isNotEmpty) {
+      final ProgressEntry? p =
+          LibraryStore.I.progressOf(_progressKey, _progressSub);
+      if (p != null && !p.watched && p.positionSec > 15) {
+        resumeAt = Duration(seconds: p.positionSec);
+        if (mounted) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+            content: Text('استئناف من ${_fmt(resumeAt)}'),
+            duration: const Duration(seconds: 2),
+          ));
+        }
+      }
     }
     if (resumeAt != null && resumeAt > Duration.zero) {
       try {
@@ -249,8 +340,28 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (_speed != 1.0) controller.setPlaybackSpeed(_speed);
     await controller.play();
     _setKeepScreenOn(true);
+    unawaited(AudioMode.keepAlive(AppPrefs.I.audioOnly, title: _title));
+    Binge.started('akwam:${_item.path}#${_episode?.number ?? 0}');
+    // Watch history: powers "continue watching" on Home and the Me page.
+    if (_item.path.isNotEmpty) {
+      unawaited(Social.countView('akwam:${_item.path}',
+          title: _item.title, poster: _item.poster, kind: 'akwam'));
+      LibraryStore.I.pushHistory(
+        key: 'akwam:${_item.path}',
+        title: _item.title,
+        poster: _item.poster,
+        kind: 'akwam',
+        sub: '${_episode?.number ?? 0}',
+        label: _episode == null
+            ? (_item.year.isEmpty ? 'فيلم' : _item.year)
+            : 'الحلقة ${_episode!.number}',
+      );
+    }
+    int ticks = 0;
     _positionTicker = Timer.periodic(const Duration(milliseconds: 400), (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      setState(() {});
+      if (++ticks % 12 == 0) _saveProgress(); // every ~5 s
     });
     _bumpControls();
     setState(() {
@@ -276,7 +387,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       return;
     }
     if (v.isCompleted && !_resolving) {
-      _autoNextEpisode();
+      Binge.episodeEnded(context,
+          episodeKey: 'akwam:${_item.path}#${_episode?.number ?? 0}',
+          next: _hasNext ? _autoNextEpisode : null);
     }
   }
 
@@ -310,7 +423,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       if (mounted) {
         setState(() {
           _resolving = false;
-          _error = 'Playback failed — try another quality.';
+          _error = 'فشل التشغيل — جرّب جودة أخرى.';
         });
       }
     } catch (_) {
@@ -349,6 +462,24 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   }
 
   // ----- Controls -----
+
+  /// Sound only ⇄ video. Re-opens the stream: sound only plays the smallest
+  /// quality and keeps running in the background.
+  Future<void> _toggleAudioOnly() async {
+    final bool on = !AppPrefs.I.audioOnly;
+    AppPrefs.I.set('audioOnly', on);
+    final Duration pos = _player?.value.position ?? Duration.zero;
+    int index = _sourceIndex;
+    if (on && _sources.length > 1) {
+      int q(AkwamSource s) =>
+          int.tryParse(RegExp(r'(\d{3,4})').firstMatch(s.quality)?.group(1) ?? '') ?? 9999;
+      for (int i = 0; i < _sources.length; i++) {
+        if (q(_sources[i]) < q(_sources[index])) index = i;
+      }
+    }
+    if (!on) unawaited(AudioMode.keepAlive(false));
+    await _playSource(index, resumeAt: pos);
+  }
 
   void _bumpControls() {
     _hideTimer?.cancel();
@@ -460,7 +591,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
           children: <Widget>[
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-              child: Text('Quality — Akwam',
+              child: Text('الجودة — أكوام',
                   style: AppText.h3.copyWith(fontSize: 14)),
             ),
             for (int i = 0; i < _sources.length; i++)
@@ -478,7 +609,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                           ? '  ·  ${_sources[i].size}'
                           : ''),
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.text),
@@ -508,6 +639,26 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
 
   // ----- Build -----
 
+  /// Queues the current title/episode at the quality being played.
+  Future<void> _download() async {
+    if (_streamUrl.isEmpty) return;
+    final String quality =
+        _sources.isEmpty ? '' : _sources[_sourceIndex].quality;
+    await DownloadManager.I.addVideo(
+      title: _item.title,
+      subtitle: <String>[
+        if (_episode != null) 'الحلقة ${_episode!.number}',
+        if (quality.isNotEmpty) quality,
+      ].join(' · '),
+      poster: _item.poster,
+      url: _streamUrl,
+      headers: <String, String>{
+        'User-Agent': AkwamApi.ua,
+        'Referer': '${AkwamApi.base}/',
+      },
+    );
+  }
+
   String get _title {
     final String base = _item.title;
     return _episode == null ? base : '$base · E${_episode!.number}';
@@ -529,6 +680,10 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
           fit: StackFit.expand,
           children: <Widget>[
             _videoArea(),
+            if (AppPrefs.I.audioOnly && _player != null)
+              AudioOnlyCover(
+                  poster: _item.poster, title: _title, onExit: _toggleAudioOnly),
+            TimedCommentsLayer(social: _social, controller: _player),
             AnimatedOpacity(
               opacity: _controlsVisible ? 1 : 0,
               duration: const Duration(milliseconds: 220),
@@ -594,11 +749,63 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
                     color: Colors.white),
               ),
+            ),
+            IconButton(
+              tooltip: 'اصنع مقطعًا',
+              icon: const Icon(Icons.content_cut_rounded,
+                  color: Colors.white, size: 21),
+              onPressed: (_player == null ||
+                      !_player!.value.isInitialized ||
+                      _sources.isEmpty)
+                  ? null
+                  : () {
+                      final VideoPlayerController c = _player!;
+                      c.pause();
+                      showClipMaker(
+                        context,
+                        position: c.value.position,
+                        duration: c.value.duration,
+                        title: _item.title,
+                        label: _episode == null ? '' : 'الحلقة ${_episode!.number}',
+                        poster: _item.poster,
+                        kind: 'akwam',
+                        source: 'akwam',
+                        ref: <String, String>{
+                          'path': _sources[_sourceIndex].watchPath,
+                          'item': _item.path,
+                          if (_episode != null) 'ep': '${_episode!.number}',
+                        },
+                      );
+                    },
+            ),
+            IconButton(
+              tooltip: 'مشاركة سريعة',
+              icon: const Icon(Icons.share_rounded, color: Colors.white, size: 21),
+              onPressed: _streamUrl.isEmpty
+                  ? null
+                  : () => showQuickShare(
+                        context,
+                        title: _item.title,
+                        subtitle: _episode == null ? '' : 'الحلقة ${_episode!.number}',
+                        poster: _item.poster,
+                        source: 'url',
+                        url: _streamUrl,
+                        headers: <String, String>{
+                          'User-Agent': AkwamApi.ua,
+                          'Referer': '${AkwamApi.base}/',
+                        },
+                      ),
+            ),
+            DownloadIconButton(
+              url: _streamUrl,
+              enabled: _streamUrl.isNotEmpty,
+              onStart: _download,
+              size: 21,
             ),
             IconButton(
               icon: Icon(
@@ -671,11 +878,25 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
               children: <Widget>[
                 Text(_fmt(position),
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         color: Colors.white70)),
                 Expanded(
-                  child: SliderTheme(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: HeatStrip(
+                          social: _social,
+                          duration: duration,
+                          onSeek: (Duration d) {
+                            c?.seekTo(d);
+                            _bumpControls();
+                          },
+                        ),
+                      ),
+                      SliderTheme(
                     data: SliderThemeData(
                       trackHeight: 3,
                       thumbShape:
@@ -698,10 +919,12 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                       onChangeEnd: maxMs <= 0 ? null : endDrag,
                     ),
                   ),
+                    ],
+                  ),
                 ),
                 Text(_fmt(duration),
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         color: Colors.white70)),
               ],
@@ -711,15 +934,36 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 TextButton(
                   onPressed: _showQualitySheet,
                   child: Text(
-                    'HQ ${_sources.isNotEmpty ? _sources[_sourceIndex].quality : ''}',
+                    'الجودة ${_sources.isNotEmpty ? _sources[_sourceIndex].quality : ''}',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                         color: AkwamColors.teal),
                   ),
                 ),
                 const Spacer(),
+                MomentsMenuButton(
+                  social: _social,
+                  controller: c,
+                  onSeek: (Duration d) {
+                    c?.seekTo(d);
+                    _bumpControls();
+                  },
+                ),
+                IconButton(
+                  key: const Key('audioOnlyToggle'),
+                  tooltip: 'صوت فقط',
+                  icon: Icon(
+                      AppPrefs.I.audioOnly
+                          ? Icons.headphones_rounded
+                          : Icons.headset_off_rounded,
+                      color: AppPrefs.I.audioOnly
+                          ? AkwamColors.teal
+                          : Colors.white,
+                      size: 20),
+                  onPressed: _player == null ? null : _toggleAudioOnly,
+                ),
                 IconButton(
                   icon: Icon(
                     _muted
@@ -731,11 +975,11 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                   onPressed: _toggleMute,
                 ),
                 PopupMenuButton<double>(
-                  tooltip: 'Speed',
+                  tooltip: 'السرعة',
                   color: AppColors.surface,
                   icon: Text('${_speed.toStringAsFixed(1)}×',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Plex',
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                           color: Colors.white)),
@@ -745,7 +989,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                         value: s,
                         child: Text('${s.toStringAsFixed(2)}×',
                             style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Plex',
                                 fontSize: 12.5,
                                 color: AppColors.text)),
                       ),
@@ -788,7 +1032,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
               Text(_status,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 12,
                       color: Colors.white70)),
             ],
@@ -817,7 +1061,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
             Text(_error ?? '',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 12.5,
                     height: 1.45,
                     color: Colors.white70)),
@@ -831,9 +1075,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                       setState(() => _error = null);
                       _showQualitySheet();
                     },
-                    child: Text('Pick quality',
+                    child: Text('اختر الجودة',
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Plex',
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                             color: AkwamColors.teal)),
@@ -843,9 +1087,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                     setState(() => _error = null);
                     _playSource(_sourceIndex);
                   },
-                  child: Text('Retry',
+                  child: Text('إعادة المحاولة',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Plex',
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: Colors.white)),

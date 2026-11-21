@@ -49,7 +49,7 @@ class CinemaApi {
         .get(uri, headers: _headers)
         .timeout(timeout);
     if (res.statusCode != 200) {
-      throw CinemaApiException('The source returned HTTP ${res.statusCode}.');
+      throw CinemaApiException('أعاد المصدر الخطأ HTTP ${res.statusCode}.');
     }
     return jsonDecode(utf8.decode(res.bodyBytes, allowMalformed: true));
   }
@@ -147,7 +147,7 @@ class CinemaApi {
         await _getJson('/meta/$type/${Uri.encodeComponent(imdbId)}.json');
     final dynamic m = body is Map ? body['meta'] : null;
     if (m is! Map) {
-      throw const CinemaApiException('Unexpected meta payload.');
+      throw const CinemaApiException('استجابة غير متوقعة من المصدر.');
     }
     return CinemaMeta.fromJson(Map<String, dynamic>.from(m));
   }

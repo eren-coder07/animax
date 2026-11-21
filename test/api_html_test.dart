@@ -42,7 +42,7 @@ void main() {
 
     test('watchUrl builds episode links', () {
       expect(items.first.watchUrl(ep: 1),
-          'https://aniwaves.ru/watch/one-piece-81553/ep-1');
+          'https://aniwaves.tv/watch/one-piece-81553/ep-1');
     });
   });
 

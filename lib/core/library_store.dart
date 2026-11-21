@@ -16,11 +16,11 @@ extension LibStatusX on LibStatus {
         LibStatus.drop => 'drop',
       };
   String get label => switch (this) {
-        LibStatus.plan => 'Plan to Watch',
-        LibStatus.watching => 'Watching',
-        LibStatus.done => 'Completed',
-        LibStatus.hold => 'On Hold',
-        LibStatus.drop => 'Dropped',
+        LibStatus.plan => 'سأشاهده',
+        LibStatus.watching => 'أشاهده',
+        LibStatus.done => 'مكتمل',
+        LibStatus.hold => 'مؤجّل',
+        LibStatus.drop => 'متوقف',
       };
 }
 
@@ -278,6 +278,9 @@ class LibraryStore extends ChangeNotifier {
   // -------------------------------------------------------------- progress
 
   ProgressEntry? progressOf(String key, String sub) => _progress['$key@$sub'];
+
+  /// Every stored progress row (spoiler shield).
+  Iterable<ProgressEntry> get allProgress => _progress.values;
 
   ProgressEntry progressForItem(String key) {
     // Latest progress row of any sub for this item.

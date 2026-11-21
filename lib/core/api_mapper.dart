@@ -119,7 +119,7 @@ Anime animeFromJson(Map<String, dynamic> j, {String baseUrl = '', int index = 0}
   final String title = _pick(j, const <String>[
     'title', 'name', 'titleEnglish', 'title_english', 'title_en',
     'titleEn', 'romaji', 'titleRomaji', 'display_name', 'displayName',
-  ], 'Untitled');
+  ], 'بدون عنوان');
 
   final String? poster = _imageUrl(j, const <String>[
     'poster', 'image', 'posterUrl', 'poster_url', 'cover', 'coverImage',
@@ -170,7 +170,7 @@ Anime animeFromJson(Map<String, dynamic> j, {String baseUrl = '', int index = 0}
   String status = _pick(j, const <String>[
     'status', 'airing_status', 'airingStatus', 'state',
   ]);
-  if (j['airing'] is bool) status = (j['airing'] as bool) ? 'Airing' : 'Finished';
+  if (j['airing'] is bool) status = (j['airing'] as bool) ? 'يُعرض الآن' : 'مكتمل';
 
   final String studio = _pick(j, const <String>[
     'studio', 'studios', 'producer', 'network', 'production',
@@ -230,7 +230,7 @@ Episode episodeFromJson(Map<String, dynamic> j, {String baseUrl = '', int index 
 
   return Episode(
     number,
-    _pick(j, const <String>['title', 'name'], 'Episode $number'),
+    _pick(j, const <String>['title', 'name'], 'الحلقة $number'),
     duration.isEmpty ? '24m' : duration,
     thumb ?? '',
     aired: _pick(j, const <String>[
@@ -307,20 +307,20 @@ Notice? noticeFromJson(Map<String, dynamic> j,
   if (dt != null) {
     final Duration diff = DateTime.now().difference(dt);
     if (diff.inMinutes < 1) {
-      when = 'Just now';
+      when = 'الآن';
     } else if (diff.inMinutes < 60) {
-      when = '${diff.inMinutes} minutes ago';
+      when = 'منذ ${diff.inMinutes} دقيقة';
     } else if (diff.inHours < 24) {
-      when = '${diff.inHours} hours ago';
+      when = 'منذ ${diff.inHours} ساعة';
     } else if (diff.inDays == 1) {
-      when = 'Yesterday';
+      when = 'أمس';
     } else if (diff.inDays < 30) {
-      when = '${diff.inDays} days ago';
+      when = 'منذ ${diff.inDays} يوم';
     } else {
       when = '${dt.year}/${dt.month.toString().padLeft(2, '0')}/${dt.day.toString().padLeft(2, '0')}';
     }
   }
-  if (when.isEmpty) when = 'Recently';
+  if (when.isEmpty) when = 'مؤخرًا';
 
   Anime? anime;
   final dynamic nested = j['anime'] ?? j['show'];

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network security config.
+
+  * base-config keeps cleartext allowed (the manifest's
+    usesCleartextTraffic flag is ignored once a config file is set).
+
+  * downet.net (Akwam's MP4 CDN) serves its leaf certificate WITHOUT the
+    intermediate CA (incomplete chain). Browsers fetch the missing cert via
+    AIA; Android does not, so ExoPlayer failed every Akwam stream with
+    "Trust anchor for certification path not found". The intermediate
+    (SSL2BUY EMEA RSA Domain Validation Secure Server CA, issued by Sectigo
+    Public Server Authentication Root R46, valid until 2034-07-30, SHA-256
+    58:F0:F7:56:...:89:FF:1F) is bundled as an extra trust anchor for that
+    domain only; the system store still applies everywhere.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">downet.net</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/ssl2buy_emea_rsa_dv_ca" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

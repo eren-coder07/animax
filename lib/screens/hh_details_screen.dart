@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/social_bar.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/hh_api.dart';
 import '../widgets/common.dart' show IconBubble;
+import '../widgets/download_button.dart';
 import 'hentai_tab.dart';
 
 /// Hentai series details: hero poster, rating / views / genres, synopsis and
@@ -67,9 +70,19 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
       setState(() => _episodesError = e.message);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _episodesError = 'Could not load episodes.');
+      setState(() => _episodesError = 'تعذّر تحميل الحلقات.');
     }
   }
+
+  String _dlKey(int ep) => 'hh:${_series.slug}|$ep';
+
+  Future<void> _download(int ep) => DownloadManager.I.addResolvable(
+        source: 'hh',
+        ref: <String, String>{'slug': _series.slug, 'ep': '$ep'},
+        title: _series.title,
+        subtitle: 'الحلقة $ep',
+        poster: _series.thumb,
+      );
 
   void _play(int episodeNumber) {
     Navigator.pushNamed(
@@ -146,9 +159,9 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                             border: Border.all(color: HhColors.red,
                                 width: 1.2),
                           ),
-                          child: Text('18+ HENTAI',
+                          child: Text('هنتاي +18',
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: 'Plex',
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0.8,
@@ -178,7 +191,7 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                           Icon(Icons.visibility_rounded,
                               color: AppColors.muted, size: 15),
                           const SizedBox(width: 4),
-                          Text('${_series.viewsLabel} views',
+                          Text('${_series.viewsLabel} مشاهدة',
                               style: AppText.label.copyWith(fontSize: 11.5)),
                           const SizedBox(width: 14),
                         ],
@@ -208,6 +221,8 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                       final List<HhEpisode> eps = _episodes ?? const <HhEpisode>[];
                       _play(eps.isNotEmpty ? eps.first.number : 1);
                     }),
+                    if (_series.slug.isNotEmpty)
+                      SocialBar(itemKey: 'hh:${_series.slug}', title: _series.title),
                     if (_series.synopsis.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 22),
                       Text(_expanded
@@ -223,7 +238,7 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                           child: Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                                _expanded ? 'Show less' : 'Read more',
+                                _expanded ? 'عرض أقل' : 'اقرأ المزيد',
                                 style: AppText.bodyBold.copyWith(
                                     color: HhColors.red, fontSize: 12)),
                           ),
@@ -238,9 +253,9 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                 child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Episodes',
-                      style: AppText.h2, textAlign: TextAlign.left),
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text('الحلقات',
+                      style: AppText.h2, textAlign: TextAlign.start),
                 ),
               ),
               _EpisodeList(
@@ -282,9 +297,9 @@ class _PlayButton extends StatelessWidget {
               const Icon(Icons.play_arrow_rounded,
                   color: Colors.white, size: 22),
               const SizedBox(width: 6),
-              Text('Play',
+              Text('تشغيل',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: Colors.white)),
@@ -346,6 +361,11 @@ class _EpisodeList extends StatelessWidget {
             _EpisodeTile(
               episode: ep,
               onTap: () => state._play(ep.number),
+              trailing: DownloadIconButton(
+                downloadKey: state._dlKey(ep.number),
+                color: AppColors.sub,
+                onStart: () => state._download(ep.number),
+              ),
             ),
         ],
       ),
@@ -354,10 +374,12 @@ class _EpisodeList extends StatelessWidget {
 }
 
 class _EpisodeTile extends StatelessWidget {
-  const _EpisodeTile({required this.episode, required this.onTap});
+  const _EpisodeTile(
+      {required this.episode, required this.onTap, this.trailing});
 
   final HhEpisode episode;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -409,14 +431,15 @@ class _EpisodeTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Episode ${episode.number}',
+                      Text('الحلقة ${episode.number}',
                           style: AppText.bodyBold.copyWith(fontSize: 13.5)),
                       const SizedBox(height: 3),
-                      Text('HLS stream · 18+',
+                      Text('بث HLS · +18',
                           style: AppText.label.copyWith(fontSize: 10.5)),
                     ],
                   ),
                 ),
+                ?trailing,
                 const Icon(Icons.chevron_right_rounded,
                     color: AppColors.muted),
               ],

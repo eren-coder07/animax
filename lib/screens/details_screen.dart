@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../widgets/social_bar.dart';
+import '../core/api_html.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/library_store.dart';
 import '../widgets/buttons.dart';
 import '../widgets/cards.dart';
 import '../widgets/common.dart';
+import '../widgets/download_button.dart';
 
 class DetailsScreen extends StatefulWidget {
   const DetailsScreen({super.key});
@@ -18,7 +22,7 @@ class DetailsScreen extends StatefulWidget {
 
 class _DetailsScreenState extends State<DetailsScreen> {
   bool _expanded = false;
-  String _season = 'Episodes';
+  String _season = 'الحلقات';
 
   late Anime _anime;
   Future<List<Episode>>? _episodesFuture;
@@ -52,6 +56,50 @@ class _DetailsScreenState extends State<DetailsScreen> {
         year: '',
         genres: <String>[],
         synopsis: '');
+  }
+
+  // ----- Downloads: the stream is resolved when the download starts -----
+
+  String _dlKey(Episode ep) => 'anime:${_anime.watchId ?? ''}|${ep.number}';
+
+  Future<void> _downloadEpisode(Episode ep) async {
+    final String? wid = _anime.watchId;
+    if (wid == null) return;
+    await DownloadManager.I.addResolvable(
+      source: 'anime',
+      ref: <String, String>{'watchId': wid, 'ep': '${ep.number}'},
+      title: _anime.title,
+      subtitle: 'الحلقة ${ep.number}',
+      poster: _anime.poster,
+    );
+  }
+
+  Future<void> _downloadAll() async {
+    final List<Episode> eps =
+        await _episodesFuture ?? const <Episode>[];
+    if (eps.isEmpty || !mounted) return;
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext d) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('تحميل كل الحلقات؟'),
+        content: Text('سيتم تحميل ${eps.length} حلقة وحفظها في مجلد '
+            'Download/Animax/Videos.'),
+        actions: <Widget>[
+          TextButton(
+              onPressed: () => Navigator.pop(d, false),
+              child: const Text('إلغاء')),
+          FilledButton(
+              onPressed: () => Navigator.pop(d, true),
+              child: const Text('تحميل')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    for (final Episode ep in eps) {
+      await _downloadEpisode(ep);
+    }
+    if (mounted) showDownloadQueuedSnack(context);
   }
 
   @override
@@ -120,7 +168,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     ),
                     const SizedBox(height: 18),
                     PrimaryButton(
-                      label: 'Play',
+                      label: 'تشغيل',
                       playIcon: true,
                       height: 50,
                       expanded: true,
@@ -140,6 +188,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     const SizedBox(height: 12),
                     // ---------- Quick actions: list / rate / share ----------
                     _QuickActions(anime: _anime),
+                    SocialBar(itemKey: 'anime:${_anime.id}', title: _anime.title),
                     const SizedBox(height: 18),
                     FutureBuilder<Anime>(
                       future: _detailsFuture,
@@ -168,7 +217,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                                a.isMovie ? a.duration : '${a.episodeCount} eps',
+                                a.isMovie ? a.duration : '${a.episodeCount} حلقة',
                                 style: AppText.label.copyWith(fontSize: 11)),
                           ],
                         );
@@ -184,7 +233,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           children: [
                             Text(
                               a.synopsis.isEmpty
-                                  ? 'Synopsis will load from the backend…'
+                                  ? 'سيتم تحميل القصة من المصدر…'
                                   : a.synopsis,
                               style: AppText.body,
                               maxLines: _expanded ? 40 : 3,
@@ -195,13 +244,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               GestureDetector(
                                 onTap: () =>
                                     setState(() => _expanded = !_expanded),
-                                child: Text(_expanded ? 'Show less' : 'Read more',
+                                child: Text(_expanded ? 'عرض أقل' : 'اقرأ المزيد',
                                     style: AppText.bodyBold.copyWith(
                                         color: AppColors.accent, fontSize: 12)),
                               ),
                             if (a.genres.isNotEmpty) ...<Widget>[
                               const SizedBox(height: 20),
-                              Text('Genre: ${a.genreLine}.',
+                              Text('التصنيف: ${a.genreLine}.',
                                   style: AppText.label.copyWith(fontSize: 11.5)),
                             ],
                           ],
@@ -213,8 +262,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     // ---------- Episodes ----------
                     Row(
                       children: [
-                        const Text('Episodes', style: AppText.h3),
+                        const Text('الحلقات', style: AppText.h3),
                         const Spacer(),
+                        if (_anime.watchId != null)
+                          IconButton(
+                            tooltip: 'تحميل كل الحلقات',
+                            icon: Icon(Icons.download_for_offline_rounded,
+                                color: AppColors.accent, size: 24),
+                            onPressed: _downloadAll,
+                          ),
                         GestureDetector(
                           onTap: () => _pickSeason(context),
                           child: Container(
@@ -265,7 +321,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: Text('Episodes unavailable for this title',
+                            child: Text('الحلقات غير متاحة لهذا العنوان',
                                 style: AppText.label.copyWith(fontSize: 12)),
                           );
                         }
@@ -289,7 +345,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     children: [
                                       SizedBox(
                                         height: 98,
-                                        child: PosterImage(
+                                        child: Stack(
+                                          fit: StackFit.expand,
+                                          children: <Widget>[
+                                        PosterImage(
                                           anime: _anime,
                                           radius: 12,
                                           child: Center(
@@ -311,14 +370,35 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                             ),
                                           ),
                                         ),
+                                        if (_anime.watchId != null)
+                                          PositionedDirectional(
+                                            top: 0,
+                                            end: 0,
+                                            child: Container(
+                                              margin: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black
+                                                    .withValues(alpha: 0.55),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: DownloadIconButton(
+                                                downloadKey: _dlKey(ep),
+                                                size: 18,
+                                                onStart: () =>
+                                                    _downloadEpisode(ep),
+                                              ),
+                                            ),
+                                          ),
+                                          ],
+                                        ),
                                       ),
                                       const SizedBox(height: 6),
-                                      Text('Episode ${ep.number}',
+                                      Text('الحلقة ${ep.number}',
                                           style: AppText.bodyBold
                                               .copyWith(fontSize: 12)),
                                       Text(
                                           ep.duration.isEmpty
-                                              ? (ep.hasDub ? 'SUB • DUB' : 'SUB')
+                                              ? (ep.hasDub ? 'مترجم • مدبلج' : 'مترجم')
                                               : ep.duration,
                                           style: AppText.label),
                                     ],
@@ -333,10 +413,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     const SizedBox(height: 26),
                     // ---------- More Like This ----------
                     SectionHeader(
-                      title: 'More Like This',
+                      title: 'أعمال مشابهة',
                       onSeeAll: () => Navigator.pushNamed(context, '/catalog',
                           arguments: (
-                            'More Like This',
+                            'أعمال مشابهة',
                             _recs.isNotEmpty ? _recs : state.moreLike(_anime.id),
                           )),
                     ),
@@ -350,7 +430,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           return Container(
                             height: 64,
                             alignment: Alignment.center,
-                            child: Text('Nothing here yet',
+                            child: Text('لا شيء هنا بعد',
                                 style: AppText.label.copyWith(fontSize: 12)),
                           );
                         }
@@ -389,8 +469,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
     showDialog<void>(
       context: context,
       builder: (BuildContext ctx) => SimpleDialog(
-        title: const Text('Episodes', style: AppText.h3),
-        children: <String>['Episodes', 'Sub only', 'Dub only']
+        title: const Text('الحلقات', style: AppText.h3),
+        children: <String>['الحلقات', 'مترجم فقط', 'مدبلج فقط']
             .map((String s) => SimpleDialogOption(
                   onPressed: () {
                     setState(() => _season = s);
@@ -431,10 +511,10 @@ class _QuickActions extends StatelessWidget {
             const Padding(
                 padding: EdgeInsets.fromLTRB(20, 18, 20, 8),
                 child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Save to…',
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text('حفظ في…',
                         style: TextStyle(
-                            fontFamily: 'Poppins',
+                            fontFamily: 'Plex',
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.text)))),
@@ -452,7 +532,7 @@ class _QuickActions extends StatelessWidget {
                         s == current ? AppColors.accent : AppColors.muted),
                 title: Text(s.label,
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color: s == current
                             ? AppColors.accent
@@ -463,9 +543,9 @@ class _QuickActions extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded,
                     color: AppColors.danger, size: 20),
-                title: const Text('Remove from My List',
+                title: const Text('إزالة من قائمتي',
                     style: TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         color: AppColors.danger)),
                 onTap: () {
@@ -485,7 +565,7 @@ class _QuickActions extends StatelessWidget {
         poster: anime.poster,
         kind: 'anime',
         status: picked,
-        meta: '${anime.year.isEmpty ? 'Anime' : anime.year}'
+        meta: '${anime.year.isEmpty ? 'أنمي' : anime.year}'
             '${anime.type.isEmpty ? '' : ' · ${anime.type}'}',
       );
     }
@@ -500,9 +580,9 @@ class _QuickActions extends StatelessWidget {
         builder: (BuildContext bctx, void Function(void Function()) setM) =>
             AlertDialog(
           backgroundColor: AppColors.surface,
-          title: const Text('Rate this title',
+          title: const Text('قيّم هذا العمل',
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Plex',
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: AppColors.text)),
@@ -510,9 +590,9 @@ class _QuickActions extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Text(
-                current == 0 ? 'Not rated yet' : '$current / 10',
+                current == 0 ? 'لم يُقيَّم بعد' : '$current / 10',
                 style: const TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 13,
                     color: AppColors.sub),
               ),
@@ -534,9 +614,9 @@ class _QuickActions extends StatelessWidget {
           actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel',
+              child: const Text('إلغاء',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 12.5,
                       color: AppColors.sub)),
             ),
@@ -544,9 +624,9 @@ class _QuickActions extends StatelessWidget {
               style: FilledButton.styleFrom(
                   backgroundColor: AppColors.accent),
               onPressed: () => Navigator.of(ctx).pop(current),
-              child: Text('Save',
+              child: Text('حفظ',
                   style: TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       color: AppColors.ink)),
@@ -572,7 +652,7 @@ class _QuickActions extends StatelessWidget {
                 icon: listed
                     ? Icons.bookmark_added_rounded
                     : Icons.bookmark_add_outlined,
-                label: listed ? 'In My List' : 'My List',
+                label: listed ? 'في قائمتي' : 'قائمتي',
                 onTap: () => _pickStatus(context),
               ),
             ),
@@ -582,7 +662,7 @@ class _QuickActions extends StatelessWidget {
                 icon: rating > 0
                     ? Icons.star_rounded
                     : Icons.star_outline_rounded,
-                label: rating > 0 ? '$rating/10' : 'Rate',
+                label: rating > 0 ? '$rating/10' : 'تقييم',
                 onTap: () => _pickRating(context),
               ),
             ),
@@ -590,15 +670,15 @@ class _QuickActions extends StatelessWidget {
             Expanded(
               child: _QuickAction(
                 icon: Icons.ios_share_rounded,
-                label: 'Share',
+                label: 'مشاركة',
                 onTap: () async {
-                  final String text = 'Watching ${anime.title} on Animax — '
-                      'a free anime app: https://github.com/eren-coder07/animax';
+                  final String text =
+                      'أشاهد ${anime.title} على أنيماكس — تطبيق مجاني للأنمي والأفلام';
                   await Clipboard.setData(ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(
-                            'Share text copied — paste it anywhere')));
+                            'تم نسخ نص المشاركة — الصقه أينما تريد')));
                   }
                 },
               ),
@@ -639,7 +719,7 @@ class _QuickAction extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 10.5,
                       fontWeight: FontWeight.w600,
                       color: AppColors.sub)),

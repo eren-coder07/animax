@@ -94,24 +94,24 @@ class ApiService {
           .get(uri, headers: _headers(ajax: ajax))
           .timeout(timeout);
       if (res.statusCode >= 500) {
-        throw ApiException('The source is having trouble (HTTP ${res.statusCode}).',
+        throw ApiException('المصدر يواجه مشكلة (HTTP ${res.statusCode}).',
             statusCode: res.statusCode);
       }
       if (res.statusCode == 401 || res.statusCode == 403) {
-        throw ApiException('Source blocked this request — try again later.',
+        throw ApiException('المصدر رفض هذا الطلب — حاول لاحقًا.',
             statusCode: res.statusCode);
       }
       if (res.statusCode >= 400) {
-        throw ApiException('The source returned HTTP ${res.statusCode}.',
+        throw ApiException('أعاد المصدر الخطأ HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       return utf8.decode(res.bodyBytes, allowMalformed: true);
     } on TimeoutException {
-      throw ApiException('Request timed out — check your connection.');
+      throw ApiException('انتهت مهلة الطلب — تحقّق من اتصالك.');
     } on ApiException {
       rethrow;
     } catch (_) {
-      throw ApiException('Cannot reach the source — check your connection.');
+      throw ApiException('تعذّر الوصول إلى المصدر — تحقّق من اتصالك.');
     }
   }
 
@@ -124,7 +124,7 @@ class ApiService {
       return jsonDecode(body);
     } catch (_) {
       // Cloudflare interstitials / HTML error pages land here.
-      throw ApiException('The source is temporarily unavailable — try again later.');
+      throw ApiException('المصدر غير متاح مؤقتًا — حاول لاحقًا.');
     }
   }
 
@@ -139,16 +139,16 @@ class ApiService {
               body: jsonEncode(body))
           .timeout(timeout);
       if (res.statusCode >= 400) {
-        throw ApiException('The source returned HTTP ${res.statusCode}.',
+        throw ApiException('أعاد المصدر الخطأ HTTP ${res.statusCode}.',
             statusCode: res.statusCode);
       }
       return jsonDecode(utf8.decode(res.bodyBytes));
     } on TimeoutException {
-      throw ApiException('Request timed out — check your connection.');
+      throw ApiException('انتهت مهلة الطلب — تحقّق من اتصالك.');
     } on ApiException {
       rethrow;
     } catch (_) {
-      throw ApiException('Cannot reach the source — check your connection.');
+      throw ApiException('تعذّر الوصول إلى المصدر — تحقّق من اتصالك.');
     }
   }
 
@@ -167,10 +167,10 @@ class ApiService {
   Future<List<Anime>> fetchTrending({String? movId}) async {
     final dynamic body = await getAjax(_config.trendingUri(movId: movId));
     if (body is Map && body['status'] != 200 && body['status'] != true) {
-      throw ApiException('Trending is unavailable right now.');
+      throw ApiException('قائمة الرائج غير متاحة حاليًا.');
     }
     final List<Anime> list = parseItemCards(fragmentOf(body));
-    if (list.isEmpty) throw ApiException('Trending is empty right now.');
+    if (list.isEmpty) throw ApiException('قائمة الرائج فارغة حاليًا.');
     _noteId(list.first.watchId);
     return list;
   }
@@ -243,7 +243,7 @@ class ApiService {
     }
 
     if (out.isEmpty) {
-      throw ApiException('The catalog is unavailable right now.');
+      throw ApiException('الكتالوج غير متاح حاليًا.');
     }
     return out;
   }
@@ -261,11 +261,11 @@ class ApiService {
   Future<List<Episode>> fetchEpisodes(String id) async {
     final dynamic body = await getAjax(_config.episodesUri(id));
     if (body is Map && body['status'] != 200 && body['status'] != true) {
-      throw ApiException('Episode list is unavailable right now.');
+      throw ApiException('قائمة الحلقات غير متاحة حاليًا.');
     }
     final String frag = fragmentOf(body, key: 'result');
     final List<Episode> list = parseEpisodeList(frag);
-    if (list.isEmpty) throw ApiException('No episodes found for this title.');
+    if (list.isEmpty) throw ApiException('لا توجد حلقات لهذا العنوان.');
     _noteId(id);
     return list;
   }
@@ -276,11 +276,11 @@ class ApiService {
   Future<List<EpisodeServer>> fetchServers(String id, String ep) async {
     final dynamic body = await getAjax(_config.serversUri(id, ep));
     if (body is Map && body['status'] != 200 && body['status'] != true) {
-      throw ApiException('Server list is unavailable right now.');
+      throw ApiException('قائمة السيرفرات غير متاحة حاليًا.');
     }
     final List<EpisodeServer> list =
         parseServerList(fragmentOf(body, key: 'result'));
-    if (list.isEmpty) throw ApiException('No servers found for this episode.');
+    if (list.isEmpty) throw ApiException('لا توجد سيرفرات لهذه الحلقة.');
     return list;
   }
 
@@ -291,7 +291,7 @@ class ApiService {
     final dynamic body = await getAjax(_config.sourcesUri(linkId));
     final EpisodeSource? src = parseSourceResult(body);
     if (src == null) {
-      throw ApiException('No playable source for this server right now');
+      throw ApiException('لا يوجد مصدر قابل للتشغيل على هذا السيرفر حاليًا');
     }
     return src;
   }
@@ -351,7 +351,7 @@ class ApiService {
   //
   // The captured Aniwaves API keeps sign-in behind a session cookie + CSRF
   // form flow, so these helpers target generic JSON auth endpoints. When the
-  // backend has none (like aniwaves.ru), login() throws and the UI falls
+  // backend has none (like aniwaves.tv), login() throws and the UI falls
   // back to the local profile.
 
   /// Attempts login against candidate auth paths.
@@ -376,11 +376,11 @@ class ApiService {
       } on ApiException catch (e) {
         last = e;
         if (e.statusCode == 401 || e.statusCode == 403 || e.statusCode == 400) {
-          throw ApiException('Wrong email or password');
+          throw ApiException('البريد الإلكتروني أو كلمة المرور غير صحيحة');
         }
       }
     }
-    throw last ?? ApiException('Login endpoint not found');
+    throw last ?? ApiException('خدمة تسجيل الدخول غير متوفرة');
   }
 }
 

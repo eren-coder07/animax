@@ -21,29 +21,29 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
       _contacts = [
     (
       icon: Icons.alternate_email_rounded,
-      title: 'Email Us',
-      sub: 'support@animax.tv • replies within 24h',
+      title: 'راسلنا',
+      sub: 'support@animax.tv • الرد خلال 24 ساعة',
       tag: null
     ),
     (
       icon: Icons.chat_bubble_outline_rounded,
-      title: 'Live Chat',
-      sub: 'Avg. response time: 2 min',
-      tag: 'Online'
+      title: 'دردشة مباشرة',
+      sub: 'متوسط وقت الرد: دقيقتان',
+      tag: 'متصل'
     ),
     (
       icon: Icons.phone_outlined,
-      title: 'Call Center',
+      title: 'مركز الاتصال',
       sub: '+1 234 567 890 • 24/7',
       tag: null
     ),
   ];
 
   static const List<({String name, bool ok})> _services = [
-    (name: 'Streaming Servers', ok: true),
-    (name: 'CDN Delivery', ok: true),
-    (name: 'Downloads', ok: true),
-    (name: 'Account Services', ok: false),
+    (name: 'سيرفرات البث', ok: true),
+    (name: 'شبكة التوصيل', ok: true),
+    (name: 'التحميلات', ok: true),
+    (name: 'خدمات الحساب', ok: false),
   ];
 
   @override
@@ -66,7 +66,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
                   IconBubble(Icons.arrow_back_rounded,
                       onTap: () => Navigator.pop(context)),
                   const Spacer(),
-                  const Text('Help Center', style: AppText.h3),
+                  const Text('مركز المساعدة', style: AppText.h3),
                   const Spacer(),
                   const SizedBox(width: 40),
                 ],
@@ -80,15 +80,15 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
               labelColor: AppColors.accent,
               unselectedLabelColor: AppColors.muted,
               labelStyle:
-                  const TextStyle(fontFamily: 'Poppins', fontSize: 12.5, fontWeight: FontWeight.w700),
+                  const TextStyle(fontFamily: 'Plex', fontSize: 12.5, fontWeight: FontWeight.w700),
               unselectedLabelStyle: const TextStyle(
-                  fontFamily: 'Poppins', fontSize: 12.5, fontWeight: FontWeight.w500),
+                  fontFamily: 'Plex', fontSize: 12.5, fontWeight: FontWeight.w500),
               dividerColor: AppColors.stroke,
               tabs: const [
-                Tab(text: 'FAQ'),
-                Tab(text: 'Contact Us'),
-                Tab(text: 'Service'),
-                Tab(text: 'Video'),
+                Tab(text: 'الأسئلة الشائعة'),
+                Tab(text: 'اتصل بنا'),
+                Tab(text: 'الخدمة'),
+                Tab(text: 'الفيديو'),
               ],
             ),
             Expanded(
@@ -228,7 +228,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                    'Our support team answers every ticket within one business day.',
+                    'يرد فريق الدعم على كل طلب خلال يوم عمل واحد.',
                     style: AppText.body),
               ),
             ],
@@ -243,7 +243,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 30),
       children: [
-        const Text('System status', style: AppText.h3),
+        const Text('حالة الخدمة', style: AppText.h3),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -274,7 +274,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          s.ok ? 'Operational' : 'Maintenance',
+                          s.ok ? 'يعمل' : 'صيانة',
                           style: AppText.label.copyWith(
                               color: s.ok ? AppColors.accent : AppColors.amber,
                               fontWeight: FontWeight.w600,
@@ -298,34 +298,34 @@ class _HelpCenterScreenState extends State<HelpCenterScreen>
     const List<({IconData icon, String title, String body})> steps = [
       (
         icon: Icons.search_rounded,
-        title: '1. Find an anime',
+        title: '1. ابحث عن عمل',
         body:
-            'Use the search field on Home or browse the sections. Everything you see is loaded live from the API backend.',
+            'استخدم البحث في الرئيسية أو تصفّح الأقسام. كل ما تراه يُحمَّل مباشرة من المصادر.',
       ),
       (
         icon: Icons.play_circle_outline_rounded,
-        title: '2. Pick an episode',
+        title: '2. اختر حلقة',
         body:
-            'Open a title and tap an episode. The player resolves the best available server automatically.',
+            'افتح عنوانًا واضغط على حلقة. يختار المشغّل أفضل سيرفر متاح تلقائيًا.',
       ),
       (
         icon: Icons.dns_rounded,
-        title: '3. Choose SUB / S-SUB / DUB',
+        title: '3. اختر مترجم / مدبلج',
         body:
-            'If one server struggles, tap another chip — playback switches without leaving the app.',
+            'إذا تعثّر سيرفر، اختر غيره — يتبدّل التشغيل دون مغادرة التطبيق.',
       ),
       (
         icon: Icons.calendar_month_rounded,
-        title: '4. Follow the schedule',
+        title: '4. تابع الجدول',
         body:
-            'The Release Calendar lists exact airing times from the backend, and Notifications collect the latest drops.',
+            'يعرض تقويم العرض المواعيد الدقيقة، وتجمع الإشعارات أحدث الحلقات.',
       ),
     ];
     return ListView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 30),
       children: [
-        const Text('Getting started', style: AppText.h3),
+        const Text('البداية', style: AppText.h3),
         const SizedBox(height: 14),
         ...steps.map((s) => Container(
               margin: const EdgeInsets.only(bottom: 14),

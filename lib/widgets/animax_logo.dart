@@ -22,7 +22,7 @@ class AnimaxLogo extends StatelessWidget {
         mark,
         const SizedBox(width: 12),
         Text(
-          'Animax',
+          'أنيماكس',
           style: AppText.h1.copyWith(fontSize: 22),
         ),
       ],

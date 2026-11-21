@@ -14,7 +14,7 @@ void main() {
       expect(m.id, '7bd37661-c0b1-4166-87c1-7e633adb55ac');
       expect(m.title, "Vivi's Adventure");
       expect(m.cover,
-          'https://uploads.mangadex.org/covers/7bd37661-c0b1-4166-87c1-7e633adb55ac/cover1.jpg.512.jpg');
+          'https://uploads.mangadex.org/covers/7bd37661-c0b1-4166-87c1-7e633adb55ac/cover1.jpg.256.jpg');
       expect(m.followedCount, 12345);
       expect(m.followedLabel, '12.3K');
       expect(m.tags.map((MangaTag t) => t.name), contains('Comedy'));
@@ -79,7 +79,7 @@ void main() {
       });
       expect(c.id, 'ch1');
       expect(c.displayTitle, 'The Beginning');
-      expect(c.chipLabel, 'Ch. 1.5');
+      expect(c.chipLabel, 'فصل 1.5');
       expect(c.pages, 32);
       expect(c.isUnavailable, isFalse);
     });
@@ -90,8 +90,8 @@ void main() {
         'type': 'chapter',
         'attributes': <String, dynamic>{'title': '', 'chapter': null, 'pages': 8},
       });
-      expect(c.chipLabel, 'Oneshot');
-      expect(c.displayTitle, 'Chapter ?');
+      expect(c.chipLabel, 'فصل واحد');
+      expect(c.displayTitle, 'الفصل ?');
     });
 
     test('integer chapter numbers lose the .0', () {
@@ -100,7 +100,7 @@ void main() {
         'type': 'chapter',
         'attributes': <String, dynamic>{'chapter': '1024', 'title': 'x'},
       });
-      expect(c.chipLabel, 'Ch. 1024');
+      expect(c.chipLabel, 'فصل 1024');
     });
   });
 

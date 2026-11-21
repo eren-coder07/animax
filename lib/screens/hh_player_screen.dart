@@ -4,11 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
+import 'clips_screen.dart';
+import '../core/social.dart';
+import '../core/binge.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
 import '../core/hh_api.dart';
 import '../core/hls_quality.dart';
 import '../core/stream_resolver.dart' show ResolvedStream;
 import '../widgets/player_gestures.dart';
+import '../widgets/download_button.dart';
+import '../widgets/player_social.dart';
+import '../core/app_prefs.dart';
+import '../core/audio_mode.dart';
+import '../core/data_budget.dart';
+import '../core/library_store.dart';
+import '../core/moments.dart';
 import 'hentai_tab.dart';
 
 /// Native (ExoPlayer) player for the +18 section.
@@ -32,6 +43,9 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
 
   VideoPlayerController? _player;
   HhStream? _stream;
+
+  /// Hot moments + timed comments of the current episode.
+  EpisodeSocial? _social;
   bool _resolving = true;
   String? _error;
   String _status = '';
@@ -68,7 +82,8 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     if (c == null || !c.value.isInitialized) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      if (c.value.isPlaying) c.pause();
+      // Sound-only mode keeps playing with the screen off.
+      if (c.value.isPlaying && !AppPrefs.I.audioOnly) c.pause();
       _hideTimer?.cancel();
       if (mounted) setState(() => _controlsVisible = true);
     } else if (state == AppLifecycleState.resumed) {
@@ -93,7 +108,10 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
 
   @override
   void dispose() {
+    _saveProgress();
     WidgetsBinding.instance.removeObserver(this);
+    _social?.dispose();
+    unawaited(AudioMode.keepAlive(false));
     _hideTimer?.cancel();
     _positionTicker?.cancel();
     final VideoPlayerController? c = _player;
@@ -121,6 +139,35 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
 
   // ----- Playback -----
 
+  /// Resume position / watched marks (also used by the spoiler shield).
+  void _saveProgress() {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized || _series.slug.isEmpty) return;
+    final int pos = c.value.position.inSeconds;
+    final int dur = c.value.duration.inSeconds;
+    if (pos <= 0) return;
+    LibraryStore.I.saveProgress(
+      key: 'hh:${_series.slug}',
+      sub: '$_episode',
+      positionSec: pos,
+      durationSec: dur,
+      watched: dur > 0 && pos >= dur * 0.92,
+    );
+  }
+
+  /// Sound only ⇄ video (re-opens the episode at the same position).
+  Future<void> _toggleAudioOnly() async {
+    final bool on = !AppPrefs.I.audioOnly;
+    AppPrefs.I.set('audioOnly', on);
+    if (!on) unawaited(AudioMode.keepAlive(false));
+    final Duration pos = _player?.value.position ?? Duration.zero;
+    if (_player == null) {
+      setState(() {});
+      return;
+    }
+    await _open(_episode, resumeAt: pos);
+  }
+
   Future<void> _open(int episode, {Duration? resumeAt}) async {
     _positionTicker?.cancel();
     _hideTimer?.cancel();
@@ -131,7 +178,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       _stream = null;
       _error = null;
       _resolving = true;
-      _status = 'Loading…';
+      _status = 'جارٍ التحميل…';
     });
     HhStream? stream;
     String? error;
@@ -140,41 +187,63 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     } on ApiException catch (e) {
       error = e.message;
     } catch (_) {
-      error = 'Cannot reach the source — check your connection.';
+      error = 'تعذّر الوصول إلى المصدر — تحقّق من اتصالك.';
     }
     if (!mounted) return;
     if (stream == null) {
       setState(() {
         _resolving = false;
-        _error = error ?? 'Stream unavailable.';
+        _error = error ?? 'البث غير متاح.';
       });
       return;
     }
+    if (!await DataBudget.I.allowStreaming(context)) {
+      if (!mounted) return;
+      setState(() {
+        _resolving = false;
+        _error = 'تم الإيقاف للحفاظ على ميزانية البيانات — اتصل بشبكة Wi-Fi.';
+      });
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _stream = stream;
       _status = '';
     });
+    final String ek = Moments.episodeKey(
+        'hh', <String, String>{'slug': _series.slug, 'ep': '$_episode'});
+    if (_social?.ek != ek) {
+      _social?.dispose();
+      _social = ek.isEmpty ? null : EpisodeSocial(ek);
+    }
     // Bandwidth-based auto quality: on HLS master playlists pick the variant
     // that fits the measured throughput (Wi-Fi/cellular aware).
     String playUrl = stream.url;
     try {
       final ResolvedStream auto = await HlsQuality.autoSelect(ResolvedStream(
         url: stream.url,
-        qualities: <String, String>{'Auto': stream.url},
+        qualities: <String, String>{'تلقائي': stream.url},
         referer: '${HentaiApi.frontBase}/',
       ));
       playUrl = auto.url;
     } catch (_) {}
+    final Map<String, String> headers = <String, String>{
+      'User-Agent':
+          'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 '
+              '(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+      'Referer': '${HentaiApi.frontBase}/',
+    };
+    if (AppPrefs.I.audioOnly && stream.isHls) {
+      final String light = await AudioMode.lightestHls(stream.url, headers);
+      if (light != stream.url) playUrl = light;
+    }
     final VideoPlayerController controller = VideoPlayerController.networkUrl(
       Uri.parse(playUrl),
-      httpHeaders: <String, String>{
-        'User-Agent':
-            'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 '
-                '(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-        'Referer': '${HentaiApi.frontBase}/',
-      },
+      httpHeaders: headers,
       // HLS is intentional: ExoPlayer cannot infer it from the CDN path.
       formatHint: stream.isHls ? VideoFormat.hls : VideoFormat.other,
+      videoPlayerOptions:
+          VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
     );
     _player = controller;
     controller.addListener(() => _playerListener(controller));
@@ -186,7 +255,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       await _disposePlayer();
       setState(() {
         _resolving = false;
-        _error = 'Player failed to open the stream.\n$e';
+        _error = 'تعذّر على المشغّل فتح البث.\n$e';
       });
       return;
     }
@@ -201,11 +270,17 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     }
     controller.setVolume(_muted ? 0 : 1);
     if (_speed != 1.0) controller.setPlaybackSpeed(_speed);
+    Binge.started('hh:${_series.slug}#$_episode');
+    unawaited(Social.countView('hh:${_series.slug}',
+        title: _series.title, poster: _series.thumb, kind: 'hh'));
     await controller.play();
     _setKeepScreenOn(true);
+    unawaited(AudioMode.keepAlive(AppPrefs.I.audioOnly, title: _series.title));
+    int ticks = 0;
     _positionTicker =
         Timer.periodic(const Duration(milliseconds: 400), (_) {
       if (mounted) setState(() {});
+      if (++ticks % 12 == 0) _saveProgress(); // every ~5 s
     });
     _bumpControls();
     setState(() {
@@ -222,17 +297,38 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     } catch (_) {}
   }
 
+  /// Queues the current episode (full HLS master: best quality + audio).
+  Future<void> _download() async {
+    final HhStream? st = _stream;
+    if (st == null) return;
+    await DownloadManager.I.addVideo(
+      title: _series.title,
+      subtitle: 'الحلقة $_episode',
+      poster: st.poster,
+      url: st.url,
+      headers: <String, String>{
+        'User-Agent':
+            'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 '
+                '(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+        'Referer': '${HentaiApi.frontBase}/',
+      },
+      isHls: st.isHls,
+    );
+  }
+
   /// Runtime listener: catches mid-playback failures and auto-advances on
   /// completion (before this, a dying stream froze on a black frame).
   void _playerListener(VideoPlayerController c) {
     if (!mounted || _player != c) return;
     final VideoPlayerValue v = c.value;
     if (v.hasError && !_resolving) {
-      _onStreamDied(v.errorDescription ?? 'unknown error');
+      _onStreamDied(v.errorDescription ?? 'خطأ غير معروف');
       return;
     }
     if (v.isCompleted && !_resolving) {
-      _autoNextEpisode();
+      Binge.episodeEnded(context,
+          episodeKey: 'hh:${_series.slug}#$_episode',
+          next: _BottomControls._hasEp(this, 1) ? _autoNextEpisode : null);
     }
   }
 
@@ -266,7 +362,7 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       if (mounted) {
         setState(() {
           _resolving = false;
-          _error = 'Playback failed: $detail';
+          _error = 'فشل التشغيل: $detail';
         });
       }
     } catch (_) {
@@ -407,8 +503,8 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
 
   @override
   Widget build(BuildContext context) {
-    final String episodeLabel = 'Episode $_episode'
-        '${_episodes.isNotEmpty ? ' of ${_episodes.length}' : ''}';
+    final String episodeLabel = 'الحلقة $_episode'
+        '${_episodes.isNotEmpty ? ' من ${_episodes.length}' : ''}';
     return Scaffold(
       backgroundColor: Colors.black,
       body: PlayerGestureOverlay(
@@ -423,6 +519,12 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
           fit: StackFit.expand,
           children: <Widget>[
             _VideoArea(state: this),
+            if (AppPrefs.I.audioOnly && _player != null)
+              AudioOnlyCover(
+                  poster: _stream?.poster ?? _series.thumb,
+                  title: _series.title,
+                  onExit: _toggleAudioOnly),
+            TimedCommentsLayer(social: _social, controller: _player),
             // Controls overlay
             AnimatedOpacity(
               opacity: _controlsVisible ? 1 : 0,
@@ -507,7 +609,7 @@ class _ResolvingCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(state._status,
               style: TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Plex',
                   fontSize: 12.5,
                   color: Colors.white70)),
         ],
@@ -534,9 +636,9 @@ class _ErrorCard extends StatelessWidget {
             const Icon(Icons.error_outline_rounded,
                 color: HhColors.red, size: 42),
             const SizedBox(height: 14),
-            Text('Playback failed',
+            Text('فشل التشغيل',
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Colors.white)),
@@ -544,7 +646,7 @@ class _ErrorCard extends StatelessWidget {
             Text(state._error ?? '',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Plex',
                     fontSize: 12,
                     height: 1.6,
                     color: Colors.white70)),
@@ -567,9 +669,9 @@ class _ErrorCard extends StatelessWidget {
                         const Icon(Icons.refresh_rounded,
                             color: Colors.white, size: 18),
                         const SizedBox(width: 6),
-                        Text('Retry',
+                        Text('إعادة المحاولة',
                             style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: 'Plex',
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white)),
@@ -630,7 +732,7 @@ class _TopBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         color: Colors.white)),
@@ -638,11 +740,42 @@ class _TopBar extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontFamily: 'Poppins',
+                        fontFamily: 'Plex',
                         fontSize: 10.5,
                         color: Colors.white70)),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: 'اصنع مقطعًا',
+            icon: const Icon(Icons.content_cut_rounded,
+                color: Colors.white, size: 21),
+            onPressed: (state._player == null ||
+                    !state._player!.value.isInitialized)
+                ? null
+                : () {
+                    final VideoPlayerController c = state._player!;
+                    c.pause();
+                    showClipMaker(
+                      context,
+                      position: c.value.position,
+                      duration: c.value.duration,
+                      title: state._series.title,
+                      label: 'الحلقة ${state._episode}',
+                      poster: state._series.thumb,
+                      kind: 'hh',
+                      source: 'hh',
+                      ref: <String, String>{
+                        'slug': state._series.slug,
+                        'ep': '${state._episode}',
+                      },
+                    );
+                  },
+          ),
+          DownloadIconButton(
+            url: state._stream?.url ?? '',
+            enabled: state._stream != null,
+            onStart: state._download,
           ),
           IconButton(
             icon: Icon(
@@ -660,13 +793,13 @@ class _TopBar extends StatelessWidget {
               color: state._locked ? HhColors.red : Colors.white,
               size: 20,
             ),
-            tooltip: state._locked ? 'Unlock controls' : 'Lock controls',
+            tooltip: state._locked ? 'فتح القفل' : 'قفل التحكم',
             onPressed: state._toggleLock,
           ),
           IconButton(
             icon: const Icon(Icons.picture_in_picture_rounded,
                 color: Colors.white, size: 20),
-            tooltip: 'Picture-in-Picture',
+            tooltip: 'صورة داخل صورة',
             onPressed: () async {
               await enterPipMode();
             },
@@ -683,7 +816,7 @@ class _TopBar extends StatelessWidget {
                   child: Text(
                       '${s}x${state._speed == s ? '  ✓' : ''}',
                       style: TextStyle(
-                          fontFamily: 'Poppins',
+                          fontFamily: 'Plex',
                           fontSize: 13,
                           color: Colors.white)),
                 ),
@@ -802,11 +935,25 @@ class _BottomControls extends StatelessWidget {
             children: <Widget>[
               Text(state._fmt(pos),
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 11,
                       color: Colors.white)),
               Expanded(
-                child: SliderTheme(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 13),
+                      child: HeatStrip(
+                        social: state._social,
+                        duration: dur,
+                        onSeek: (Duration d) {
+                          state._player?.seekTo(d);
+                          state._bumpControls();
+                        },
+                      ),
+                    ),
+                    SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     trackHeight: 3.4,
                     thumbShape: const RoundSliderThumbShape(
@@ -838,12 +985,38 @@ class _BottomControls extends StatelessWidget {
                         : null,
                   ),
                 ),
+                  ],
+                ),
               ),
-              Text(dur > Duration.zero ? state._fmt(dur) : 'LIVE',
+              Text(dur > Duration.zero ? state._fmt(dur) : 'مباشر',
                   style: const TextStyle(
-                      fontFamily: 'Poppins',
+                      fontFamily: 'Plex',
                       fontSize: 11,
                       color: Colors.white)),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              MomentsMenuButton(
+                social: state._social,
+                controller: state._player,
+                onSeek: (Duration d) {
+                  state._player?.seekTo(d);
+                  state._bumpControls();
+                },
+              ),
+              IconButton(
+                key: const Key('audioOnlyToggle'),
+                tooltip: 'صوت فقط',
+                icon: Icon(
+                    AppPrefs.I.audioOnly
+                        ? Icons.headphones_rounded
+                        : Icons.headset_off_rounded,
+                    color: AppPrefs.I.audioOnly ? HhColors.red : Colors.white,
+                    size: 21),
+                onPressed: state._player == null ? null : state._toggleAudioOnly,
+              ),
             ],
           ),
           if (state._episodes.length > 1) ...<Widget>[
@@ -852,12 +1025,12 @@ class _BottomControls extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 _EpNavButton(
-                  label: 'Prev ep',
+                  label: 'الحلقة السابقة',
                   enabled: _hasEp(state, -1),
                   onTap: () => state._switchEpisode(state._episode - 1),
                 ),
                 _EpNavButton(
-                  label: 'Next ep',
+                  label: 'الحلقة التالية',
                   enabled: _hasEp(state, 1),
                   onTap: () => state._switchEpisode(state._episode + 1),
                 ),
@@ -899,7 +1072,7 @@ class _EpNavButton extends StatelessWidget {
           ),
           child: Text(label,
               style: const TextStyle(
-                  fontFamily: 'Poppins',
+                  fontFamily: 'Plex',
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: Colors.white)),

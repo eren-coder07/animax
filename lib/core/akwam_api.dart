@@ -62,15 +62,15 @@ class AkwamApi {
     try {
       res = await _client.get(uri, headers: _headers).timeout(timeout);
     } on TimeoutException {
-      throw AkwamApiException('Request timed out.');
+      throw AkwamApiException('انتهت مهلة الطلب.');
     } catch (_) {
-      throw AkwamApiException('Cannot reach Akwam.');
+      throw AkwamApiException('تعذّر الوصول إلى أكوام.');
     }
     if (res.statusCode == 403 || res.statusCode == 503) {
-      throw AkwamApiException('Akwam is rate-limiting or shielding right now.');
+      throw AkwamApiException('أكوام يحدّ من الطلبات حاليًا — حاول بعد قليل.');
     }
     if (res.statusCode >= 400) {
-      throw AkwamApiException('Akwam returned HTTP ${res.statusCode}.');
+      throw AkwamApiException('أعاد أكوام الخطأ HTTP ${res.statusCode}.');
     }
     return utf8.decode(res.bodyBytes, allowMalformed: true);
   }
@@ -145,6 +145,12 @@ class AkwamApi {
     return parseAkwamSources(html);
   }
 
+  /// Watch sources listed on any movie / episode page.
+  Future<List<AkwamSource>> sourcesForPath(String path) async {
+    final String html = await _get(path);
+    return parseAkwamSources(html);
+  }
+
   /// Resolves a `/watch/{fileId}/…` page into the direct media URL.
   /// Results are cached per watch path.
   Future<String> resolveStream(String watchPath) async {
@@ -154,7 +160,7 @@ class AkwamApi {
     final String url = extractAkwamStreamUrl(html);
     if (url.isEmpty) {
       throw AkwamApiException(
-          'No playable stream on this server — try another quality.');
+          'لا يوجد بث قابل للتشغيل على هذا السيرفر — جرّب جودة أخرى.');
     }
     return _watchCache[watchPath] = url;
   }
@@ -301,7 +307,7 @@ class AkwamApi {
       rich.episodes.add(AkwamEpisode(
         id: m.group(1)!,
         number: number,
-        label: label.isEmpty ? 'Episode $number' : label,
+        label: label.isEmpty ? 'الحلقة $number' : label,
         path: path,
         date: _entryDate(anchor),
       ));
@@ -396,6 +402,38 @@ class AkwamApi {
 
   // ----- helpers -----
 
+  /// The movie / series page behind a `/watch/{file}/{id}/{slug}[/{ep}]`
+  /// path (clips store only the watch path). Movies map directly; episode
+  /// watch pages link back to their series once.
+  Future<AkwamItem?> itemForWatch(String watchPath,
+      {String title = '', String poster = ''}) async {
+    final RegExpMatch? m =
+        RegExp(r'^/watch/\d+/(\d+)/([^/?#]+)(/[^?#]+)?').firstMatch(watchPath);
+    if (m == null) return null;
+    if (m.group(3) == null) {
+      return itemFromPath('/movie/${m.group(1)}/${m.group(2)}',
+          title: title, poster: poster);
+    }
+    final String html = await _get(watchPath);
+    final String slug = _decode(m.group(2)!);
+    String? first;
+    for (final RegExpMatch l in RegExp(r'''/(series|show)/(\d+)/([^"'\s<>?#]+)''')
+        .allMatches(html)) {
+      final String path = l.group(0)!;
+      first ??= path;
+      if (_decode(l.group(3)!) == slug) return itemFromPath(path, title: title, poster: poster);
+    }
+    return first == null ? null : itemFromPath(first, title: title, poster: poster);
+  }
+
+  /// Rebuilds an item from a stored page path (watch history, downloads).
+  static AkwamItem? itemFromPath(String path,
+      {String title = '', String poster = ''}) {
+    final AkwamItem? it = _itemFromHref(path, title);
+    if (it != null) it.poster = poster;
+    return it;
+  }
+
   static AkwamItem? _itemFromHref(String href, String fallbackTitle) {
     if (href.isEmpty) return null;
     final RegExpMatch? m = RegExp(
@@ -409,10 +447,16 @@ class AkwamApi {
           ? (href.startsWith('/') ? href : '/$href')
           : '${uri.path}${uri.query.isEmpty ? '' : '?${uri.query}'}',
       kind: AkwamKindExt.fromSlug(m.group(1)!),
-      title: fallbackTitle.isEmpty
-          ? Uri.decodeComponent(m.group(3)!)
-          : fallbackTitle,
+      title: fallbackTitle.isEmpty ? _decode(m.group(3)!) : fallbackTitle,
     );
+  }
+
+  static String _decode(String s) {
+    try {
+      return Uri.decodeComponent(s);
+    } catch (_) {
+      return s;
+    }
   }
 
   /// Highest episode number on the page (episodes ship newest-first).
@@ -498,11 +542,11 @@ extension AkwamKindExt on AkwamKind {
   String get label {
     switch (this) {
       case AkwamKind.movie:
-        return 'Movie';
+        return 'فيلم';
       case AkwamKind.series:
-        return 'Series';
+        return 'مسلسل';
       case AkwamKind.show:
-        return 'Show';
+        return 'برنامج';
     }
   }
 
@@ -588,4 +632,18 @@ class AkwamApiException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Highest-resolution source (1080p > 720p > 480p …); first one otherwise.
+AkwamSource bestAkwamSource(List<AkwamSource> sources) {
+  int score(AkwamSource s) {
+    final RegExpMatch? m = RegExp(r'(\d{3,4})').firstMatch(s.quality);
+    return m == null ? 0 : int.parse(m.group(1)!);
+  }
+
+  AkwamSource best = sources.first;
+  for (final AkwamSource s in sources) {
+    if (score(s) > score(best)) best = s;
+  }
+  return best;
 }

@@ -1,234 +1,282 @@
 import 'package:flutter/material.dart';
 
+import '../core/akwam_api.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
+import '../core/download_manager.dart';
+import '../core/app_prefs.dart';
+import '../core/cloud.dart';
 import '../core/library_store.dart';
-import '../widgets/common.dart';
+import '../core/social.dart';
 import '../widgets/animax_logo.dart';
+import '../widgets/mb_ui.dart';
+import '../widgets/social_bar.dart';
+import 'auth_screen.dart';
+import 'bingo_screen.dart';
+import 'league_screen.dart';
+import 'user_profile_screen.dart';
 
-/// Profile tab — only what the backend actually provides: connection state,
-/// release notifications and the API backend configuration. Account-gated
-/// features (sign-in, downloads, premium) are not part of the API and are
-/// therefore not in the app.
+/// "حسابي" — grouped cards: list, watch history (with thumbnails),
+/// notifications, downloads, settings and help.
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppState.I;
-    return SafeArea(
-      child: ListenableBuilder(
-        listenable: Listenable.merge(<Listenable>[state, LibraryStore.I]),
-        builder: (BuildContext context, _) {
-          return ListView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 90),
-            children: [
-              const Center(child: Text('Profile', style: AppText.h2)),
-              const SizedBox(height: 22),
-              Center(
-                child: Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.surface,
-                    border: Border.all(color: AppColors.accent, width: 2),
+    return ColoredBox(
+      color: AppColors.bg,
+      child: SafeArea(
+        bottom: false,
+        child: ListenableBuilder(
+          listenable: Listenable.merge(<Listenable>[
+            state,
+            LibraryStore.I,
+            DownloadManager.I,
+            CloudAuth.I,
+            BingoStore.I,
+            AppPrefs.I,
+          ]),
+          builder: (BuildContext context, _) {
+            final LibraryStore lib = LibraryStore.I;
+            final List<HistoryRow> hist = lib.history.take(6).toList();
+            final int dl = DownloadManager.I.items.length;
+            return ListView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 100),
+              children: <Widget>[
+                _ProfileHeader(state: state),
+                GroupCard(children: <Widget>[
+                  if (CloudAuth.I.signedIn)
+                    GroupRow(
+                      icon: Icons.account_circle_outlined,
+                      label: 'ملفي الشخصي ومقاطعي',
+                      onTap: () =>
+                          openUserProfile(context, CloudAuth.I.user!.uid),
+                    ),
+                  GroupRow(
+                    icon: Icons.grid_on_rounded,
+                    label: 'بينغو المشاهدة',
+                    value: '${BingoStore.I.done.length}/9',
+                    onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: (_) => const BingoScreen())),
                   ),
-                  child: const Center(child: AnimaxLogo(size: 46)),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Center(
-                  child: Text('Animax Viewer',
-                      style: AppText.h3.copyWith(fontSize: 18))),
-              const SizedBox(height: 4),
-              const Center(
-                  child: Text('Anime · Cinema · Cartoons · Comics',
-                      style: AppText.label)),
-              const SizedBox(height: 22),
-              _StatusCard(state: state),
-              const SizedBox(height: 22),
-              _StatsStrip(),
-              const SizedBox(height: 22),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Column(
-                  children: [
-                    MenuRow(
-                      icon: Icons.video_library_rounded,
-                      label: 'My Library (List · History · Stats)',
-                      onTap: () => Navigator.pushNamed(context, '/library'),
-                    ),
-                    const Divider(indent: 54),
-                    MenuRow(
-                      icon: Icons.notifications_none_rounded,
-                      label: 'Notifications',
-                      trailing: state.notices.isEmpty
-                          ? null
-                          : Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 9, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.accent.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(20),
+                  GroupRow(
+                    icon: Icons.emoji_events_outlined,
+                    label: 'دوري البينغو الأسبوعي',
+                    value: '${BingoStore.I.score} نقطة',
+                    onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: (_) => const LeagueScreen())),
+                  ),
+                  GroupRow(
+                    icon: Icons.bolt_rounded,
+                    label: 'وضع الماراثون',
+                    value: AppPrefs.I.bingeMode ? 'مفعّل' : 'متوقف',
+                    onTap: () => AppPrefs.I.set('bingeMode', !AppPrefs.I.bingeMode),
+                  ),
+                ]),
+                GroupCard(children: <Widget>[
+                  GroupRow(
+                    icon: Icons.bookmark_border_rounded,
+                    label: 'قائمتي',
+                    value: '${lib.allEntries.length}',
+                    onTap: () => Navigator.pushNamed(context, '/library'),
+                  ),
+                  GroupRow(
+                    icon: Icons.history_rounded,
+                    label: 'سجل المشاهدة',
+                    onTap: () => Navigator.pushNamed(context, '/library'),
+                    below: hist.isEmpty
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: SizedBox(
+                              height: 92,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: hist.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(width: 12),
+                                itemBuilder: (BuildContext c, int i) =>
+                                    _HistoryThumb(row: hist[i]),
                               ),
-                              child: Text('${state.notices.length}',
-                                  style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.accent)),
                             ),
-                      onTap: () => Navigator.pushNamed(context, '/notifications'),
+                          ),
+                  ),
+                  GroupRow(
+                    icon: Icons.notifications_none_rounded,
+                    label: 'الإشعارات',
+                    badge: state.notices.length,
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/notifications'),
+                  ),
+                ]),
+                GroupCard(children: <Widget>[
+                  GroupRow(
+                    icon: Icons.download_outlined,
+                    label: 'التحميلات',
+                    value: '$dl',
+                    onTap: () => state.setTab(2),
+                  ),
+                  GroupRow(
+                    icon: Icons.insights_rounded,
+                    label: 'الإحصاءات',
+                    onTap: () => Navigator.pushNamed(context, '/library'),
+                  ),
+                ]),
+                GroupCard(children: <Widget>[
+                  GroupRow(
+                    icon: Icons.settings_outlined,
+                    label: 'الإعدادات',
+                    onTap: () => Navigator.pushNamed(context, '/settings'),
+                  ),
+                  GroupRow(
+                    icon: Icons.help_outline_rounded,
+                    label: 'مركز المساعدة',
+                    onTap: () => Navigator.pushNamed(context, '/help'),
+                  ),
+                  if (CloudAuth.I.signedIn)
+                    GroupRow(
+                      icon: Icons.logout_rounded,
+                      label: 'تسجيل الخروج',
+                      onTap: () => CloudAuth.I.signOut(),
                     ),
-                    const Divider(indent: 54),
-                    MenuRow(
-                      icon: Icons.settings_rounded,
-                      label: 'Settings (theme · player · data)',
-                      onTap: () => Navigator.pushNamed(context, '/settings'),
-                    ),
-                    const Divider(indent: 54),
-                    MenuRow(
-                      icon: Icons.help_outline_rounded,
-                      label: 'Help Center',
-                      onTap: () => Navigator.pushNamed(context, '/help'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Text(
-                  'Anime, movies, series, cartoons and comics in one app — '
-                  'everything streams from free, open backends.',
-                  style: AppText.label.copyWith(fontSize: 10.5),
-                ),
-              ),
-            ],
-          );
-        },
+                  const GroupRow(
+                    icon: Icons.info_outline_rounded,
+                    label: 'الإصدار',
+                    value: '2.4.0',
+                  ),
+                ]),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-/// Compact stats strip (episodes watched / chapters read / hours streamed).
-class _StatsStrip extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final stats = LibraryStore.I.stats();
-    Widget card(String value, String label) => Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.stroke),
-            ),
-            child: Column(
-              children: <Widget>[
-                Text(value,
-                    style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.accent)),
-                const SizedBox(height: 2),
-                Text(label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 9.5,
-                        color: AppColors.muted)),
-              ],
-            ),
-          ),
-        );
-    return Row(
-      children: <Widget>[
-        card(stats.episodesWatched.toString(), 'Episodes\nwatched'),
-        const SizedBox(width: 10),
-        card(stats.chaptersRead.toString(), 'Chapters\nread'),
-        const SizedBox(width: 10),
-        card(stats.hoursWatched.toStringAsFixed(0), 'Hours\nstreamed'),
-      ],
-    );
-  }
-}
-
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.state});
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.state});
   final AppState state;
 
   @override
   Widget build(BuildContext context) {
-    final bool live = state.isConnected;
-    final bool syncing = state.isLoading;
-    final bool bad = state.backendMode == BackendMode.offline;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: live
-                ? AppColors.accent.withValues(alpha: 0.5)
-                : bad
-                    ? Colors.red.withValues(alpha: 0.4)
-                    : AppColors.stroke),
-      ),
+    final CloudUser? u = CloudAuth.I.user;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
       child: Row(
-        children: [
-          if (syncing)
-            SizedBox(
-              width: 26,
-              height: 26,
-              child: CircularProgressIndicator(
-                  color: AppColors.accent, strokeWidth: 2.4),
+        children: <Widget>[
+          if (u != null)
+            GestureDetector(
+              onTap: () => openUserProfile(context, u.uid),
+              child: UserAvatar(name: u.name, size: 64),
             )
           else
-            Icon(
-              live
-                  ? Icons.verified_rounded
-                  : bad
-                      ? Icons.cloud_off_rounded
-                      : Icons.explore_rounded,
-              color: live
-                  ? AppColors.accent
-                  : bad
-                      ? Colors.redAccent
-                      : AppColors.muted,
-              size: 28,
+            Container(
+              width: 64,
+              height: 64,
+              padding: const EdgeInsets.all(2.5),
+              decoration: const BoxDecoration(
+                  gradient: AppColors.brandGrad, shape: BoxShape.circle),
+              child: Container(
+                decoration: BoxDecoration(
+                    color: AppColors.surface, shape: BoxShape.circle),
+                child: const Center(child: AnimaxLogo(size: 32)),
+              ),
             ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  live
-                      ? 'Content library up to date'
-                      : syncing
-                          ? 'Refreshing…'
-                          : 'Offline — using cached content',
-                  style: AppText.h3.copyWith(fontSize: 14.5),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  state.backendMessage,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.label.copyWith(fontSize: 10.5),
-                ),
-              ],
-            ),
+            child: u == null
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const Text('مرحبًا بك في أنيماكس',
+                          style: TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                      const SizedBox(height: 8),
+                      GradientButton(
+                        label: 'تسجيل الدخول / حساب جديد',
+                        height: 38,
+                        onTap: () => requireLogin(context),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(u.name.isEmpty ? 'مستخدم أنيماكس' : u.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                      const SizedBox(height: 2),
+                      Text(u.email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textDirection: TextDirection.ltr,
+                          style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 13,
+                              color: AppColors.sub)),
+                    ],
+                  ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined,
+                color: Colors.white, size: 26),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HistoryThumb extends StatelessWidget {
+  const _HistoryThumb({required this.row});
+  final HistoryRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        if (row.kind == 'akwam' && row.key.startsWith('akwam:')) {
+          final AkwamItem? it = AkwamApi.itemFromPath(row.key.substring(6),
+              title: row.title, poster: row.poster);
+          if (it != null) {
+            Navigator.pushNamed(context, '/akwam-details', arguments: it);
+            return;
+          }
+        }
+        Navigator.pushNamed(context, '/library');
+      },
+      child: SizedBox(
+        width: 120,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                  width: 120, height: 66, child: NetImage(row.poster)),
+            ),
+            const SizedBox(height: 6),
+            Text(row.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontFamily: kFont, fontSize: 13.5, color: Colors.white)),
+          ],
+        ),
       ),
     );
   }

@@ -52,3 +52,6 @@ build-out/
 android/build/
 android/app/build/
 **/.gradle/
+
+# Windows packaging output
+/dist/
