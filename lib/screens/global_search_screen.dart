@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import 'scene_search_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/akwam_api.dart';
@@ -122,6 +124,13 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
                     icon: const Icon(Icons.arrow_back_rounded,
                         color: Colors.white),
                     onPressed: () => Navigator.pop(context),
+                  ),
+                  IconButton(
+                    key: const Key('openSceneSearch'),
+                    tooltip: 'ابحث بالمشهد',
+                    icon: const Icon(Icons.image_search_rounded, color: Colors.white),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                        builder: (_) => const SceneSearchScreen())),
                   ),
                   Expanded(
                     child: Container(

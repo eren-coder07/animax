@@ -18,7 +18,8 @@ class IntroRange {
       : null;
 
   @override
-  String toString() => 'IntroRange(${start.toStringAsFixed(2)}–${end.toStringAsFixed(2)})';
+  String toString() =>
+      'IntroRange(${start.toStringAsFixed(2)}–${end.toStringAsFixed(2)})';
 }
 
 /// Finds the intro of a series episode **without decoding any audio or
@@ -50,17 +51,27 @@ class IntroDetector {
     required double frameB,
   }) {
     final double tol = 1.5 * math.max(frameA, frameB);
-    final List<double> ka = keysA.where((double t) => t < searchSeconds).toList();
-    final List<double> kb = keysB.where((double t) => t < searchSeconds).toList();
+    final List<double> ka = keysA
+        .where((double t) => t < searchSeconds)
+        .toList();
+    final List<double> kb = keysB
+        .where((double t) => t < searchSeconds)
+        .toList();
     if (ka.length < 4 || kb.length < 4) return null;
-    final List<double> da = <double>[for (int i = 1; i < ka.length; i++) ka[i] - ka[i - 1]];
-    final List<double> db = <double>[for (int i = 1; i < kb.length; i++) kb[i] - kb[i - 1]];
+    final List<double> da = <double>[
+      for (int i = 1; i < ka.length; i++) ka[i] - ka[i - 1],
+    ];
+    final List<double> db = <double>[
+      for (int i = 1; i < kb.length; i++) kb[i] - kb[i - 1],
+    ];
     double bestDur = 0;
     int bi = 0, bj = 0, br = 0;
     for (int i = 0; i < da.length; i++) {
       for (int j = 0; j < db.length; j++) {
         int r = 0;
-        while (i + r < da.length && j + r < db.length && (da[i + r] - db[j + r]).abs() <= tol) {
+        while (i + r < da.length &&
+            j + r < db.length &&
+            (da[i + r] - db[j + r]).abs() <= tol) {
           r++;
         }
         if (r >= 3) {
@@ -81,10 +92,19 @@ class IntroDetector {
     // Confirm with the frame-size fingerprint: 1-second sums of frame sizes
     // (robust to shifted GOPs) must agree far better than at wrong
     // alignments. Real intros score ~1.0 vs ~0.15–0.35 noise.
-    final double score = _sizeScore(sizesA, frameA, sizesB, frameB, start, end, offset, 0);
+    final double score = _sizeScore(
+      sizesA,
+      frameA,
+      sizesB,
+      frameB,
+      start,
+      end,
+      offset,
+      0,
+    );
     final List<double> noise = <double>[
       for (final int sh in <int>[-50, -37, -25, 25, 37, 50])
-        _sizeScore(sizesA, frameA, sizesB, frameB, start, end, offset, sh)
+        _sizeScore(sizesA, frameA, sizesB, frameB, start, end, offset, sh),
     ]..sort();
     final double noiseMedian = (noise[2] + noise[3]) / 2;
     if (score < 0.7 || score < noiseMedian + 0.3) return null;
@@ -94,8 +114,16 @@ class IntroDetector {
   /// Share of 1-second windows in [start, end) whose summed frame sizes
   /// agree within ±15 % between A and B (B shifted by [offset] s and
   /// [shiftFrames] frames).
-  static double _sizeScore(List<int> a, double fa, List<int> b, double fb,
-      double start, double end, double offset, int shiftFrames) {
+  static double _sizeScore(
+    List<int> a,
+    double fa,
+    List<int> b,
+    double fb,
+    double start,
+    double end,
+    double offset,
+    int shiftFrames,
+  ) {
     final int w = math.max(1, (1 / fa).round());
     int hits = 0, total = 0;
     for (int f = (start / fa).floor(); f + w <= (end / fa).floor(); f += w) {
@@ -131,8 +159,10 @@ class IntroDetector {
       return _memo[cacheKey] = j == null ? null : IntroRange.fromJson(j);
     }
     final Mp4Index me = await FastStart.index(url, headers);
-    final List<int> mine =
-        await me.videoFrameSizes(0, (searchSeconds / me.frameSeconds).round());
+    final List<int> mine = await me.videoFrameSizes(
+      0,
+      (searchSeconds / me.frameSeconds).round(),
+    );
     IntroRange? r;
     // Some episodes differ (special opening): try up to two neighbours.
     for (final String n in neighbourUrls.take(2)) {
@@ -143,8 +173,10 @@ class IntroDetector {
           sizesA: mine,
           frameA: me.frameSeconds,
           keysB: other.keyframeTimes,
-          sizesB: await other
-              .videoFrameSizes(0, (searchSeconds / other.frameSeconds).round()),
+          sizesB: await other.videoFrameSizes(
+            0,
+            (searchSeconds / other.frameSeconds).round(),
+          ),
           frameB: other.frameSeconds,
         );
       } catch (_) {

@@ -1,4 +1,4 @@
-# Animax (أنيماكس) v2.7.0 — Features
+# Animax (أنيماكس) v2.8.0 — Features
 
 Arabic-first streaming app: right-to-left UI in Arabic (IBM Plex Sans
 Arabic), Akwam as the home screen.
@@ -46,6 +46,23 @@ Arabic), Akwam as the home screen.
   marathon); rows / columns / diagonals count as BINGO; new rounds.
 - Marathon mode: next episode after a 5 s cancellable countdown, intros
   skipped, streak counter.
+
+## Animax technology (v2.8)
+- **Intro detection without decoding**: compares two episodes' MP4 indexes
+  only (~50 KB): the keyframe rhythm of an identical opening matches and
+  diverges where the episode starts; 1-second frame-size sums confirm it
+  (real intros score ~1.0 vs ~0.15–0.35 noise). Verified on Akwam
+  «احتمال حب» eps 1–3, 41/42, 71 (credits end frame-checked at 77.96 s);
+  no false intro on «ما زلت في 17» or on special episodes. «تخطي المقدمة»
+  button + optional auto-skip; results cached per episode.
+- **Adaptive quality for plain MP4**: Akwam's 360p/480p/720p files share
+  86–100 % of keyframes; fast-start windows end on a keyframe shared by all
+  qualities, so the next window can come from another quality with zero gap
+  (measured: gap 0.000 s, first frame identical to the 720p original).
+  Decisions from measured line speed (media + index transfers) and stalls.
+- **Scene search**: a screenshot (downscaled to ~10 KB) → trace.moe frame
+  index → anime, episode and second → found in our catalog → the player
+  opens at that exact second. Low-confidence matches are dropped or marked.
 
 ## Watch together (v2.4)
 - **Hot moments**: the seek bar glows where the community clipped the most;

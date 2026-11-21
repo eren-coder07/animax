@@ -56,6 +56,9 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   /// Hot moments + timed comments of the current episode.
   EpisodeSocial? _social;
+
+  /// Start position requested by the caller (scene search), used once.
+  Duration? _pendingStart;
   bool _resolving = false;
   String? _error;
   String _status = '';
@@ -120,7 +123,12 @@ class _PlayerScreenState extends State<PlayerScreen>
     final Object? args = ModalRoute.of(context)!.settings.arguments;
     Anime anime;
     Episode? ep;
-    if (args is (Anime, Episode?)) {
+    if (args is (Anime, Episode?, Duration)) {
+      // Scene search: open the episode at an exact second.
+      anime = args.$1;
+      ep = args.$2;
+      _pendingStart = args.$3;
+    } else if (args is (Anime, Episode?)) {
       anime = args.$1;
       ep = args.$2;
     } else if (args is Anime) {
@@ -267,6 +275,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   /// Returns false when the stream cannot be opened (caller falls back to
   /// the next server).
   Future<bool> _startPlayer(ResolvedStream rs, {Duration? resumeAt}) async {
+    if (resumeAt == null && _pendingStart != null) {
+      resumeAt = _pendingStart;
+      _pendingStart = null;
+    }
     final VideoPlayerController? old = _player;
     final Duration pos = resumeAt ??
         (old != null && old.value.isInitialized

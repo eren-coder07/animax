@@ -22,6 +22,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private var pendingStorageResult: MethodChannel.Result? = null
     private var pendingNearbyResult: MethodChannel.Result? = null
+    private var pendingImageResult: MethodChannel.Result? = null
     private var nearby: NearbyHelper? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private val main = Handler(Looper.getMainLooper())
@@ -244,6 +245,25 @@ class MainActivity : FlutterActivity() {
                             result.success(-1L)
                         }
                     }
+                    "pickImage" -> {
+                        // Gallery / files picker → image bytes (scene search).
+                        if (pendingImageResult != null) {
+                            result.success(null)
+                        } else {
+                            pendingImageResult = result
+                            try {
+                                val i = Intent(Intent.ACTION_GET_CONTENT).apply {
+                                    type = "image/*"
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                }
+                                @Suppress("DEPRECATION")
+                                startActivityForResult(Intent.createChooser(i, "اختر صورة"), 4714)
+                            } catch (e: Exception) {
+                                pendingImageResult = null
+                                result.success(null)
+                            }
+                        }
+                    }
                     "trafficBytes" -> {
                         // Cumulative bytes this app sent + received since boot
                         // (monthly data budget, data_budget.dart).
@@ -346,6 +366,28 @@ class MainActivity : FlutterActivity() {
             pendingStorageResult?.success(granted)
             pendingStorageResult = null
         }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != 4714) return
+        val r = pendingImageResult ?: return
+        pendingImageResult = null
+        val uri = data?.data
+        if (resultCode != RESULT_OK || uri == null) {
+            r.success(null)
+            return
+        }
+        Thread {
+            val bytes = try {
+                contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            } catch (e: Exception) {
+                null
+            }
+            main.post { r.success(bytes) }
+        }.start()
     }
 
     override fun onDestroy() {

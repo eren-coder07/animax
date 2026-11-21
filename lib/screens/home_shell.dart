@@ -40,7 +40,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '2.7.0';
+    const String version = '2.8.0';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -381,10 +381,9 @@ class WhatsNewDialog extends StatelessWidget {
   final String version;
 
   static const List<String> highlights = <String>[
-    '🏆 «الأكثر مشاهدة على أنيماكس» في الرئيسية',
-    '⬇️ تحميل الحلقة التالية تلقائيًا على Wi-Fi لمشاهدتها بدون إنترنت',
-    '🛡️ حظر المستخدمين والإبلاغ عن المقاطع والتعليقات',
-    '👥 اكتشف صنّاع المقاطع وتابعهم',
+    '⏭️ «تخطي المقدمة» في مسلسلات أكوام — يكتشفها التطبيق بنفسه بدون فك تشفير الفيديو',
+    '📶 جودة تلقائية متكيّفة لملفات MP4 — تتبدّل بسلاسة عند تغيّر سرعة الإنترنت',
+    '🔎 ابحث بالمشهد: صورة شاشة ← اسم الأنمي والحلقة والثانية ← تشغيل فوري',
   ];
 
   @override

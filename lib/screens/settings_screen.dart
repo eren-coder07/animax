@@ -131,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     fontFamily: 'Plex',
                     fontSize: 14,
                     color: AppColors.text)),
-            subtitle: const Text('يتخطى الثواني الأولى تلقائيًا',
+            subtitle: const Text('في أكوام يكتشف التطبيق المقدمة بذكاء ويتخطاها، وفي الأنمي حسب المدة أدناه',
                 style: TextStyle(
                     fontFamily: 'Plex', fontSize: 11.5, color: AppColors.muted)),
           ),
@@ -453,7 +453,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
-              child: Text('أنيماكس الإصدار 2.7.0 · صُنع بحب للمشاهدين العرب',
+              child: Text('أنيماكس الإصدار 2.8.0 · صُنع بحب للمشاهدين العرب',
                   style: TextStyle(
                       fontFamily: 'Plex',
                       fontSize: 11,
@@ -532,7 +532,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final String tag =
           ((jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['tag_name'] ?? '')
               .toString();
-      final String current = 'v2.7.0';
+      final String current = 'v2.8.0';
       final bool newer = _isNewer(tag, current);
       if (mounted) {
         setState(() {
