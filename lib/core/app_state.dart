@@ -435,7 +435,7 @@ class AppState extends ChangeNotifier {
   // Shell
   // =========================================================================
 
-  /// Bottom tabs: 0 الرئيسية · 1 التحميلات · 2 حسابي.
+  /// Bottom tabs: 0 الرئيسية · 1 مقاطع · 2 التحميلات · 3 حسابي.
   static const int homeTab = 0;
 
   int navIndex = homeTab;

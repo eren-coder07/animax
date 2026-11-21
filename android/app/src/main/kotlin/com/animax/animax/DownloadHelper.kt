@@ -126,6 +126,71 @@ object DownloadHelper {
         fetches.remove(id)
     }
 
+    /**
+     * Cuts [startMs]..[endMs] (≤10 s clips) straight from a progressive
+     * stream URL into an MP4 — no re-encode: the cut starts at the keyframe
+     * just before [startMs]. Returns true when [output] was written.
+     */
+    fun cutClip(url: String, headers: Map<String, String>, startMs: Long,
+                endMs: Long, output: String): Boolean {
+        val ex = MediaExtractor()
+        var muxer: MediaMuxer? = null
+        try {
+            File(output).delete()
+            ex.setDataSource(url, headers)
+            muxer = MediaMuxer(output, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+            val map = HashMap<Int, Int>()
+            var maxInput = 1 shl 20
+            for (i in 0 until ex.trackCount) {
+                val fmt = ex.getTrackFormat(i)
+                val mime = fmt.getString(MediaFormat.KEY_MIME) ?: continue
+                if (!mime.startsWith("video/") && !mime.startsWith("audio/")) continue
+                val dst = try { muxer.addTrack(fmt) } catch (e: Exception) { continue }
+                if (fmt.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)) {
+                    maxInput = maxOf(maxInput, fmt.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE))
+                }
+                ex.selectTrack(i)
+                map[i] = dst
+            }
+            if (map.isEmpty()) return false
+            val startUs = startMs * 1000
+            val endUs = endMs * 1000
+            ex.seekTo(startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+            muxer.start()
+            val buf = ByteBuffer.allocate(maxOf(maxInput, 2 shl 20))
+            val info = MediaCodec.BufferInfo()
+            var base = -1L
+            while (true) {
+                val track = ex.sampleTrackIndex
+                if (track < 0) break
+                val t = ex.sampleTime
+                if (t > endUs) break
+                val dst = map[track]
+                if (dst != null) {
+                    buf.clear()
+                    val size = ex.readSampleData(buf, 0)
+                    if (size < 0) break
+                    if (base < 0) base = t
+                    info.offset = 0
+                    info.size = size
+                    info.presentationTimeUs = maxOf(0L, t - base)
+                    info.flags = if (ex.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0)
+                        MediaCodec.BUFFER_FLAG_KEY_FRAME else 0
+                    muxer.writeSampleData(dst, buf, info)
+                }
+                ex.advance()
+            }
+            muxer.stop()
+            return File(output).length() > 0
+        } catch (e: Exception) {
+            File(output).delete()
+            return false
+        } finally {
+            try { muxer?.release() } catch (_: Exception) {}
+            try { ex.release() } catch (_: Exception) {}
+        }
+    }
+
     /** Returns true when [output] was written with at least one track. */
     fun mux(inputs: List<String>, output: String): Boolean {
         val extractors = mutableListOf<MediaExtractor>()

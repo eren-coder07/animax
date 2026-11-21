@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../core/social.dart';
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
 import '../core/cinema_api.dart';
@@ -312,6 +313,10 @@ class _CinemaPlayerScreenState extends State<CinemaPlayerScreen>
   void _recordStart() {
     if (_key.isEmpty) return;
     final CinemaMeta? m = widget.meta;
+    unawaited(Social.countView(_key,
+        title: m?.name ?? widget._directTitle ?? '',
+        poster: m?.poster ?? '',
+        kind: 'cartoon'));
     LibraryStore.I.pushHistory(
       key: _key,
       title: m?.name ?? widget._directTitle ?? 'سينما',

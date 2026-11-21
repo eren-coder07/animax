@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
+import 'clips_screen.dart';
+import '../core/social.dart';
+import '../core/binge.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
 import '../core/hh_api.dart';
@@ -203,6 +206,9 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     }
     controller.setVolume(_muted ? 0 : 1);
     if (_speed != 1.0) controller.setPlaybackSpeed(_speed);
+    Binge.started('hh:${_series.slug}#$_episode');
+    unawaited(Social.countView('hh:${_series.slug}',
+        title: _series.title, poster: _series.thumb, kind: 'hh'));
     await controller.play();
     _setKeepScreenOn(true);
     _positionTicker =
@@ -253,7 +259,9 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       return;
     }
     if (v.isCompleted && !_resolving) {
-      _autoNextEpisode();
+      Binge.episodeEnded(context,
+          episodeKey: 'hh:${_series.slug}#$_episode',
+          next: _BottomControls._hasEp(this, 1) ? _autoNextEpisode : null);
     }
   }
 
@@ -664,6 +672,32 @@ class _TopBar extends StatelessWidget {
                         color: Colors.white70)),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: 'اصنع مقطعًا',
+            icon: const Icon(Icons.content_cut_rounded,
+                color: Colors.white, size: 21),
+            onPressed: (state._player == null ||
+                    !state._player!.value.isInitialized)
+                ? null
+                : () {
+                    final VideoPlayerController c = state._player!;
+                    c.pause();
+                    showClipMaker(
+                      context,
+                      position: c.value.position,
+                      duration: c.value.duration,
+                      title: state._series.title,
+                      label: 'الحلقة ${state._episode}',
+                      poster: state._series.thumb,
+                      kind: 'hh',
+                      source: 'hh',
+                      ref: <String, String>{
+                        'slug': state._series.slug,
+                        'ep': '${state._episode}',
+                      },
+                    );
+                  },
           ),
           DownloadIconButton(
             url: state._stream?.url ?? '',

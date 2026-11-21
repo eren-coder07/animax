@@ -8,6 +8,7 @@ import '../widgets/animax_logo.dart';
 import '../widgets/mb_ui.dart';
 import 'akwam_tab.dart';
 import 'cartoon_tab.dart';
+import 'clips_screen.dart';
 import 'comic_tab.dart';
 import 'downloads_screen.dart';
 import 'global_search_screen.dart';
@@ -56,9 +57,10 @@ class _HomeShellState extends State<HomeShell> {
           backgroundColor: AppColors.bg,
           extendBody: true,
           body: IndexedStack(
-            index: state.navIndex.clamp(0, 2),
+            index: state.navIndex.clamp(0, 3),
             children: const <Widget>[
               HomeScreen(),
+              ClipsFeedScreen(),
               DownloadsScreen(asTab: true),
               ProfileTab(),
             ],
@@ -82,6 +84,7 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     const List<(IconData, IconData, String)> items = <(IconData, IconData, String)>[
       (Icons.home_outlined, Icons.home_rounded, 'الرئيسية'),
+      (Icons.video_library_outlined, Icons.video_library_rounded, 'مقاطع'),
       (Icons.download_outlined, Icons.download_rounded, 'التحميلات'),
       (Icons.person_outline_rounded, Icons.person_rounded, 'حسابي'),
     ];
@@ -93,7 +96,7 @@ class _BottomBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 62,
+          height: 64,
           child: ListenableBuilder(
             listenable: DownloadManager.I,
             builder: (BuildContext context, _) => Row(
@@ -105,8 +108,8 @@ class _BottomBar extends StatelessWidget {
                       activeIcon: items[i].$2,
                       label: items[i].$3,
                       active: state.navIndex == i,
-                      dot: (i == 1 && DownloadManager.I.activeCount > 0) ||
-                          (i == 2 && state.notices.isNotEmpty),
+                      dot: (i == 2 && DownloadManager.I.activeCount > 0) ||
+                          (i == 3 && state.notices.isNotEmpty),
                       onTap: () => state.setTab(i),
                     ),
                   ),
@@ -138,7 +141,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget ic = Icon(active ? activeIcon : icon,
-        size: 27, color: active ? Colors.white : AppColors.sub);
+        size: 25, color: active ? Colors.white : AppColors.sub);
     if (active) {
       ic = ShaderMask(
         shaderCallback: (Rect r) => AppColors.brandGrad.createShader(r),
@@ -172,9 +175,11 @@ class _NavItem extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(label,
+              maxLines: 1,
               style: TextStyle(
                   fontFamily: kFont,
                   fontSize: 12,
+                  height: 1.2,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                   color: active ? Colors.white : AppColors.sub)),
         ],

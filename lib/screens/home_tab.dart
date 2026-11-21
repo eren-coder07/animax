@@ -123,6 +123,7 @@ class _HomeTabState extends State<HomeTab> {
                         width: w,
                         rating: a.score,
                         badge: a.isMovie ? 'فيلم' : (a.episodeCount > 0 ? 'ح ${a.episodeCount}' : ''),
+                        viewsKey: 'anime:${a.id}',
                         onTap: () => _openAnime(a),
                       ),
                     ),

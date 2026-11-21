@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/social_bar.dart';
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
@@ -309,6 +310,8 @@ class _AkwamDetailsScreenState extends State<AkwamDetailsScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                 child: MetaLine(rating: _item.rating, parts: _metaParts()),
               ),
+              if (_item.path.isNotEmpty)
+                SocialBar(itemKey: 'akwam:${_item.path}', title: _item.title),
               const SizedBox(height: 14),
               _actions(),
               _resources(),

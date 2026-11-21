@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
+import 'clips_screen.dart';
+import '../core/social.dart';
+import '../core/binge.dart';
 import '../core/api_service.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
@@ -301,6 +304,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
     controller.setVolume(_muted ? 0 : 1);
     if (_speed != 1.0) controller.setPlaybackSpeed(_speed);
+    Binge.started('anime:${_anime.id}#${_episode?.number ?? 0}');
+    unawaited(Social.countView('anime:${_anime.id}',
+        title: _anime.title, poster: _anime.poster, kind: 'anime'));
     await controller.play();
     _setKeepScreenOn(true);
     _bumpControls();
@@ -331,7 +337,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
     // Auto-skip intro (Settings → Player → Auto-skip intro).
     if (!_introSkipped &&
-        AppPrefs.I.autoSkipIntro &&
+        (AppPrefs.I.autoSkipIntro || Binge.on) &&
         _stream != null &&
         _stream!.hasIntro &&
         v.position.inSeconds >= _stream!.introStart &&
@@ -345,7 +351,11 @@ class _PlayerScreenState extends State<PlayerScreen>
         c.play();
         return;
       }
-      _autoNextEpisode();
+      Binge.episodeEnded(context,
+          episodeKey: 'anime:${_anime.id}#${_episode?.number ?? 0}',
+          next: _hasNextEpisode && (AppPrefs.I.autoPlayNext || Binge.on)
+              ? () => _autoNextEpisode(force: true)
+              : null);
     }
   }
 
@@ -357,8 +367,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     return i >= 0 && i + 1 < _episodes.length;
   }
 
-  void _autoNextEpisode() {
-    if (!AppPrefs.I.autoPlayNext) return;
+  void _autoNextEpisode({bool force = false}) {
+    if (!force && !AppPrefs.I.autoPlayNext) return;
     if (!_hasNextEpisode) return;
     final int i =
         _episodes.indexWhere((Episode e) => e.number == _episode!.number);
@@ -1269,6 +1279,33 @@ class _BottomControls extends StatelessWidget {
                 const _OverlayLabel(
                     icon: Icons.high_quality_rounded, label: 'تلقائي'),
               const Spacer(),
+              IconButton(
+                tooltip: 'اصنع مقطعًا',
+                icon: const Icon(Icons.content_cut_rounded,
+                    color: Colors.white, size: 21),
+                onPressed: (state._player == null ||
+                        !state._player!.value.isInitialized ||
+                        state._anime.watchId == null)
+                    ? null
+                    : () {
+                        final VideoPlayerController c = state._player!;
+                        c.pause();
+                        showClipMaker(
+                          context,
+                          position: c.value.position,
+                          duration: c.value.duration,
+                          title: state._anime.title,
+                          label: 'الحلقة ${state._episode?.number ?? 1}',
+                          poster: state._anime.poster,
+                          kind: 'anime',
+                          source: 'anime',
+                          ref: <String, String>{
+                            'watchId': state._anime.watchId!,
+                            'ep': '${state._episode?.number ?? 1}',
+                          },
+                        );
+                      },
+              ),
               IconButton(
                 tooltip: 'مشاركة سريعة',
                 icon: const Icon(Icons.share_rounded, color: Colors.white, size: 21),

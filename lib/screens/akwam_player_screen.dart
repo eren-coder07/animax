@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
+import 'clips_screen.dart';
+import '../core/social.dart';
+import '../core/binge.dart';
 import '../core/akwam_api.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
@@ -305,8 +308,11 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     if (_speed != 1.0) controller.setPlaybackSpeed(_speed);
     await controller.play();
     _setKeepScreenOn(true);
+    Binge.started('akwam:${_item.path}#${_episode?.number ?? 0}');
     // Watch history: powers "continue watching" on Home and the Me page.
     if (_item.path.isNotEmpty) {
+      unawaited(Social.countView('akwam:${_item.path}',
+          title: _item.title, poster: _item.poster, kind: 'akwam'));
       LibraryStore.I.pushHistory(
         key: 'akwam:${_item.path}',
         title: _item.title,
@@ -348,7 +354,9 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
       return;
     }
     if (v.isCompleted && !_resolving) {
-      _autoNextEpisode();
+      Binge.episodeEnded(context,
+          episodeKey: 'akwam:${_item.path}#${_episode?.number ?? 0}',
+          next: _hasNext ? _autoNextEpisode : null);
     }
   }
 
@@ -691,6 +699,32 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                     fontWeight: FontWeight.w600,
                     color: Colors.white),
               ),
+            ),
+            IconButton(
+              tooltip: 'اصنع مقطعًا',
+              icon: const Icon(Icons.content_cut_rounded,
+                  color: Colors.white, size: 21),
+              onPressed: (_player == null ||
+                      !_player!.value.isInitialized ||
+                      _sources.isEmpty)
+                  ? null
+                  : () {
+                      final VideoPlayerController c = _player!;
+                      c.pause();
+                      showClipMaker(
+                        context,
+                        position: c.value.position,
+                        duration: c.value.duration,
+                        title: _item.title,
+                        label: _episode == null ? '' : 'الحلقة ${_episode!.number}',
+                        poster: _item.poster,
+                        kind: 'akwam',
+                        source: 'akwam',
+                        ref: <String, String>{
+                          'path': _sources[_sourceIndex].watchPath
+                        },
+                      );
+                    },
             ),
             IconButton(
               tooltip: 'مشاركة سريعة',

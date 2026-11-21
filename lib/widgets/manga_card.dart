@@ -135,6 +135,7 @@ class MangaRow extends StatelessWidget {
             title: m.title,
             image: m.cover,
             width: w,
+            viewsKey: 'manga:${m.id}',
             onTap: () =>
                 Navigator.pushNamed(c, '/comic-details', arguments: m),
           ),

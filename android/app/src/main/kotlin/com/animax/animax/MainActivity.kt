@@ -176,6 +176,17 @@ class MainActivity : FlutterActivity() {
                             )
                         }
                     }
+                    "clipCut" -> {
+                        val url = call.argument<String>("url") ?: ""
+                        val headers = call.argument<Map<String, String>>("headers") ?: emptyMap()
+                        val start = (call.argument<Number>("startMs") ?: 0).toLong()
+                        val end = (call.argument<Number>("endMs") ?: 0).toLong()
+                        val out = call.argument<String>("output") ?: ""
+                        Thread {
+                            val ok = DownloadHelper.cutClip(url, headers, start, end, out)
+                            main.post { result.success(ok) }
+                        }.start()
+                    }
                     "dlFetch" -> {
                         val id = call.argument<String>("id") ?: ""
                         val url = call.argument<String>("url") ?: ""

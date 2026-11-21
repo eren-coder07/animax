@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/social_bar.dart';
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
@@ -341,6 +342,10 @@ class _ComicDetailsScreenState extends State<ComicDetailsScreen> {
                           .toList(),
                     ),
                   ],
+                  SocialBar(
+                      itemKey: 'manga:${item.id}',
+                      title: item.title,
+                      viewsLabel: 'قراءة'),
                   const SizedBox(height: 20),
                   _buildChapterHeader(),
                 ],

@@ -59,6 +59,7 @@ class AppPrefs extends ChangeNotifier {
   String defaultQuality = 'auto'; // auto | 1080 | 720 | 480 | 360
   bool autoPlayNext = true;
   bool autoSkipIntro = false;
+  bool bingeMode = false; // marathon: countdown auto-next + skip intros
   int skipIntroSeconds = 85;
   bool pauseOnBackground = true;
   String cinemaProvider = ''; // '' = auto (first working provider)
@@ -91,6 +92,7 @@ class AppPrefs extends ChangeNotifier {
       defaultQuality = sp.getString('pref.defaultQuality') ?? defaultQuality;
       autoPlayNext = sp.getBool('pref.autoPlayNext') ?? autoPlayNext;
       autoSkipIntro = sp.getBool('pref.autoSkipIntro') ?? autoSkipIntro;
+      bingeMode = sp.getBool('pref.bingeMode') ?? bingeMode;
       skipIntroSeconds = sp.getInt('pref.skipIntroSec') ?? skipIntroSeconds;
       pauseOnBackground = sp.getBool('pref.pauseOnBg') ?? pauseOnBackground;
       cinemaProvider = sp.getString('pref.cinemaProvider') ?? '';
@@ -137,6 +139,10 @@ class AppPrefs extends ChangeNotifier {
       case 'autoPlayNext':
         autoPlayNext = value as bool;
         sp?.setBool('pref.autoPlayNext', autoPlayNext);
+        break;
+      case 'bingeMode':
+        bingeMode = value as bool;
+        sp?.setBool('pref.bingeMode', bingeMode);
         break;
       case 'autoSkipIntro':
         autoSkipIntro = value as bool;

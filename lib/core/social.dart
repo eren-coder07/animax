@@ -191,7 +191,7 @@ class Social {
 
   // ---------------------------------------------------------------- clips
 
-  static Future<String> createClip(Clip c) async {
+  static Future<String> createClip(VideoClip c) async {
     _needLogin();
     final String id = await CloudDb.I.push('clips', <String, dynamic>{
       ...c.toJson(),
@@ -209,28 +209,28 @@ class Social {
   }
 
   /// Newest clips first.
-  static Future<List<Clip>> clipsFeed({int limit = 40}) async {
+  static Future<List<VideoClip>> clipsFeed({int limit = 40}) async {
     final dynamic v = await CloudDb.I.get('clips', query: <String, String>{
       'orderBy': '"\$key"',
       'limitToLast': '$limit',
     });
-    final List<Clip> out = <Clip>[];
+    final List<VideoClip> out = <VideoClip>[];
     if (v is Map) {
       v.forEach((dynamic id, dynamic c) {
-        if (c is Map) out.add(Clip.fromJson(id.toString(), c));
+        if (c is Map) out.add(VideoClip.fromJson(id.toString(), c));
       });
     }
-    out.sort((Clip a, Clip b) => (b.at ?? DateTime(0)).compareTo(a.at ?? DateTime(0)));
+    out.sort((VideoClip a, VideoClip b) => (b.at ?? DateTime(0)).compareTo(a.at ?? DateTime(0)));
     return out;
   }
 
-  static Future<List<Clip>> clipsOf(String uid) async {
-    final List<Clip> all = await clipsFeed(limit: 200);
+  static Future<List<VideoClip>> clipsOf(String uid) async {
+    final List<VideoClip> all = await clipsFeed(limit: 200);
     final Map<dynamic, dynamic> reposts =
         (await CloudDb.I.get('reposts/$uid') as Map<dynamic, dynamic>?) ??
             <dynamic, dynamic>{};
     return all
-        .where((Clip c) => c.uid == uid || reposts.containsKey(c.id))
+        .where((VideoClip c) => c.uid == uid || reposts.containsKey(c.id))
         .toList();
   }
 
@@ -267,7 +267,7 @@ class Social {
     } catch (_) {}
   }
 
-  static Future<void> deleteClip(Clip c) async {
+  static Future<void> deleteClip(VideoClip c) async {
     _needLogin();
     if (c.uid != _uid) return;
     await CloudDb.I.update(<String, dynamic>{
@@ -379,8 +379,8 @@ class UserProfile {
 }
 
 /// A ≤10 s clip: a reference to a window of a source video.
-class Clip {
-  const Clip({
+class VideoClip {
+  const VideoClip({
     this.id = '',
     this.uid = '',
     this.name = '',
@@ -433,9 +433,9 @@ class Clip {
         'endMs': endMs,
       };
 
-  static Clip fromJson(String id, Map<dynamic, dynamic> j) {
+  static VideoClip fromJson(String id, Map<dynamic, dynamic> j) {
     int n(String k) => ((j[k] as num?)?.toInt() ?? 0).clamp(0, 1 << 31);
-    return Clip(
+    return VideoClip(
       id: id,
       uid: (j['uid'] ?? '').toString(),
       name: (j['name'] ?? '').toString(),
@@ -577,5 +577,33 @@ class BingeStore extends ChangeNotifier {
   void reset() {
     session = 0;
     notifyListeners();
+  }
+}
+
+/// Community view counts for poster badges (top items, refreshed ≤ 2 min).
+class ViewCounts extends ChangeNotifier {
+  ViewCounts._();
+  static final ViewCounts I = ViewCounts._();
+
+  Map<String, int> _m = <String, int>{};
+  bool _loading = false;
+
+  int of(String itemKey) {
+    if (_m.isEmpty && !_loading) refresh();
+    return _m[CloudDb.key(itemKey)] ?? 0;
+  }
+
+  Future<void> refresh() async {
+    if (_loading) return;
+    _loading = true;
+    try {
+      final Map<String, int> m = await Social.allViews();
+      if (m.isNotEmpty) {
+        _m = m;
+        notifyListeners();
+      }
+    } finally {
+      _loading = false;
+    }
   }
 }

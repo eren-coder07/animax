@@ -4,9 +4,16 @@ import '../core/akwam_api.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
+import '../core/app_prefs.dart';
+import '../core/cloud.dart';
 import '../core/library_store.dart';
+import '../core/social.dart';
 import '../widgets/animax_logo.dart';
 import '../widgets/mb_ui.dart';
+import '../widgets/social_bar.dart';
+import 'auth_screen.dart';
+import 'bingo_screen.dart';
+import 'user_profile_screen.dart';
 
 /// "حسابي" — grouped cards: list, watch history (with thumbnails),
 /// notifications, downloads, settings and help.
@@ -21,8 +28,14 @@ class ProfileTab extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: ListenableBuilder(
-          listenable: Listenable.merge(
-              <Listenable>[state, LibraryStore.I, DownloadManager.I]),
+          listenable: Listenable.merge(<Listenable>[
+            state,
+            LibraryStore.I,
+            DownloadManager.I,
+            CloudAuth.I,
+            BingoStore.I,
+            AppPrefs.I,
+          ]),
           builder: (BuildContext context, _) {
             final LibraryStore lib = LibraryStore.I;
             final List<HistoryRow> hist = lib.history.take(6).toList();
@@ -32,6 +45,29 @@ class ProfileTab extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 100),
               children: <Widget>[
                 _ProfileHeader(state: state),
+                GroupCard(children: <Widget>[
+                  if (CloudAuth.I.signedIn)
+                    GroupRow(
+                      icon: Icons.account_circle_outlined,
+                      label: 'ملفي الشخصي ومقاطعي',
+                      onTap: () =>
+                          openUserProfile(context, CloudAuth.I.user!.uid),
+                    ),
+                  GroupRow(
+                    icon: Icons.grid_on_rounded,
+                    label: 'بينغو المشاهدة',
+                    value: '${BingoStore.I.done.length}/9',
+                    onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: (_) => const BingoScreen())),
+                  ),
+                  GroupRow(
+                    icon: Icons.bolt_rounded,
+                    label: 'وضع الماراثون',
+                    value: AppPrefs.I.bingeMode ? 'مفعّل' : 'متوقف',
+                    onTap: () => AppPrefs.I.set('bingeMode', !AppPrefs.I.bingeMode),
+                  ),
+                ]),
                 GroupCard(children: <Widget>[
                   GroupRow(
                     icon: Icons.bookmark_border_rounded,
@@ -73,7 +109,7 @@ class ProfileTab extends StatelessWidget {
                     icon: Icons.download_outlined,
                     label: 'التحميلات',
                     value: '$dl',
-                    onTap: () => state.setTab(1),
+                    onTap: () => state.setTab(2),
                   ),
                   GroupRow(
                     icon: Icons.insights_rounded,
@@ -92,6 +128,12 @@ class ProfileTab extends StatelessWidget {
                     label: 'مركز المساعدة',
                     onTap: () => Navigator.pushNamed(context, '/help'),
                   ),
+                  if (CloudAuth.I.signedIn)
+                    GroupRow(
+                      icon: Icons.logout_rounded,
+                      label: 'تسجيل الخروج',
+                      onTap: () => CloudAuth.I.signOut(),
+                    ),
                   const GroupRow(
                     icon: Icons.info_outline_rounded,
                     label: 'الإصدار',
@@ -113,59 +155,71 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool live = state.backendChip == 'مباشر';
+    final CloudUser? u = CloudAuth.I.user;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
       child: Row(
         children: <Widget>[
-          Container(
-            width: 64,
-            height: 64,
-            padding: const EdgeInsets.all(2.5),
-            decoration: const BoxDecoration(
-                gradient: AppColors.brandGrad, shape: BoxShape.circle),
-            child: Container(
-              decoration: BoxDecoration(
-                  color: AppColors.surface, shape: BoxShape.circle),
-              child: const Center(child: AnimaxLogo(size: 32)),
+          if (u != null)
+            GestureDetector(
+              onTap: () => openUserProfile(context, u.uid),
+              child: UserAvatar(name: u.name, size: 64),
+            )
+          else
+            Container(
+              width: 64,
+              height: 64,
+              padding: const EdgeInsets.all(2.5),
+              decoration: const BoxDecoration(
+                  gradient: AppColors.brandGrad, shape: BoxShape.circle),
+              child: Container(
+                decoration: BoxDecoration(
+                    color: AppColors.surface, shape: BoxShape.circle),
+                child: const Center(child: AnimaxLogo(size: 32)),
+              ),
             ),
-          ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const Text('مشاهد أنيماكس',
-                    style: TextStyle(
-                        fontFamily: kFont,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white)),
-                const SizedBox(height: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceHi,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+            child: u == null
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Icon(Icons.circle,
-                          size: 8,
-                          color: live ? AppColors.brandGreen : AppColors.sub),
-                      const SizedBox(width: 6),
-                      Text(live ? 'متصل · المحتوى محدّث' : state.backendChip,
+                      const Text('مرحبًا بك في أنيماكس',
+                          style: TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                      const SizedBox(height: 8),
+                      GradientButton(
+                        label: 'تسجيل الدخول / حساب جديد',
+                        height: 38,
+                        onTap: () => requireLogin(context),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(u.name.isEmpty ? 'مستخدم أنيماكس' : u.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontFamily: kFont,
-                              fontSize: 12.5,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                      const SizedBox(height: 2),
+                      Text(u.email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textDirection: TextDirection.ltr,
+                          style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 13,
                               color: AppColors.sub)),
                     ],
                   ),
-                ),
-              ],
-            ),
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined,

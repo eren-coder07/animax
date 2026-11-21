@@ -283,6 +283,7 @@ class AkwamCard extends StatelessWidget {
       width: width,
       badge: item.qualityLabel,
       rating: item.rating,
+      viewsKey: 'akwam:${item.path}',
       onTap: () =>
           Navigator.pushNamed(context, '/akwam-details', arguments: item),
     );

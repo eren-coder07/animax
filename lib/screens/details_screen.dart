@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../widgets/social_bar.dart';
 import '../core/api_html.dart';
 import '../core/app_data.dart';
 import '../core/app_state.dart';
@@ -187,6 +188,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     const SizedBox(height: 12),
                     // ---------- Quick actions: list / rate / share ----------
                     _QuickActions(anime: _anime),
+                    SocialBar(itemKey: 'anime:${_anime.id}', title: _anime.title),
                     const SizedBox(height: 18),
                     FutureBuilder<Anime>(
                       future: _detailsFuture,

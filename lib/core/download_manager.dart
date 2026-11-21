@@ -610,11 +610,143 @@ class DownloadManager extends ChangeNotifier {
 
   /// Resolves a details-page source into its direct video URL (for
   /// sharing a link that plays in any browser / VLC).
-  Future<String> directLink(String source, Map<String, String> ref) async {
+  Future<String> directLink(String source, Map<String, String> ref) async =>
+      (await resolveStream(source, ref)).url;
+
+  /// Resolves a source reference into a playable stream (clips use this).
+  Future<({String url, Map<String, String> headers, bool isHls})> resolveStream(
+      String source, Map<String, String> ref) async {
     final DownloadItem tmp = DownloadItem(
         id: 'link', kind: DownloadKind.video, title: '', source: source, ref: ref);
     await _resolve(tmp);
-    return tmp.url;
+    return (url: tmp.url, headers: _headers(tmp), isHls: tmp.isHls);
+  }
+
+  /// Cuts a clip window from its source into a real MP4, saves it to
+  /// `Download/Animax/Clips` and returns the finished item (for sharing).
+  /// Progressive sources are cut natively; HLS sources download only the
+  /// segments covering the window and remux them.
+  Future<DownloadItem> saveClipFile({
+    required String source,
+    required Map<String, String> ref,
+    required int startMs,
+    required int endMs,
+    required String title,
+    String subtitle = '',
+    String poster = '',
+  }) async {
+    await load();
+    final ({String url, Map<String, String> headers, bool isHls}) st =
+        await resolveStream(source, ref);
+    final String id = 'clip_${_newId()}';
+    final Directory dir = await _workDir(id);
+    final File out = File('${dir.path}/clip.mp4');
+    bool ok;
+    if (st.isHls) {
+      ok = await _hlsWindow(st.url, st.headers, startMs, endMs, dir, out);
+    } else {
+      ok = await _channel.invokeMethod<bool>('clipCut', <String, dynamic>{
+            'url': st.url,
+            'headers': st.headers,
+            'startMs': startMs,
+            'endMs': endMs,
+            'output': out.path,
+          }) ??
+          false;
+    }
+    if (!ok || !out.existsSync()) {
+      throw DownloadException('تعذّر قص المقطع من المصدر — حاول مرة أخرى.');
+    }
+    final DownloadItem it = DownloadItem(
+      id: id,
+      kind: DownloadKind.video,
+      title: title,
+      subtitle: subtitle.isEmpty ? 'مقطع' : subtitle,
+      poster: poster,
+      url: 'clip:$source:${ref.values.join('|')}@$startMs-$endMs',
+      status: DownloadStatus.done,
+      progress: 1,
+    );
+    it.received = out.lengthSync();
+    await _publish(it, out, '${it.fileBase} (مقطع).mp4', 'video/mp4', 'Clips');
+    _items.insert(0, it);
+    _changed(persist: true);
+    try {
+      dir.deleteSync(recursive: true);
+    } catch (_) {}
+    return it;
+  }
+
+  /// Downloads only the HLS segments overlapping [startMs, endMs] (lowest
+  /// variant — fastest) and remuxes them (+ separate audio) into [out].
+  Future<bool> _hlsWindow(String url, Map<String, String> headers, int startMs,
+      int endMs, Directory dir, File out) async {
+    final DownloadItem tmp = DownloadItem(
+        id: 'w', kind: DownloadKind.video, title: '', headers: headers);
+    Future<String> text(Uri u) async =>
+        utf8.decode(await _getBytes(tmp, u), allowMalformed: true);
+    final Uri src = Uri.parse(url);
+    String body = await text(src);
+    Uri vUri = src;
+    Uri? aUri;
+    if (HlsParser.isMaster(body)) {
+      final HlsMaster m = HlsParser.parseMaster(body, src);
+      if (m.variants.isEmpty) return false;
+      final HlsStreamVariant v = (List<HlsStreamVariant>.of(m.variants)
+            ..sort((HlsStreamVariant a, HlsStreamVariant b) =>
+                a.bandwidth - b.bandwidth))
+          .first;
+      vUri = v.uri;
+      aUri = m.audioFor(v)?.uri;
+      body = await text(vUri);
+    }
+    final Map<String, Uint8List> keys = <String, Uint8List>{};
+    Future<File?> track(String name, HlsMediaPlaylist p) async {
+      final File f = File('${dir.path}/$name.part');
+      final IOSink sink = f.openWrite();
+      try {
+        if (p.initUri != null) {
+          sink.add(await _getBytes(tmp, p.initUri!,
+              extra: p.initRange == null
+                  ? null
+                  : <String, String>{'Range': p.initRange!.header}));
+        }
+        double t = 0;
+        int n = 0;
+        for (final HlsSegment seg in p.segments) {
+          final double segStart = t * 1000, segEnd = (t + seg.duration) * 1000;
+          t += seg.duration;
+          if (segEnd < startMs) continue;
+          if (segStart > endMs) break;
+          Uint8List data = await _getBytes(tmp, seg.uri,
+              extra: seg.range == null
+                  ? null
+                  : <String, String>{'Range': seg.range!.header});
+          final HlsKey? k = seg.key;
+          if (k != null && k.isEncrypted) {
+            final Uint8List key =
+                keys[k.uri.toString()] ??= await _getBytes(tmp, k.uri!);
+            data = HlsParser.decryptAes128(
+                data, key, HlsParser.ivFor(k, seg.sequence));
+          }
+          sink.add(data);
+          n++;
+        }
+        await sink.close();
+        return n == 0 ? null : f;
+      } catch (_) {
+        await sink.close();
+        return null;
+      }
+    }
+
+    final File? v = await track('v', HlsParser.parseMedia(body, vUri));
+    if (v == null) return false;
+    File? a;
+    if (aUri != null) {
+      a = await track('a', HlsParser.parseMedia(await text(aUri), aUri));
+    }
+    return _mux(<String>[v.path, if (a != null) a.path], out.path);
   }
 
   /// Free bytes on shared storage (-1 when unknown).

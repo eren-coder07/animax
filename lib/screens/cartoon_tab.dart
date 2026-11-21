@@ -293,6 +293,7 @@ class _CinemaRow extends StatelessWidget {
             image: it.poster,
             width: w,
             rating: it.imdbRating,
+            viewsKey: 'cinema:${it.id}',
             onTap: () => onOpen(it),
           ),
         );

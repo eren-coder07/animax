@@ -609,6 +609,7 @@ class _Row extends StatelessWidget {
         image: s.thumb,
         width: w,
         rating: s.rating,
+        viewsKey: 'hh:${s.slug}',
         onTap: () => Navigator.pushNamed(c, '/hh-details', arguments: s),
       ),
     );

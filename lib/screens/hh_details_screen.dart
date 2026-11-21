@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/social_bar.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
 import '../core/hh_api.dart';
@@ -220,6 +221,8 @@ class _HhDetailsScreenState extends State<HhDetailsScreen> {
                       final List<HhEpisode> eps = _episodes ?? const <HhEpisode>[];
                       _play(eps.isNotEmpty ? eps.first.number : 1);
                     }),
+                    if (_series.slug.isNotEmpty)
+                      SocialBar(itemKey: 'hh:${_series.slug}', title: _series.title),
                     if (_series.synopsis.isNotEmpty) ...<Widget>[
                       const SizedBox(height: 22),
                       Text(_expanded

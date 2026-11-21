@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/social.dart';
 
 /// Shared building blocks of the streaming-style UI: poster tiles, titled
 /// rows with "الكل ›", pill and gradient buttons, grouped cards.
 
 const String kFont = 'Plex';
+
+/// Compact number: 1234 → 1.2 ألف, 2500000 → 2.5 مليون.
+String compactCount(int n) {
+  if (n >= 1000000) {
+    return '${(n / 1000000).toStringAsFixed(n >= 10000000 ? 0 : 1)} مليون';
+  }
+  if (n >= 1000) return '${(n / 1000).toStringAsFixed(n >= 10000 ? 0 : 1)} ألف';
+  return '$n';
+}
 
 /// Set by the home screen around an embedded section so the section hides
 /// its own title bar (the home header already provides search + tabs).
@@ -113,6 +123,7 @@ class PosterTile extends StatelessWidget {
     this.rating = 0,
     this.width,
     this.heroTag,
+    this.viewsKey = '',
   });
 
   final String title;
@@ -124,6 +135,9 @@ class PosterTile extends StatelessWidget {
   final double rating;
   final double? width;
   final Object? heroTag;
+
+  /// Item key (e.g. `akwam:/movie/1/x`) → shows the community view count.
+  final String viewsKey;
 
   @override
   Widget build(BuildContext context) {
@@ -150,6 +164,40 @@ class PosterTile extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: Colors.white)),
+              ),
+            ),
+          if (viewsKey.isNotEmpty)
+            PositionedDirectional(
+              bottom: 4,
+              end: 4,
+              child: ListenableBuilder(
+                listenable: ViewCounts.I,
+                builder: (_, _) {
+                  final int v = ViewCounts.I.of(viewsKey);
+                  if (v <= 0) return const SizedBox.shrink();
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0x99000000),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(Icons.visibility_rounded,
+                            size: 11, color: Colors.white),
+                        const SizedBox(width: 2),
+                        Text(compactCount(v),
+                            style: const TextStyle(
+                                fontFamily: kFont,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white)),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           if (rating > 0)

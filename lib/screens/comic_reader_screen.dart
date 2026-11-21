@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/social.dart';
 import '../core/app_prefs.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
@@ -54,6 +55,8 @@ class _ComicReaderScreenState extends State<ComicReaderScreen> {
     super.initState();
     _chapterIdx = widget.startIndex.clamp(0, widget.chapters.length - 1);
     _pageCtl = PageController();
+    Social.countView('manga:${widget.manga.id}',
+        title: widget.manga.title, poster: widget.manga.cover, kind: 'manga');
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     const MethodChannel ch = MethodChannel('animax/app');
     ch.invokeMethod<bool>('setKeepScreenOn', <String, dynamic>{'keep': true})

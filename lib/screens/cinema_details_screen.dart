@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/social_bar.dart';
 import '../core/app_theme.dart';
 import '../core/cinema_api.dart';
 import '../core/library_store.dart';
@@ -239,6 +240,9 @@ class _CinemaDetailsScreenState extends State<CinemaDetailsScreen> {
                         ),
                       ),
                   ],
+                  SocialBar(
+                      itemKey: 'cinema:${widget.item.id}',
+                      title: meta?.name ?? widget.item.name),
                   const SizedBox(height: 18),
                   // ----- Description -----
                   if ((meta?.description ?? widget.item.description)
