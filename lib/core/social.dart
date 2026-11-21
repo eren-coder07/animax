@@ -106,7 +106,7 @@ class Social {
   /// [counterPath]: `items/{k}` or `clips/{id}`.
   static Future<Comment> addComment(
       String threadPath, String key, String counterPath, String text,
-      {bool spoiler = false}) async {
+      {bool spoiler = false, String ownerUid = '', String title = '', String clipId = ''}) async {
     _needLogin();
     final String t = text.trim();
     if (t.isEmpty) throw CloudException('اكتب تعليقًا أولًا.');
@@ -121,6 +121,7 @@ class Social {
       if (spoiler) 'spoiler': true,
     });
     await CloudDb.I.update(<String, dynamic>{'$counterPath/comments': inc()});
+    notify(ownerUid, 'comment', clipId: clipId, title: title, text: t);
     _counts.remove(key);
     BingoStore.I.record(BingoGoal.comment);
     return Comment(
@@ -152,13 +153,34 @@ class Social {
   }
 
   static Future<void> setCommentLike(
-      String threadPath, String key, String cid, bool like) async {
+      String threadPath, String key, String cid, bool like,
+      {String authorUid = '', String text = ''}) async {
     _needLogin();
     final String k = CloudDb.key(key);
     await CloudDb.I.update(<String, dynamic>{
       '${threadPath}Likes/$k/$cid/$_uid': like ? true : null,
       '$threadPath/$k/$cid/likes': inc(like ? 1 : -1),
     });
+    if (like) notify(authorUid, 'commentLike', text: text);
+  }
+
+  // ---------------------------------------------------------------- inbox
+
+  /// Tells [to] about something the signed-in user just did (fire-and-forget;
+  /// never notifies yourself). Stored at `inbox/{to}/{id}`.
+  static void notify(String to, String type,
+      {String clipId = '', String title = '', String text = ''}) {
+    if (to.isEmpty || _uid.isEmpty || to == _uid) return;
+    String cut(String v, int n) => v.length > n ? '${v.substring(0, n - 1)}…' : v;
+    unawaited(CloudDb.I.push('inbox/$to', <String, dynamic>{
+      'type': type,
+      'from': _uid,
+      'name': cut(_name.isEmpty ? 'مستخدم' : _name, 40),
+      if (clipId.isNotEmpty) 'clipId': clipId,
+      if (title.isNotEmpty) 'title': cut(title, 120),
+      if (text.isNotEmpty) 'text': cut(text, 120),
+      'at': serverTime,
+    }).then((_) {}, onError: (Object _) {}));
   }
 
   // ---------------------------------------------------------------- users
@@ -195,7 +217,10 @@ class Social {
       'users/$target/followers': inc(follow ? 1 : -1),
       'users/$_uid/following': inc(follow ? 1 : -1),
     });
-    if (follow) BingoStore.I.record(BingoGoal.follow);
+    if (follow) {
+      BingoStore.I.record(BingoGoal.follow);
+      notify(target, 'follow');
+    }
   }
 
   // ---------------------------------------------------------------- clips
@@ -223,6 +248,11 @@ class Social {
     });
     if (ek.isNotEmpty) Moments.forget(ek);
     BingoStore.I.record(BingoGoal.clip);
+    if (c.replyTo.isNotEmpty) {
+      unawaited(CloudDb.I.get('clips/${c.replyTo}/uid').then((dynamic owner) {
+        notify('${owner ?? ''}', 'reply', clipId: id, title: c.title);
+      }, onError: (Object _) {}));
+    }
     return id;
   }
 
@@ -261,22 +291,50 @@ class Social {
     return (liked: r[0] == true, reposted: r[1] != null);
   }
 
-  static Future<void> setClipLike(String id, bool like) async {
+  static Future<void> setClipLike(String id, bool like,
+      {String ownerUid = '', String title = ''}) async {
     _needLogin();
     await CloudDb.I.update(<String, dynamic>{
       'clipLikes/$id/$_uid': like ? true : null,
       'clips/$id/likes': inc(like ? 1 : -1),
     });
-    if (like) BingoStore.I.record(BingoGoal.like);
+    if (like) {
+      BingoStore.I.record(BingoGoal.like);
+      notify(ownerUid, 'clipLike', clipId: id, title: title);
+    }
   }
 
-  static Future<void> setRepost(String id, bool repost) async {
+  static Future<void> setRepost(String id, bool repost,
+      {String ownerUid = '', String title = ''}) async {
     _needLogin();
     await CloudDb.I.update(<String, dynamic>{
       'clipReposts/$id/$_uid': repost ? serverTime : null,
       'reposts/$_uid/$id': repost ? serverTime : null,
       'clips/$id/reposts': inc(repost ? 1 : -1),
     });
+    if (repost) notify(ownerUid, 'repost', clipId: id, title: title);
+  }
+
+  /// Clips by the people you follow (and their reposts), newest first.
+  static Future<List<VideoClip>> followingFeed({int limit = 120}) async {
+    if (_uid.isEmpty) return const <VideoClip>[];
+    final dynamic f = await CloudDb.I.get('following/$_uid');
+    if (f is! Map || f.isEmpty) return const <VideoClip>[];
+    final Set<String> ids = f.keys.map((dynamic k) => k.toString()).toSet();
+    return (await clipsFeed(limit: limit))
+        .where((VideoClip c) => ids.contains(c.uid))
+        .toList();
+  }
+
+  /// Saves your display name and bio.
+  static Future<void> updateProfile({required String name, required String bio}) async {
+    _needLogin();
+    final String n = name.trim(), b = bio.trim();
+    if (n.isEmpty) throw CloudException('اكتب اسمًا.');
+    if (n.length > 40) throw CloudException('الاسم طويل جدًا (40 حرفًا كحد أقصى).');
+    if (b.length > 160) throw CloudException('النبذة طويلة جدًا (160 حرفًا كحد أقصى).');
+    await CloudDb.I.patch('users/$_uid', <String, dynamic>{'name': n, 'bio': b});
+    await CloudAuth.I.setName(n);
   }
 
   static Future<void> countClipView(String id) async {
@@ -423,9 +481,11 @@ class UserProfile {
     this.clips = 0,
     this.isFollowing = false,
     this.joined,
+    this.bio = '',
   });
   final String uid;
   final String name;
+  final String bio;
   final int followers;
   final int following;
   final int clips;
@@ -443,6 +503,7 @@ class UserProfile {
       following: n('following'),
       clips: n('clips'),
       isFollowing: following,
+      bio: (j['bio'] ?? '').toString(),
       joined: joined == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(joined.toInt()),
@@ -472,7 +533,11 @@ class VideoClip {
     this.ek = '',
     this.replyTo = '',
     this.replies = 0,
+    this.caption = '',
   });
+
+  /// Optional text the creator wrote with the clip.
+  final String caption;
 
   final String id;
   final String uid;
@@ -521,7 +586,7 @@ class VideoClip {
         poster: poster, kind: kind, source: source, ref: ref,
         startMs: startMs, endMs: endMs, at: at, likes: likes,
         comments: comments, reposts: reposts, views: views, ek: ek,
-        replyTo: replyTo ?? this.replyTo, replies: replies,
+        replyTo: replyTo ?? this.replyTo, replies: replies, caption: caption,
       );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -534,6 +599,7 @@ class VideoClip {
         'startMs': startMs,
         'endMs': endMs,
         if (replyTo.isNotEmpty) 'replyTo': replyTo,
+        if (caption.isNotEmpty) 'caption': caption,
       };
 
   static VideoClip fromJson(String id, Map<dynamic, dynamic> j) {
@@ -561,6 +627,7 @@ class VideoClip {
       ek: (j['ek'] ?? '').toString(),
       replyTo: (j['replyTo'] ?? '').toString(),
       replies: n('replies'),
+      caption: (j['caption'] ?? '').toString(),
     );
   }
 }
@@ -731,6 +798,148 @@ class BingoStore extends ChangeNotifier {
   }
 
   bool get loaded => _loaded;
+}
+
+/// One activity notice ("أحمد أعجب بمقطعك").
+class InboxItem {
+  const InboxItem({
+    required this.id,
+    required this.type,
+    required this.from,
+    required this.name,
+    this.clipId = '',
+    this.title = '',
+    this.text = '',
+    this.at,
+  });
+  final String id;
+  final String type;
+  final String from;
+  final String name;
+  final String clipId;
+  final String title;
+  final String text;
+  final DateTime? at;
+
+  static InboxItem fromJson(String id, Map<dynamic, dynamic> j) => InboxItem(
+        id: id,
+        type: (j['type'] ?? '').toString(),
+        from: (j['from'] ?? '').toString(),
+        name: (j['name'] ?? 'مستخدم').toString(),
+        clipId: (j['clipId'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        text: (j['text'] ?? '').toString(),
+        at: j['at'] is num
+            ? DateTime.fromMillisecondsSinceEpoch((j['at'] as num).toInt())
+            : null,
+      );
+
+  /// Arabic sentence for the notice. Titles / texts are bidi-isolated so
+  /// Latin titles keep their place inside the Arabic sentence.
+  String get sentence {
+    String iso(String v) => '\u2068$v\u2069';
+    return switch (type) {
+      'clipLike' => 'أعجب بمقطعك${title.isEmpty ? '' : ' «${iso(title)}»'}',
+      'comment' => 'علّق على مقطعك: ${iso(text)}',
+      'commentLike' => 'أعجب بتعليقك: ${iso(text)}',
+      'follow' => 'بدأ بمتابعتك',
+      'reply' => 'ردّ على مقطعك بمقطع${title.isEmpty ? '' : ' من «${iso(title)}»'}',
+      'repost' => 'أعاد نشر مقطعك${title.isEmpty ? '' : ' «${iso(title)}»'}',
+      _ => 'نشاط جديد',
+    };
+  }
+}
+
+/// Your activity inbox + unread count (refreshed every 2 minutes).
+class Inbox extends ChangeNotifier {
+  Inbox._() {
+    CloudAuth.I.addListener(_onAuth);
+    _onAuth();
+  }
+  static final Inbox I = Inbox._();
+  String _uid = '';
+
+  void _onAuth() {
+    final String uid = CloudAuth.I.user?.uid ?? '';
+    if (uid == _uid) return;
+    _uid = uid;
+    uid.isEmpty ? stop() : start();
+  }
+
+  List<InboxItem> items = const <InboxItem>[];
+  int seenAt = 0;
+  Timer? _timer;
+  bool loading = false;
+
+  int get unread =>
+      items.where((InboxItem i) => (i.at?.millisecondsSinceEpoch ?? 0) > seenAt).length;
+
+  void start() {
+    _timer?.cancel();
+    unawaited(refresh());
+    _timer = Timer.periodic(const Duration(minutes: 2), (_) => refresh());
+  }
+
+  void stop() {
+    _timer?.cancel();
+    items = const <InboxItem>[];
+    seenAt = 0;
+    notifyListeners();
+  }
+
+  Future<void>? _inflight;
+
+  /// Reloads the inbox; concurrent callers share the request in flight.
+  Future<void> refresh() => _inflight ??= _load().whenComplete(() => _inflight = null);
+
+  Future<void> _load() async {
+    final String uid = CloudAuth.I.user?.uid ?? '';
+    if (uid.isEmpty) return;
+    loading = true;
+    try {
+      final List<dynamic> r = await Future.wait(<Future<dynamic>>[
+        CloudDb.I.get('inbox/$uid', query: <String, String>{
+          'orderBy': '"\$key"',
+          'limitToLast': '60',
+        }),
+        CloudDb.I.get('inboxSeen/$uid'),
+      ]);
+      final List<InboxItem> out = <InboxItem>[];
+      if (r[0] is Map) {
+        (r[0] as Map<dynamic, dynamic>).forEach((dynamic id, dynamic v) {
+          if (v is Map) out.add(InboxItem.fromJson(id.toString(), v));
+        });
+      }
+      out.sort((InboxItem a, InboxItem b) =>
+          (b.at ?? DateTime(0)).compareTo(a.at ?? DateTime(0)));
+      items = out;
+      seenAt = (r[1] as num?)?.toInt() ?? 0;
+    } catch (_) {
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Marks everything as read.
+  Future<void> markSeen() async {
+    final String uid = CloudAuth.I.user?.uid ?? '';
+    if (uid.isEmpty || items.isEmpty) return;
+    seenAt = items.first.at?.millisecondsSinceEpoch ?? seenAt;
+    notifyListeners();
+    try {
+      await CloudDb.I.put('inboxSeen/$uid', seenAt);
+    } catch (_) {}
+  }
+
+  Future<void> remove(InboxItem it) async {
+    final String uid = CloudAuth.I.user?.uid ?? '';
+    items = items.where((InboxItem x) => x.id != it.id).toList();
+    notifyListeners();
+    try {
+      await CloudDb.I.delete('inbox/$uid/${it.id}');
+    } catch (_) {}
+  }
 }
 
 /// One row of the weekly Bingo league.

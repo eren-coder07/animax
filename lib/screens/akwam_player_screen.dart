@@ -63,6 +63,10 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   bool _preparingNext = false;
   bool _swapping = false;
 
+  /// Sleep timer: minutes (0 = off, -1 = end of this episode).
+  int _sleepMinutes = 0;
+  Timer? _sleepTimer;
+
   /// Buffering samples (stall detection → automatic lower quality).
   final List<DateTime> _stallTicks = <DateTime>[];
   DateTime _lastSeekAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -180,6 +184,7 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _hideTimer?.cancel();
     _positionTicker?.cancel();
+    _sleepTimer?.cancel();
     final VideoPlayerController? c = _player;
     _player = null;
     c?.dispose();
@@ -655,6 +660,16 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
         unawaited(_advanceWindow());
         return;
       }
+      if (_sleepMinutes == -1) {
+        // "End of episode" sleep timer: stop here, no auto-next.
+        setState(() {
+          _sleepMinutes = 0;
+          _controlsVisible = true;
+        });
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(
+            content: Text('مؤقت النوم — انتهت الحلقة وتوقف التشغيل')));
+        return;
+      }
       Binge.episodeEnded(context,
           episodeKey: 'akwam:${_item.path}#${_episode?.number ?? 0}',
           next: _hasNext ? _autoNextEpisode : null);
@@ -730,6 +745,65 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
   }
 
   // ----- Controls -----
+
+  Future<void> _enterPip() async {
+    final bool ok = await enterPipMode();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('خاصية صورة داخل صورة غير متاحة على هذا الجهاز.')));
+    }
+  }
+
+  void _setSleepTimer(int minutes) {
+    _sleepTimer?.cancel();
+    setState(() => _sleepMinutes = minutes);
+    if (minutes <= 0) return;
+    _sleepTimer = Timer(Duration(minutes: minutes), () {
+      if (!mounted) return;
+      _player?.pause();
+      setState(() {
+        _sleepMinutes = 0;
+        _controlsVisible = true;
+      });
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+          content: Text('مؤقت النوم — توقف التشغيل بعد $minutes دقيقة')));
+    });
+  }
+
+  void _pickSleepTimer() {
+    _hideTimer?.cancel();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      builder: (BuildContext ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              for (final int m in <int>[0, -1, 15, 30, 45, 60, 90])
+                ListTile(
+                  leading: Icon(
+                      m == 0 ? Icons.timer_off_rounded : Icons.nightlight_round,
+                      color: _sleepMinutes == m ? AkwamColors.teal : AppColors.muted),
+                  title: Text(
+                      m == 0
+                          ? 'إيقاف المؤقت'
+                          : m == -1
+                              ? 'عند نهاية الحلقة'
+                              : '$m دقيقة',
+                      style: const TextStyle(fontFamily: 'Plex', color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _setSleepTimer(m);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   /// Sound only ⇄ video. Re-opens the stream: sound only plays the smallest
   /// quality and keeps running in the background.
@@ -1083,6 +1157,31 @@ class _AkwamPlayerScreenState extends State<AkwamPlayerScreen>
                 size: 20,
               ),
               onPressed: _toggleLock,
+            ),
+            PopupMenuButton<String>(
+              key: const Key('akwamMore'),
+              tooltip: 'المزيد',
+              color: AppColors.surface,
+              icon: Icon(Icons.more_vert_rounded,
+                  color: _sleepMinutes != 0 ? AkwamColors.teal : Colors.white, size: 21),
+              onSelected: (String v) {
+                if (v == 'pip') _enterPip();
+                if (v == 'sleep') _pickSleepTimer();
+              },
+              itemBuilder: (BuildContext ctx) => <PopupMenuEntry<String>>[
+                const PopupMenuItem<String>(
+                    value: 'pip',
+                    child: Text('صورة داخل صورة', style: TextStyle(fontFamily: 'Plex'))),
+                PopupMenuItem<String>(
+                    value: 'sleep',
+                    child: Text(
+                        _sleepMinutes == 0
+                            ? 'مؤقت النوم'
+                            : _sleepMinutes == -1
+                                ? 'مؤقت النوم (نهاية الحلقة)'
+                                : 'مؤقت النوم ($_sleepMinutes د)',
+                        style: const TextStyle(fontFamily: 'Plex'))),
+              ],
             ),
           ],
         ),

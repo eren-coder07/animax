@@ -1,4 +1,4 @@
-# Animax (أنيماكس) v2.4.1 — Features
+# Animax (أنيماكس) v2.5.0 — Features
 
 Arabic-first streaming app: right-to-left UI in Arabic (IBM Plex Sans
 Arabic), Akwam as the home screen.
@@ -26,6 +26,9 @@ Arabic), Akwam as the home screen.
   when unreachable).
 
 ## Clips (مقاطع)
+- v2.5: optional captions (clips and manga panels); "Following" feed next to
+  "Everyone"; activity inbox (likes, comments, replies, reposts, comment
+  likes, new followers) with an unread badge; editable name + bio.
 - ✂️ in the Akwam, anime and +18 players: pick a 3 / 5 / 10-second window
   and publish it.
 - Clips tab: vertical feed, like (or double-tap), comments, repost (shows
@@ -91,6 +94,7 @@ Arabic), Akwam as the home screen.
 
 ## Playback
 - Native players (ExoPlayer on Android, mpv on Windows).
+- Akwam player: sleep timer (incl. end of episode) and picture-in-picture.
 - Resume where you stopped (Akwam + anime); progress saved every 5 s,
   ≥92 % marks an episode watched.
 - Gestures: double-tap ±10 s, swipe brightness / volume, long-press 2×,

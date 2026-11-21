@@ -7,7 +7,6 @@
       ".write": true
     },
     "animax": {
-      ".read": true,
       "users": {
         "$uid": {
           ".write": "auth != null && auth.uid === $uid",
@@ -25,20 +24,26 @@
           "clips": {
             ".write": "auth != null",
             ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === 0) || newData.val() === (data.exists() ? data.val() : 0) + 1 || newData.val() === (data.exists() ? data.val() : 0) - 1)"
+          },
+          "bio": {
+            ".validate": "newData.isString() && newData.val().length <= 160"
           }
-        }
+        },
+        ".read": true
       },
       "following": {
         "$uid": {
           ".write": "auth != null && auth.uid === $uid"
-        }
+        },
+        ".read": true
       },
       "followers": {
         "$target": {
           "$uid": {
             ".write": "auth != null && auth.uid === $uid"
           }
-        }
+        },
+        ".read": true
       },
       "items": {
         ".indexOn": [
@@ -69,14 +74,16 @@
             ".write": true,
             ".validate": "newData.isString() && newData.val().length <= 20"
           }
-        }
+        },
+        ".read": true
       },
       "itemLikes": {
         "$key": {
           "$uid": {
             ".write": "auth != null && auth.uid === $uid"
           }
-        }
+        },
+        ".read": true
       },
       "comments": {
         "$key": {
@@ -94,7 +101,8 @@
               ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === 0) || newData.val() === (data.exists() ? data.val() : 0) + 1 || newData.val() === (data.exists() ? data.val() : 0) - 1)"
             }
           }
-        }
+        },
+        ".read": true
       },
       "commentsLikes": {
         "$key": {
@@ -103,7 +111,8 @@
               ".write": "auth != null && auth.uid === $uid"
             }
           }
-        }
+        },
+        ".read": true
       },
       "clips": {
         "$id": {
@@ -140,27 +149,34 @@
           },
           "ek": {
             ".validate": "newData.isString() && newData.val().length <= 300"
+          },
+          "caption": {
+            ".validate": "newData.isString() && newData.val().length <= 150"
           }
-        }
+        },
+        ".read": true
       },
       "clipLikes": {
         "$id": {
           "$uid": {
             ".write": "auth != null && auth.uid === $uid"
           }
-        }
+        },
+        ".read": true
       },
       "clipReposts": {
         "$id": {
           "$uid": {
             ".write": "auth != null && auth.uid === $uid"
           }
-        }
+        },
+        ".read": true
       },
       "reposts": {
         "$uid": {
           ".write": "auth != null && auth.uid === $uid"
-        }
+        },
+        ".read": true
       },
       "clipComments": {
         "$key": {
@@ -178,7 +194,8 @@
               ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === 0) || newData.val() === (data.exists() ? data.val() : 0) + 1 || newData.val() === (data.exists() ? data.val() : 0) - 1)"
             }
           }
-        }
+        },
+        ".read": true
       },
       "clipCommentsLikes": {
         "$id": {
@@ -187,17 +204,20 @@
               ".write": "auth != null && auth.uid === $uid"
             }
           }
-        }
+        },
+        ".read": true
       },
       "bingo": {
         "$uid": {
           ".write": "auth != null && auth.uid === $uid"
-        }
+        },
+        ".read": true
       },
       "binge": {
         "$uid": {
           ".write": "auth != null && auth.uid === $uid"
-        }
+        },
+        ".read": true
       },
       "moments": {
         "$ek": {
@@ -205,7 +225,8 @@
             ".write": "auth != null && newData.parent().parent().parent().child('clips/' + $cid + '/uid').val() === auth.uid",
             ".validate": "newData.isNumber() && newData.val() >= 0"
           }
-        }
+        },
+        ".read": true
       },
       "clipReplies": {
         "$parent": {
@@ -213,7 +234,8 @@
             ".write": "auth != null && newData.parent().parent().parent().child('clips/' + $cid + '/uid').val() === auth.uid",
             ".validate": "newData.val() === true"
           }
-        }
+        },
+        ".read": true
       },
       "tcomments": {
         "$ek": {
@@ -230,7 +252,8 @@
               ".validate": "newData.isNumber() && newData.val() >= 0"
             }
           }
-        }
+        },
+        ".read": true
       },
       "league": {
         "$week": {
@@ -247,6 +270,41 @@
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000"
             }
           }
+        },
+        ".read": true
+      },
+      "inbox": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".indexOn": [
+            "at"
+          ],
+          "$id": {
+            ".write": "auth != null && (auth.uid === $uid || (!data.exists() && newData.child('from').val() === auth.uid && $uid !== auth.uid))",
+            ".validate": "!newData.exists() || newData.hasChildren(['type','from','at'])",
+            "type": {
+              ".validate": "newData.isString() && newData.val().length <= 20"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "title": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "text": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "clipId": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            }
+          }
+        }
+      },
+      "inboxSeen": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isNumber()"
         }
       }
     }

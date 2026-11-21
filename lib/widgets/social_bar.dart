@@ -145,6 +145,8 @@ Future<void> showComments(
   required String threadKey,
   required String counterPath,
   required String title,
+  String ownerUid = '',
+  String clipId = '',
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -163,6 +165,8 @@ Future<void> showComments(
           threadKey: threadKey,
           counterPath: counterPath,
           title: title,
+          ownerUid: ownerUid,
+          clipId: clipId,
         ),
       ),
     ),
@@ -175,11 +179,17 @@ class _CommentsSheet extends StatefulWidget {
     required this.threadKey,
     required this.counterPath,
     required this.title,
+    this.ownerUid = '',
+    this.clipId = '',
   });
   final String threadPath;
   final String threadKey;
   final String counterPath;
   final String title;
+
+  /// Owner of the commented clip (gets an inbox notice).
+  final String ownerUid;
+  final String clipId;
 
   @override
   State<_CommentsSheet> createState() => _CommentsSheetState();
@@ -237,7 +247,10 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     try {
       final Comment c = await Social.addComment(widget.threadPath,
           widget.threadKey, widget.counterPath, _ctl.text,
-          spoiler: _spoiler);
+          spoiler: _spoiler,
+          ownerUid: widget.ownerUid,
+          title: widget.title,
+          clipId: widget.clipId);
       _ctl.clear();
       _spoiler = false;
       setState(() => _list = <Comment>[c, ...?_list]);
@@ -260,7 +273,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     });
     try {
       await Social.setCommentLike(
-          widget.threadPath, widget.threadKey, c.id, like);
+          widget.threadPath, widget.threadKey, c.id, like,
+          authorUid: c.uid, text: c.text);
     } catch (_) {}
   }
 

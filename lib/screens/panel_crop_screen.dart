@@ -68,6 +68,7 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
   Rect _r = const Rect.fromLTWH(0.1, 0.3, 0.8, 0.35); // normalized
   _Drag? _drag;
   bool _busy = false;
+  final TextEditingController _caption = TextEditingController();
   ImageStream? _stream;
   ImageStreamListener? _listener;
 
@@ -95,6 +96,7 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
   @override
   void dispose() {
     if (_listener != null) _stream?.removeListener(_listener!);
+    _caption.dispose();
     super.dispose();
   }
 
@@ -179,6 +181,7 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
           startMs: 0,
           endMs: Panels.showMs,
           replyTo: replyTo?.id ?? '',
+          caption: _caption.text.trim(),
         ),
       );
       if (replyTo != null) ClipReply.pending = null;
@@ -303,28 +306,49 @@ class _PanelCropScreenState extends State<PanelCropScreen> {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  SizedBox(
-                    width: 34,
-                    height: 48,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: NetImage(widget.cover),
+                  TextField(
+                    controller: _caption,
+                    maxLength: 150,
+                    style: const TextStyle(
+                      fontFamily: kFont,
+                      color: Colors.white,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      '${widget.mangaTitle}\n${widget.chapterLabel} · صفحة ${widget.page + 1}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      hintText: 'وصف اللوحة (اختياري)…',
+                      hintStyle: TextStyle(
                         fontFamily: kFont,
-                        fontSize: 13,
-                        color: Colors.white70,
+                        color: AppColors.muted,
                       ),
                     ),
+                  ),
+                  Row(
+                    children: <Widget>[
+                      SizedBox(
+                        width: 34,
+                        height: 48,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: NetImage(widget.cover),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${widget.mangaTitle}\n${widget.chapterLabel} · صفحة ${widget.page + 1}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: kFont,
+                            fontSize: 13,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

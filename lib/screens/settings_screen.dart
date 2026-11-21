@@ -396,7 +396,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(
-              child: Text('أنيماكس الإصدار 2.4.1 · صُنع بحب للمشاهدين العرب',
+              child: Text('أنيماكس الإصدار 2.5.0 · صُنع بحب للمشاهدين العرب',
                   style: TextStyle(
                       fontFamily: 'Plex',
                       fontSize: 11,
@@ -475,7 +475,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final String tag =
           ((jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>)['tag_name'] ?? '')
               .toString();
-      final String current = 'v2.4.1';
+      final String current = 'v2.5.0';
       final bool newer = _isNewer(tag, current);
       if (mounted) {
         setState(() {

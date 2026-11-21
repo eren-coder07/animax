@@ -42,3 +42,9 @@ v2.4 adds `moments`, `tcomments`, `clipReplies` and `league` (plus an index
 on `league/{week}/score`). Paste the new `database.rules.json` into
 Console → Realtime Database → Rules → **Publish** again. Until then the app
 still works (it sorts on the device when an index is missing).
+
+## v2.5 update — publish the rules again
+
+The activity inbox (`inbox/{uid}`) must be readable only by its owner, so the
+blanket `.read` on `/animax` became per-node public reads plus a private
+`inbox` / `inboxSeen`. Paste the new `database.rules.json` and **Publish**.

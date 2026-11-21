@@ -11,6 +11,7 @@ import '../core/social.dart';
 import '../widgets/animax_logo.dart';
 import '../widgets/mb_ui.dart';
 import '../widgets/social_bar.dart';
+import 'activity_screen.dart';
 import 'auth_screen.dart';
 import 'bingo_screen.dart';
 import 'league_screen.dart';
@@ -36,6 +37,7 @@ class ProfileTab extends StatelessWidget {
             CloudAuth.I,
             BingoStore.I,
             AppPrefs.I,
+            Inbox.I,
           ]),
           builder: (BuildContext context, _) {
             final LibraryStore lib = LibraryStore.I;
@@ -47,6 +49,16 @@ class ProfileTab extends StatelessWidget {
               children: <Widget>[
                 _ProfileHeader(state: state),
                 GroupCard(children: <Widget>[
+                  if (CloudAuth.I.signedIn)
+                    GroupRow(
+                      key: const Key('activityRow'),
+                      icon: Icons.favorite_border_rounded,
+                      label: 'النشاطات',
+                      badge: Inbox.I.unread,
+                      onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const ActivityScreen())),
+                    ),
                   if (CloudAuth.I.signedIn)
                     GroupRow(
                       icon: Icons.account_circle_outlined,
@@ -146,7 +158,7 @@ class ProfileTab extends StatelessWidget {
                   const GroupRow(
                     icon: Icons.info_outline_rounded,
                     label: 'الإصدار',
-                    value: '2.4.1',
+                    value: '2.5.0',
                   ),
                 ]),
               ],

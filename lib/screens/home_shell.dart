@@ -4,6 +4,7 @@ import '../core/app_prefs.dart';
 import '../core/app_state.dart';
 import '../core/app_theme.dart';
 import '../core/download_manager.dart';
+import '../core/social.dart';
 import '../widgets/animax_logo.dart';
 import '../widgets/mb_ui.dart';
 import 'akwam_tab.dart';
@@ -38,7 +39,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _maybeShowWhatsNew() async {
-    const String version = '2.4.1';
+    const String version = '2.5.0';
     if (AppPrefs.I.lastSeenVersion == version) return;
     await showDialog<void>(
       context: context,
@@ -98,7 +99,7 @@ class _BottomBar extends StatelessWidget {
         child: SizedBox(
           height: 64,
           child: ListenableBuilder(
-            listenable: DownloadManager.I,
+            listenable: Listenable.merge(<Listenable>[DownloadManager.I, Inbox.I]),
             builder: (BuildContext context, _) => Row(
               children: <Widget>[
                 for (int i = 0; i < items.length; i++)
@@ -109,7 +110,7 @@ class _BottomBar extends StatelessWidget {
                       label: items[i].$3,
                       active: state.navIndex == i,
                       dot: (i == 2 && DownloadManager.I.activeCount > 0) ||
-                          (i == 3 && state.notices.isNotEmpty),
+                          (i == 3 && (state.notices.isNotEmpty || Inbox.I.unread > 0)),
                       onTap: () => state.setTab(i),
                     ),
                   ),
@@ -376,10 +377,11 @@ class WhatsNewDialog extends StatelessWidget {
   final String version;
 
   static const List<String> highlights = <String>[
-    '⚡ أكوام والمقاطع تعمل بسرعة على الإنترنت الضعيف (تشغيل خلال ثوانٍ بدل 45 ثانية)',
-    '📶 قياس حقيقي لسرعة الإنترنت واختيار الجودة المناسبة تلقائيًا',
-    '🎯 إصلاح: جودة 360p و480p في أكوام كانت تشغّل 720p دائمًا',
-    '🔁 خفض الجودة تلقائيًا عند التقطيع',
+    '❤️ «النشاطات»: من أعجب أو علّق أو ردّ أو تابعك — مع تنبيه على حسابي',
+    '📝 أضف وصفًا لمقاطعك ولوحات المانغا',
+    '👥 «أتابعهم» في تبويب المقاطع',
+    '✏️ عدّل اسمك وأضف نبذة لملفك الشخصي',
+    '🌙 مؤقت النوم وصورة داخل صورة في مشغّل أكوام',
   ];
 
   @override

@@ -357,4 +357,47 @@ void main() {
     expect(sought!.inSeconds, inInclusiveRange(715, 725)); // half of 1440 s
     s.dispose();
   });
+
+  group('v2.5', () {
+    test('inbox sentences', () {
+      InboxItem it(String type, {String title = '', String text = ''}) =>
+          InboxItem(id: 'i', type: type, from: 'u', name: 'سارة', title: title, text: text);
+      String strip(String v) => v.replaceAll(RegExp('[\u2068\u2069]'), '');
+      expect(strip(it('clipLike', title: 'Steps').sentence), 'أعجب بمقطعك «Steps»');
+      expect(it('clipLike', title: 'Steps').sentence, contains('\u2068Steps\u2069'));
+      expect(strip(it('comment', text: 'رائع').sentence), 'علّق على مقطعك: رائع');
+      expect(it('follow').sentence, 'بدأ بمتابعتك');
+      expect(it('reply').sentence, 'ردّ على مقطعك بمقطع');
+      expect(strip(it('repost', title: 'X').sentence), 'أعاد نشر مقطعك «X»');
+      expect(strip(it('commentLike', text: 'ها').sentence), 'أعجب بتعليقك: ها');
+      expect(it('weird').sentence, 'نشاط جديد');
+    });
+
+    test('inbox item json + unread count', () {
+      final InboxItem a = InboxItem.fromJson('a', <String, dynamic>{
+        'type': 'follow', 'from': 'u1', 'name': 'أحمد', 'at': 2000,
+      });
+      expect(a.at!.millisecondsSinceEpoch, 2000);
+      Inbox.I.items = <InboxItem>[a, InboxItem.fromJson('b', <String, dynamic>{'type': 'follow', 'from': 'u2', 'at': 1000})];
+      Inbox.I.seenAt = 1500;
+      expect(Inbox.I.unread, 1);
+      Inbox.I.items = const <InboxItem>[];
+    });
+
+    test('clip caption round-trips; empty caption is not stored', () {
+      const VideoClip c = VideoClip(
+          title: 't', kind: 'akwam', source: 'akwam', ref: <String, String>{},
+          startMs: 0, endMs: 1000, caption: 'مشهد أسطوري');
+      expect(c.toJson()['caption'], 'مشهد أسطوري');
+      expect(VideoClip.fromJson('x', c.toJson()).caption, 'مشهد أسطوري');
+      const VideoClip d = VideoClip(
+          title: 't', kind: 'akwam', source: 'akwam', ref: <String, String>{}, startMs: 0, endMs: 1);
+      expect(d.toJson().containsKey('caption'), isFalse);
+    });
+
+    test('profile bio parsed', () {
+      final UserProfile p = UserProfile.fromJson('u', <String, dynamic>{'name': 'n', 'bio': 'محب للأنمي'});
+      expect(p.bio, 'محب للأنمي');
+    });
+  });
 }

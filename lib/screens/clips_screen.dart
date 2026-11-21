@@ -42,6 +42,9 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
   List<VideoClip>? _clips;
   String? _error;
 
+  /// false = everyone, true = people you follow.
+  bool _following = false;
+
   @override
   void initState() {
     super.initState();
@@ -51,15 +54,79 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
   Future<void> _load() async {
     setState(() => _error = null);
     try {
-      final List<VideoClip> c = await Social.clipsFeed();
+      final List<VideoClip> c =
+          _following ? await Social.followingFeed() : await Social.clipsFeed();
       if (mounted) setState(() => _clips = c);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     }
   }
 
+  Future<void> _setMode(bool following) async {
+    if (following == _following) return;
+    if (following && !await requireLogin(context)) return;
+    setState(() {
+      _following = following;
+      _clips = null;
+    });
+    await _load();
+  }
+
+  Widget _modeTabs() => SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                _modeTab('للجميع', !_following, () => _setMode(false)),
+                const SizedBox(width: 18),
+                _modeTab('أتابعهم', _following, () => _setMode(true),
+                    key: const Key('clipsFollowingTab')),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _modeTab(String label, bool active, VoidCallback onTap, {Key? key}) =>
+      GestureDetector(
+        key: key,
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(label,
+                style: TextStyle(
+                    fontFamily: kFont,
+                    fontSize: 16.5,
+                    fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+                    color: active ? Colors.white : Colors.white60,
+                    shadows: const <Shadow>[Shadow(color: Colors.black54, blurRadius: 6)])),
+            const SizedBox(height: 3),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: active ? 22 : 0,
+              height: 3,
+              decoration: BoxDecoration(
+                  color: Colors.white, borderRadius: BorderRadius.circular(2)),
+            ),
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        Positioned.fill(child: _body()),
+        _modeTabs(),
+      ],
+    );
+  }
+
+  Widget _body() {
     return ListenableBuilder(
       listenable: AppState.I,
       builder: (BuildContext context, _) {
@@ -87,17 +154,19 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
                     const Icon(Icons.content_cut_rounded,
                         size: 56, color: AppColors.brandGreen),
                     const SizedBox(height: 14),
-                    const Text('لا توجد مقاطع بعد',
-                        style: TextStyle(
+                    Text(_following ? 'لا مقاطع ممن تتابعهم بعد' : 'لا توجد مقاطع بعد',
+                        style: const TextStyle(
                             fontFamily: kFont,
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: Colors.white)),
                     const SizedBox(height: 8),
-                    const Text(
-                        'اصنع أول مقطع: افتح أي فيلم أو حلقة واضغط ✂️ في المشغّل لقص 10 ثوانٍ ومشاركتها.',
+                    Text(
+                        _following
+                            ? 'تابع صنّاع المقاطع من ملفاتهم الشخصية لتظهر مقاطعهم هنا.'
+                            : 'اصنع أول مقطع: افتح أي فيلم أو حلقة واضغط ✂️ في المشغّل لقص 10 ثوانٍ ومشاركتها.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontFamily: kFont,
                             fontSize: 14.5,
                             height: 1.6,
@@ -111,7 +180,11 @@ class _ClipsFeedScreenState extends State<ClipsFeedScreen> {
             ),
           );
         }
-        return ClipsPager(clips: c, active: visible, onRefresh: _load);
+        return ClipsPager(
+            key: ValueKey<bool>(_following),
+            clips: c,
+            active: visible,
+            onRefresh: _load);
       },
     );
   }
@@ -417,7 +490,8 @@ class _ClipPageState extends State<ClipPage> {
       _likes = (_likes + (like ? 1 : -1)).clamp(0, 1 << 31);
     });
     try {
-      await Social.setClipLike(widget.clip.id, like);
+      await Social.setClipLike(widget.clip.id, like,
+          ownerUid: widget.clip.uid, title: widget.clip.title);
     } catch (_) {}
   }
 
@@ -429,7 +503,8 @@ class _ClipPageState extends State<ClipPage> {
       _reposts = (_reposts + (r ? 1 : -1)).clamp(0, 1 << 31);
     });
     try {
-      await Social.setRepost(widget.clip.id, r);
+      await Social.setRepost(widget.clip.id, r,
+          ownerUid: widget.clip.uid, title: widget.clip.title);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(r ? 'أُعيد نشر المقطع في ملفك' : 'أُلغيت إعادة النشر'),
@@ -443,7 +518,9 @@ class _ClipPageState extends State<ClipPage> {
         threadPath: 'clipComments',
         threadKey: widget.clip.id,
         counterPath: 'clips/${widget.clip.id}',
-        title: widget.clip.title);
+        title: widget.clip.title,
+        ownerUid: widget.clip.uid,
+        clipId: widget.clip.id);
     final dynamic n = await CloudDb.I
         .get('clips/${widget.clip.id}/comments')
         .catchError((Object _) => null);
@@ -651,6 +728,20 @@ class _ClipPageState extends State<ClipPage> {
                     Text(clip.label,
                         style: const TextStyle(
                             fontFamily: kFont, fontSize: 13, color: Colors.white70)),
+                  if (clip.caption.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(clip.caption,
+                          key: const Key('clipCaptionText'),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 14.5,
+                              height: 1.45,
+                              color: Colors.white,
+                              shadows: <Shadow>[Shadow(color: Colors.black87, blurRadius: 6)])),
+                    ),
                   const SizedBox(height: 4),
                   Text('${compactCount(clip.views)} مشاهدة',
                       style: const TextStyle(
@@ -934,9 +1025,12 @@ Future<void> showClipMaker(
     backgroundColor: AppColors.surface,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (_) => Directionality(
+    builder: (BuildContext ctx) => Directionality(
       textDirection: TextDirection.rtl,
-      child: _ClipMaker(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        child: SingleChildScrollView(
+          child: _ClipMaker(
         position: position,
         duration: duration,
         title: title,
@@ -945,6 +1039,8 @@ Future<void> showClipMaker(
         kind: kind,
         source: source,
         ref: ref,
+          ),
+        ),
       ),
     ),
   );
@@ -978,6 +1074,13 @@ class _ClipMakerState extends State<_ClipMaker> {
   late int _len = 10; // seconds
   late double _start; // seconds
   bool _busy = false;
+  final TextEditingController _caption = TextEditingController();
+
+  @override
+  void dispose() {
+    _caption.dispose();
+    super.dispose();
+  }
 
   int get _durS =>
       widget.duration.inSeconds <= 0 ? 1 << 20 : widget.duration.inSeconds;
@@ -1012,6 +1115,7 @@ class _ClipMakerState extends State<_ClipMaker> {
         ref: widget.ref,
         startMs: s * 1000,
         endMs: e * 1000,
+        caption: _caption.text.trim(),
       ));
       if (replyTo != null) ClipReply.pending = null;
       if (!mounted) return;
@@ -1120,7 +1224,24 @@ class _ClipMakerState extends State<_ClipMaker> {
                   ),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('clipCaption'),
+              controller: _caption,
+              maxLength: 150,
+              maxLines: 2,
+              minLines: 1,
+              style: const TextStyle(fontFamily: kFont, color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'اكتب وصفًا للمقطع (اختياري)…',
+                hintStyle: const TextStyle(fontFamily: kFont, color: AppColors.muted),
+                filled: true,
+                fillColor: AppColors.surfaceHi,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 6),
             GradientButton(
               label: _busy ? 'جارٍ النشر…' : 'نشر المقطع',
               icon: Icons.upload_rounded,

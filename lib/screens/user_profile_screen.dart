@@ -67,6 +67,69 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  Future<void> _edit(UserProfile p) async {
+    final TextEditingController name = TextEditingController(text: p.name);
+    final TextEditingController bio = TextEditingController(text: p.bio);
+    final bool? save = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      builder: (BuildContext ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+              18, 18, 18, 18 + MediaQuery.viewInsetsOf(ctx).bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const Text('تعديل الملف الشخصي',
+                  style: TextStyle(
+                      fontFamily: kFont,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)),
+              const SizedBox(height: 14),
+              TextField(
+                key: const Key('editName'),
+                controller: name,
+                maxLength: 40,
+                style: const TextStyle(fontFamily: kFont, color: Colors.white),
+                decoration: const InputDecoration(labelText: 'الاسم'),
+              ),
+              TextField(
+                key: const Key('editBio'),
+                controller: bio,
+                maxLength: 160,
+                maxLines: 3,
+                minLines: 1,
+                style: const TextStyle(fontFamily: kFont, color: Colors.white),
+                decoration: const InputDecoration(
+                    labelText: 'نبذة عنك', hintText: 'مثلاً: محب للأنمي والأفلام الكورية'),
+              ),
+              const SizedBox(height: 12),
+              GradientButton(
+                  label: 'حفظ',
+                  height: 46,
+                  expand: true,
+                  onTap: () => Navigator.pop(ctx, true)),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (save != true) return;
+    try {
+      await Social.updateProfile(name: name.text, bio: bio.text);
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final UserProfile? p = _p;
@@ -99,6 +162,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             fontWeight: FontWeight.w700,
                             color: Colors.white)),
                   ),
+                  if (p.bio.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(30, 6, 30, 0),
+                      child: Text(p.bio,
+                          key: const Key('profileBio'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontFamily: kFont,
+                              fontSize: 14,
+                              height: 1.5,
+                              color: AppColors.sub)),
+                    ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -109,6 +184,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  if (me)
+                    Center(
+                      child: OutlinedButton.icon(
+                        key: const Key('editProfile'),
+                        onPressed: () => _edit(p),
+                        icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+                        label: const Text('تعديل الملف الشخصي',
+                            style: TextStyle(fontFamily: kFont, color: Colors.white)),
+                        style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.sub),
+                            shape: const StadiumBorder()),
+                      ),
+                    ),
                   if (!me)
                     Center(
                       child: SizedBox(
