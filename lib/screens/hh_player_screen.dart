@@ -14,6 +14,12 @@ import '../core/hls_quality.dart';
 import '../core/stream_resolver.dart' show ResolvedStream;
 import '../widgets/player_gestures.dart';
 import '../widgets/download_button.dart';
+import '../widgets/player_social.dart';
+import '../core/app_prefs.dart';
+import '../core/audio_mode.dart';
+import '../core/data_budget.dart';
+import '../core/library_store.dart';
+import '../core/moments.dart';
 import 'hentai_tab.dart';
 
 /// Native (ExoPlayer) player for the +18 section.
@@ -37,6 +43,9 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
 
   VideoPlayerController? _player;
   HhStream? _stream;
+
+  /// Hot moments + timed comments of the current episode.
+  EpisodeSocial? _social;
   bool _resolving = true;
   String? _error;
   String _status = '';
@@ -73,7 +82,8 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
     if (c == null || !c.value.isInitialized) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      if (c.value.isPlaying) c.pause();
+      // Sound-only mode keeps playing with the screen off.
+      if (c.value.isPlaying && !AppPrefs.I.audioOnly) c.pause();
       _hideTimer?.cancel();
       if (mounted) setState(() => _controlsVisible = true);
     } else if (state == AppLifecycleState.resumed) {
@@ -98,7 +108,10 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
 
   @override
   void dispose() {
+    _saveProgress();
     WidgetsBinding.instance.removeObserver(this);
+    _social?.dispose();
+    unawaited(AudioMode.keepAlive(false));
     _hideTimer?.cancel();
     _positionTicker?.cancel();
     final VideoPlayerController? c = _player;
@@ -125,6 +138,35 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
   }
 
   // ----- Playback -----
+
+  /// Resume position / watched marks (also used by the spoiler shield).
+  void _saveProgress() {
+    final VideoPlayerController? c = _player;
+    if (c == null || !c.value.isInitialized || _series.slug.isEmpty) return;
+    final int pos = c.value.position.inSeconds;
+    final int dur = c.value.duration.inSeconds;
+    if (pos <= 0) return;
+    LibraryStore.I.saveProgress(
+      key: 'hh:${_series.slug}',
+      sub: '$_episode',
+      positionSec: pos,
+      durationSec: dur,
+      watched: dur > 0 && pos >= dur * 0.92,
+    );
+  }
+
+  /// Sound only ⇄ video (re-opens the episode at the same position).
+  Future<void> _toggleAudioOnly() async {
+    final bool on = !AppPrefs.I.audioOnly;
+    AppPrefs.I.set('audioOnly', on);
+    if (!on) unawaited(AudioMode.keepAlive(false));
+    final Duration pos = _player?.value.position ?? Duration.zero;
+    if (_player == null) {
+      setState(() {});
+      return;
+    }
+    await _open(_episode, resumeAt: pos);
+  }
 
   Future<void> _open(int episode, {Duration? resumeAt}) async {
     _positionTicker?.cancel();
@@ -155,10 +197,25 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       });
       return;
     }
+    if (!await DataBudget.I.allowStreaming(context)) {
+      if (!mounted) return;
+      setState(() {
+        _resolving = false;
+        _error = 'تم الإيقاف للحفاظ على ميزانية البيانات — اتصل بشبكة Wi-Fi.';
+      });
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _stream = stream;
       _status = '';
     });
+    final String ek = Moments.episodeKey(
+        'hh', <String, String>{'slug': _series.slug, 'ep': '$_episode'});
+    if (_social?.ek != ek) {
+      _social?.dispose();
+      _social = ek.isEmpty ? null : EpisodeSocial(ek);
+    }
     // Bandwidth-based auto quality: on HLS master playlists pick the variant
     // that fits the measured throughput (Wi-Fi/cellular aware).
     String playUrl = stream.url;
@@ -170,16 +227,23 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
       ));
       playUrl = auto.url;
     } catch (_) {}
+    final Map<String, String> headers = <String, String>{
+      'User-Agent':
+          'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 '
+              '(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+      'Referer': '${HentaiApi.frontBase}/',
+    };
+    if (AppPrefs.I.audioOnly && stream.isHls) {
+      final String light = await AudioMode.lightestHls(stream.url, headers);
+      if (light != stream.url) playUrl = light;
+    }
     final VideoPlayerController controller = VideoPlayerController.networkUrl(
       Uri.parse(playUrl),
-      httpHeaders: <String, String>{
-        'User-Agent':
-            'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 '
-                '(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-        'Referer': '${HentaiApi.frontBase}/',
-      },
+      httpHeaders: headers,
       // HLS is intentional: ExoPlayer cannot infer it from the CDN path.
       formatHint: stream.isHls ? VideoFormat.hls : VideoFormat.other,
+      videoPlayerOptions:
+          VideoPlayerOptions(allowBackgroundPlayback: AppPrefs.I.audioOnly),
     );
     _player = controller;
     controller.addListener(() => _playerListener(controller));
@@ -211,9 +275,12 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
         title: _series.title, poster: _series.thumb, kind: 'hh'));
     await controller.play();
     _setKeepScreenOn(true);
+    unawaited(AudioMode.keepAlive(AppPrefs.I.audioOnly, title: _series.title));
+    int ticks = 0;
     _positionTicker =
         Timer.periodic(const Duration(milliseconds: 400), (_) {
       if (mounted) setState(() {});
+      if (++ticks % 12 == 0) _saveProgress(); // every ~5 s
     });
     _bumpControls();
     setState(() {
@@ -452,6 +519,12 @@ class _HhPlayerScreenState extends State<HhPlayerScreen>
           fit: StackFit.expand,
           children: <Widget>[
             _VideoArea(state: this),
+            if (AppPrefs.I.audioOnly && _player != null)
+              AudioOnlyCover(
+                  poster: _stream?.poster ?? _series.thumb,
+                  title: _series.title,
+                  onExit: _toggleAudioOnly),
+            TimedCommentsLayer(social: _social, controller: _player),
             // Controls overlay
             AnimatedOpacity(
               opacity: _controlsVisible ? 1 : 0,
@@ -866,7 +939,21 @@ class _BottomControls extends StatelessWidget {
                       fontSize: 11,
                       color: Colors.white)),
               Expanded(
-                child: SliderTheme(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 13),
+                      child: HeatStrip(
+                        social: state._social,
+                        duration: dur,
+                        onSeek: (Duration d) {
+                          state._player?.seekTo(d);
+                          state._bumpControls();
+                        },
+                      ),
+                    ),
+                    SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     trackHeight: 3.4,
                     thumbShape: const RoundSliderThumbShape(
@@ -898,12 +985,38 @@ class _BottomControls extends StatelessWidget {
                         : null,
                   ),
                 ),
+                  ],
+                ),
               ),
               Text(dur > Duration.zero ? state._fmt(dur) : 'مباشر',
                   style: const TextStyle(
                       fontFamily: 'Plex',
                       fontSize: 11,
                       color: Colors.white)),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              MomentsMenuButton(
+                social: state._social,
+                controller: state._player,
+                onSeek: (Duration d) {
+                  state._player?.seekTo(d);
+                  state._bumpControls();
+                },
+              ),
+              IconButton(
+                key: const Key('audioOnlyToggle'),
+                tooltip: 'صوت فقط',
+                icon: Icon(
+                    AppPrefs.I.audioOnly
+                        ? Icons.headphones_rounded
+                        : Icons.headset_off_rounded,
+                    color: AppPrefs.I.audioOnly ? HhColors.red : Colors.white,
+                    size: 21),
+                onPressed: state._player == null ? null : state._toggleAudioOnly,
+              ),
             ],
           ),
           if (state._episodes.length > 1) ...<Widget>[
